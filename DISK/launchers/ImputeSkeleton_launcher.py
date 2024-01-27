@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import ImputeSkeleton
+import DISK
 import argparse
 import os
 import sys
@@ -38,7 +38,9 @@ def main():
     if args.progress_bar:
         show_progress_bar = True
 
-    ImputeSkeleton.app_module1.appfunction_of_module1(loglevel = verboselevel, progress_bar = show_progress_bar, resources = PYCKAGE_RESOURCES_DIR, args=vars(args))
+    DISK.app_module1.appfunction_of_module1(loglevel=verboselevel,
+                                                      progress_bar=show_progress_bar,
+                                                      resources=PYCKAGE_RESOURCES_DIR, args=vars(args))
 
 if __name__ == "__main__":
     main()

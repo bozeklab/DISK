@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 from torch.nn.init import xavier_uniform_
 from omegaconf import DictConfig
-from ImputeSkeleton.models.transformer_utils import EncoderLayer, Normalization, LearnablePositionalEncoding, \
+from DISK.models.transformer_utils import EncoderLayer, Normalization, LearnablePositionalEncoding, \
     FixedPositionalEncoding
-from ImputeSkeleton.models.distribution_head import NormalOutput
+from DISK.models.distribution_head import NormalOutput
 
 
 class InputEncoding(nn.Module):

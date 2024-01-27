@@ -5,17 +5,17 @@ import os
 import sys
 
 setup(
-    name='ImputeSkeleton',
+    name='DISK',
     version='0.1',
-    description="Enter your project description here (short)",
+    description="Deep Imputation of SKeleton data",
     long_description="Enter your project description here (long)",
-    author='NONE',
-    author_email="NONE",
+    author='France ROSE',
+    author_email="france.rose@wanadoo.fr",
     packages=find_packages("."),
     url="NONE",
     install_requires=[],
-    package_data={'ImputeSkeleton': ['resources/*']},
+    package_data={'DISK': ['resources/*']},
     entry_points={'console_scripts': [
-        "ImputeSkeleton = ImputeSkeleton.launchers.ImputeSkeleton_launcher:main",
+        "DISK = DISK.launchers.DISK_launcher:main",
     ]},
 )

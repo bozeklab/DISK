@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ImputeSkeleton.models.graph import Graph
+from DISK.models.graph import Graph
 
 
 #############################################################################

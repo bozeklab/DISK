@@ -41,7 +41,7 @@ input_files:
   - ...
 ```
 
-Launch: `python ImputeSkeleton/create_dataset.py`
+Launch: `python DISK/create_dataset.py`
 
 ## 3. Use uniform probability to create missing holes
 

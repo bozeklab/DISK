@@ -3,7 +3,7 @@ import os
 import torch
 import torch.nn as nn
 from omegaconf import DictConfig
-from ImputeSkeleton.models.distribution_head import NormalOutput
+from DISK.models.distribution_head import NormalOutput
 
 
 # network module only set encoder to be bidirectional

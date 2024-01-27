@@ -9,10 +9,10 @@ import importlib.util
 import logging
 from tqdm import tqdm
 
-from ImputeSkeleton.utils.coordinates_utils import f2m, create_skeleton_plot, create_seq_plot
-from ImputeSkeleton.utils.transforms import transform_x
-from ImputeSkeleton.utils.utils import find_holes
-from ImputeSkeleton.models.graph import Graph
+from DISK.utils.coordinates_utils import f2m, create_skeleton_plot, create_seq_plot
+from DISK.utils.transforms import transform_x
+from DISK.utils.utils import find_holes
+from DISK.models.graph import Graph
 
 
 def load_datasets(dataset_name, dataset_constants, suffix='', dataset_type='supervised', root_path='', **kwargs):

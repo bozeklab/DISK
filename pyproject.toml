@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "imputeskeleton"
+name = "disk"
 version = "0.1.0"
 description = "DL imputation for missing skeleton data for animal behavior analysis"
 authors = ["France Rose"]

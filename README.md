@@ -91,9 +91,8 @@ If using conda/pip, you can first create a new environment:
 # if using conda environments
 conda create --name env_impute python=3.9 # requires python>=3.8,<3.10
 conda activate env_impute
-git clone https://github.com/bozeklab/ImputeSkeleton.git
-cd ImputeSkeleton
-rm poetry.lock pyproject.toml ## interferes with pip
+git clone https://github.com/bozeklab/DISK.git
+cd DISK
 ```
 
 Pytorch should first be installed with the right version of cuda toolkit 
@@ -110,18 +109,10 @@ torch.cuda.is_available()
 
 Then run for the rest of the packages:
 ```bash
-pip install -r ImputeSkeleton/requirements.txt -e .
+pip install -r DISK/requirements.txt -e .
 ```
 
-To test it, try importing the `ImputeSkeleton` in python.
-
-Or with poetry: WIP - NOT WORKING YET
-```bash
-pip install poetry
-git clone https://github.com/bozeklab/ImputeSkeleton.git
-cd ImputeSkeleton
-poetry install
-```
+To test it, try importing the `DISK` in python.
 
 # Detailed usage
 

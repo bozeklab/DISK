@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 import logging
 
-from ImputeSkeleton.utils.coordinates_utils import create_skeleton_plot, compute_svd
+from DISK.utils.coordinates_utils import create_skeleton_plot, compute_svd
 
 
 def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputdir, add_missing=True):

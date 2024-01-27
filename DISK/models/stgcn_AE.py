@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from ImputeSkeleton.models.graph import Graph
-from ImputeSkeleton.models.st_gcn import st_gcn, rst_gcn
+from DISK.models.graph import Graph
+from DISK.models.st_gcn import st_gcn, rst_gcn
 
 
 class STGCN_Model(nn.Module):

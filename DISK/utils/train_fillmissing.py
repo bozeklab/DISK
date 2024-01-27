@@ -2,11 +2,11 @@ import numpy as np
 import torch
 import logging
 
-from ImputeSkeleton.models.TCN import TemporalConvNet
-from ImputeSkeleton.models.stgcn_AE import STGCN_Model
-from ImputeSkeleton.models.sts_gcn import STS_GCN
-from ImputeSkeleton.models.GRU_models import BiGRU
-from ImputeSkeleton.models.transformer import TransformerModel
+from DISK.models.TCN import TemporalConvNet
+from DISK.models.stgcn_AE import STGCN_Model
+from DISK.models.sts_gcn import STS_GCN
+from DISK.models.GRU_models import BiGRU
+from DISK.models.transformer import TransformerModel
 
 
 def _rmse(data, de_out, mask_holes_tensor, n_missing_per_sample):

@@ -17,12 +17,12 @@ import gc
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
-from ImputeSkeleton.utils.dataset_utils import load_datasets
-from ImputeSkeleton.utils.utils import read_constant_file, plot_save, compute_interp, find_holes, load_checkpoint
-from ImputeSkeleton.utils.transforms import init_transforms, reconstruct_before_normalization
-from ImputeSkeleton.utils.train_fillmissing import construct_NN_model, feed_forward_list, compute_loss
-from ImputeSkeleton.utils.coordinates_utils import plot_sequence
-from ImputeSkeleton.models.graph import Graph
+from DISK.utils.dataset_utils import load_datasets
+from DISK.utils.utils import read_constant_file, plot_save, compute_interp, find_holes, load_checkpoint
+from DISK.utils.transforms import init_transforms, reconstruct_before_normalization
+from DISK.utils.train_fillmissing import construct_NN_model, feed_forward_list, compute_loss
+from DISK.utils.coordinates_utils import plot_sequence
+from DISK.models.graph import Graph
 
 import torch
 import torch.nn as nn

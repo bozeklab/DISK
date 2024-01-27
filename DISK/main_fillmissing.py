@@ -13,12 +13,12 @@ import pandas as pd
 import hydra
 from omegaconf import DictConfig
 
-from ImputeSkeleton.utils.dataset_utils import load_datasets
-from ImputeSkeleton.utils.utils import read_constant_file, plot_training, timeSince, load_checkpoint, \
+from DISK.utils.dataset_utils import load_datasets
+from DISK.utils.utils import read_constant_file, plot_training, timeSince, load_checkpoint, \
     save_checkpoint
-from ImputeSkeleton.utils.transforms import init_transforms
-from ImputeSkeleton.utils.train_fillmissing import construct_NN_model, feed_forward, compute_loss
-from ImputeSkeleton.utils.transformer_lr_scheduler import TransformerLRScheduler
+from DISK.utils.transforms import init_transforms
+from DISK.utils.train_fillmissing import construct_NN_model, feed_forward, compute_loss
+from DISK.utils.transformer_lr_scheduler import TransformerLRScheduler
 
 import torch
 import torch.nn as nn

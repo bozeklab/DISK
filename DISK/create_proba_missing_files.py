@@ -11,9 +11,9 @@ from torch.utils.data import DataLoader
 import hydra
 from omegaconf import DictConfig
 
-from ImputeSkeleton.utils.dataset_utils import load_datasets
-from ImputeSkeleton.utils.utils import read_constant_file, plot_save, find_holes
-from ImputeSkeleton.utils.transforms import AddMissing_LengthProba
+from DISK.utils.dataset_utils import load_datasets
+from DISK.utils.utils import read_constant_file, plot_save, find_holes
+from DISK.utils.transforms import AddMissing_LengthProba
 
 
 def create_uniform_proba(min_len, max_len, keypoints):
