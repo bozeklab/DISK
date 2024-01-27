@@ -97,7 +97,7 @@ cd DISK
 
 Pytorch should first be installed with the right version of cuda toolkit 
 `conda install pytorch==1.9.1 cudatoolkit=11.3 -c pytorch -c conda-forge`, check [this page](https://pytorch.org/get-started/previous-versions/).
-
+(`conda install pytorch==1.9.1 cudatoolkit=11.1 -c pytorch -c conda-forge` worked for me in one occurence.)
 
 **[VERY IMPORTANT]** To test that pytorch is seeing the GPU, you can test it in python:
 ```python
