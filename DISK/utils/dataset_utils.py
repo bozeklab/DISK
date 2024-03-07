@@ -55,10 +55,12 @@ class ParentDataset(data.Dataset):
                  transform: list,
                  outputdir: str,
                  skeleton_file: str,
+                 *args,
+                 label_type: str=None,
                  verbose: int = 0,
                  **kwargs
                  ):
-        self.data_dict = np.load(file)
+        self.data_dict = np.load(file, allow_pickle=True)
         self.X = self.data_dict['X']  # shape (batch, max_len, features)
         if 'y' in self.data_dict.keys():
             self.y = self.data_dict['y']
@@ -87,6 +89,7 @@ class ParentDataset(data.Dataset):
         self.transform = transform
 
         self.outputdir = outputdir
+        self.label_type = label_type
         self.verbose = verbose
 
     def _get_sample(self, index: int):
@@ -147,7 +150,7 @@ class ParentDataset(data.Dataset):
             fig.write_html(os.path.join(self.outputdir, f"data_transform_{index}.html"))
 
         """Fill the holes with the given placeholder"""  # transform the nans to 0s for the NN
-        mask_holes = np.isnan(x_coordinates)[..., 0] # True if hole, False else
+        mask_holes = np.isnan(x_coordinates)[..., 0]  # True if hole, False else
 
         x_coordinates[mask_holes] = self.kwargs['fillvalue_coordinates']
         # here change nans of x_coordinates into 0 in final_x
@@ -164,7 +167,7 @@ class ParentDataset(data.Dataset):
         torch_min = torch.from_numpy(self.kwargs['min_sample']).type(torch.float)
         torch_max = torch.from_numpy(self.kwargs['max_sample']).type(torch.float)
 
-        output = dict(X=final_x,  # shape (timepoints, n_keypoints, 3 or 4)
+        output = dict(X=final_x,  # shape (timepoints, n_keypoints, 2 to 4)
                       original_mask=m,  # shape (timepoints, n_keypoints)
                       mask_holes=new_m,  # shape (timepoints, n_keypoints)
                       length_seq=z,
@@ -189,7 +192,7 @@ class ParentDataset(data.Dataset):
             output['indices_file'] = sample['i_file']
             output['indices_pos'] = sample['i_pos']
 
-        if 'y' in sample and sample['y'] is not None:
+        if self.label_type is not None and 'y' in sample and sample['y'] is not None:
             output['label'] = torch.from_numpy(sample['y']).type(torch.float)
 
         return output
@@ -258,7 +261,7 @@ class FullLengthDataset(ParentDataset):
                  **kwargs):
 
         super(FullLengthDataset, self).__init__(file, dataset_constants, transform, outputdir, skeleton_file,
-                                                verbose)
+                                                verbose, **kwargs)
         self.time = self.data_dict['time']  # shape (batch, max_len time)
 
         self.freq = freq
@@ -286,11 +289,11 @@ class FullLengthDataset(ParentDataset):
             file_time = file_time[file_time > -1]
             breakpoints = np.where(np.diff(file_time) > 1 / self.freq + 1e-9)[0]
             breakpoints = np.insert(breakpoints, 0, 0)  # add first point = index 0
-            # if -1 in file_time:
-            #     end_point = np.where(file_time == -1)[0][0]
-            # else:
+            if -1 in file_time:
+                end_point = np.where(file_time == -1)[0][0]
+            else:
                 # it is the max sequence
-            end_point = len(file_time)
+                end_point = len(file_time)
             breakpoints = np.insert(breakpoints, len(breakpoints), end_point)  # add first point = index 0
             # is the segment longer than our lower bound
             good_segments = np.where(np.diff(breakpoints) >= self.length_sample)[0]
@@ -313,7 +316,11 @@ class FullLengthDataset(ParentDataset):
         i_pos = self.possible_indices[index, 1]
         x = self.X[i_file, i_pos: i_pos + self.length_sample]
         if self.y is not None:
-            y = np.array([self.y[i_file, :]])
+            if len(self.y[i_file]) == len(self.time[i_file][self.time[i_file] > -1]):
+                # case of MABe
+                y = np.array([[self.y[i_file][(i_pos + i_pos + self.length_sample) // 2]]])
+            else:
+                y = np.array([self.y[i_file]])
         else:
             y = None
         m = self.mask[i_file, i_pos: i_pos + self.length_sample]

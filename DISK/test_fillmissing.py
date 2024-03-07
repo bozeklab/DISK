@@ -20,7 +20,7 @@ from omegaconf import DictConfig, OmegaConf
 from DISK.utils.dataset_utils import load_datasets
 from DISK.utils.utils import read_constant_file, plot_save, compute_interp, find_holes, load_checkpoint
 from DISK.utils.transforms import init_transforms, reconstruct_before_normalization
-from DISK.utils.train_fillmissing import construct_NN_model, feed_forward_list, compute_loss
+from DISK.utils.train_fillmissing import construct_NN_model, feed_forward_list
 from DISK.utils.coordinates_utils import plot_sequence
 from DISK.models.graph import Graph
 
@@ -122,7 +122,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                              suffix='_w-0-nans',
                                                              root_path=basedir,
                                                              outputdir=outputdir,
-                                                             label_type='all',  # don't care, not using
+                                                             label_type=None,  # don't care, not using
                                                              verbose=_cfg.feed_data.verbose,
                                                              keypoints_bool=True,
                                                              skeleton_file=skeleton_file_path,
@@ -133,14 +133,6 @@ def evaluate(_cfg: DictConfig) -> None:
     test_loader = DataLoader(test_dataset, batch_size=_cfg.evaluate.batch_size, shuffle=False,
                              num_workers=_cfg.evaluate.n_cpus, persistent_workers=True)
 
-    # for model, cfg_model in zip(models, model_configs):
-    #     criterion_seq = nn.L1Loss(reduction='none')
-    #     with torch.no_grad():
-    #         ave_loss_eval, ave_rmse_eval, _ = compute_loss(model, test_loader, dataset_constants.DIVIDER,
-    #                                                        criterion_seq, cfg_model, device)
-    #     logging.info(f'TEST model ave loss {ave_loss_eval}, {ave_rmse_eval}')
-
-    # not really used here but necessary for compatibility with some called functions
     criterion_seq = nn.L1Loss(reduction='none')
 
     visualize_val_outputdir = os.path.join(outputdir, 'visualize_prediction_val')
@@ -163,7 +155,7 @@ def evaluate(_cfg: DictConfig) -> None:
             for ind, data_dict in tqdm.tqdm(enumerate(test_loader), desc='Iterating on batch', total=len(test_loader)):
                 """Compute the prediction from networks"""
 
-                data_with_holes = data_dict['X'].to(device)
+                data_with_holes = data_dict['X'].to(device)  # shape (timepoints, n_keypoints, 2 or 3 or 4)
                 data_full = data_dict['x_supp'].to(device)
                 mask_holes = data_dict['mask_holes'].to(device)
                 assert not torch.any(torch.isnan(data_with_holes))
@@ -187,16 +179,14 @@ def evaluate(_cfg: DictConfig) -> None:
 
                 reshaped_mask_holes = np.repeat(mask_holes_np, dataset_constants.DIVIDER, axis=-1).reshape(full_data_np.shape)
                 # gives the total number of missing values in a sample (can be from multiple keypoints):
-                n_missing = np.sum(mask_holes_np, axis=(1, 2))
+                n_missing = np.sum(mask_holes_np, axis=(1, 2))  ## (batch,)
 
                 x_outputs_np = [out.detach().cpu().numpy() for out in de_outs]
                 if _cfg.evaluate.original_coordinates:
                     x_outputs_np = [reconstruct_before_normalization(out, data_dict, transforms)
                                for out in x_outputs_np]
 
-                # first dimension uncertainty_out is an artefact, always 1
-                # second dimension (list) has the length (number of models)
-                # then inside are tensor of size (batch, time, keypoints, 3D) if mu_sigma GRU model
+                # List(number of models) of tensors of size (batch, time, keypoints, 3D) if mu_sigma GRU or transformer model
                 ## TODO: need to scale this in case of original coordinates!!
                 uncertainty_estimates_np = [unc if unc is None else unc.detach().cpu().numpy() for unc in uncertainty_estimates]
                 uncertainty = [unc if unc is None else np.sum(np.sqrt((unc ** 2) * reshaped_mask_holes), axis=3)
@@ -269,7 +259,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                       o[1]]
                         id_hole += 1
 
-                    ## the sample as a whole, not hoel by hole
+                    ## the sample as a whole, not hole by hole
                     if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   'linear_interp', 'linear_interp',
@@ -314,7 +304,8 @@ def evaluate(_cfg: DictConfig) -> None:
 
                         def make_xyz_plot():
                             fig, axes = plt.subplots(dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER,
-                                                     figsize=(max(dataset_constants.SEQ_LENGTH // 10, 20),
+                                                     figsize=(max(dataset_constants.SEQ_LENGTH // 10,
+                                                                  dataset_constants.DIVIDER * 7),
                                                               dataset_constants.NUM_FEATURES),
                                                      sharex='all', sharey='col')
                             axes = axes.flatten()

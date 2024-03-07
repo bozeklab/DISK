@@ -58,8 +58,7 @@ if __name__ == '__main__':
 
     percentage_missing = np.mean([np.sum(v) / np.sum(train_dataset.time[i] != -1) for i, v in enumerate(X > 0)]) * 100
     print(f'Percentage of timepoints with at least one missing keypoint: {percentage_missing:.02f} %')
-    import sys
-    sys.exit(1)
+
     ## same thing but with
     max_columns = max(1000, int(np.sqrt(X.shape[0] * X.shape[1] / seq_length)))
     if X.shape[1] >= max_columns * seq_length:

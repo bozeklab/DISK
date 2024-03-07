@@ -239,7 +239,8 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
                 pivot_df.loc[pivot_df['original'], 'count'] /= pivot_df.loc[pivot_df['original'], 'count'].sum()
             pivot_df.loc[~pivot_df['original'], 'count'] /= pivot_df.loc[~pivot_df['original'], 'count'].sum()
             print(pivot_df['count'])
-            sns.catplot(data=pivot_df, x='count', hue='original', y='keypoint', orient='h', alpha=0.9, height=max(5, len(keypoints) // 2))
+            sns.catplot(data=pivot_df, x='count', hue='original', y='keypoint', orient='h', alpha=0.9,
+                        height=max(5, len(keypoints) // 10))
             if no_original_missing:
                 plt.axvline(x=1 / len(keypoints), label='original')
 
