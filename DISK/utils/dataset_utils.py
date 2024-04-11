@@ -377,8 +377,8 @@ class ImputeDataset(FullLengthDataset):
                     # not long enough to make a segment with the correct padding on the right and on the left
                     continue
                 mask = np.any(np.isnan(self.X[recording]), axis=1)[start: stop]
-                holes = find_holes(mask[:, np.newaxis], ['all'], indep=False)
-                logging.debug(f'holes {holes}')
+                holes = find_holes(mask[:, np.newaxis], ['all'], indep=False, target_val=True)
+                # logging.debug(f'holes {holes}')
                 n_total += np.sum([h[1] for h in holes])
 
                 for ihole in range(len(holes)):
@@ -431,7 +431,7 @@ class ImputeDataset(FullLengthDataset):
                                 stop_segment = stop_segment + possible_extension_right
 
                         len_sample = stop_segment - start_segment
-                        logging.debug(f'{ihole}, {start_segment}, {stop_segment}, {len_sample}')
+                        # logging.debug(f'{ihole}, {start_segment}, {stop_segment}, {len_sample}')
                         n_imputed += holes[ihole][1]
                         assert len_sample <= self.seq_length
                         assert np.all(~mask[start_segment: start_segment + self.padding[0]])
@@ -457,7 +457,8 @@ class ImputeDataset(FullLengthDataset):
         logging.info(
             f'Found {n_imputed} imputable timepoints over the {n_total} total missing timepoints '
             f'({n_imputed / n_total * 100:.1f} %)')
-        logging.info(f'Lengths of imputable segments: {np.percentile(np.array(possible_indices)[:, -1], (25, 50, 75))}')
+        logging.info(f'Lengths of imputable segments (25th, 50th, 75th percentiles): '
+                     f'{np.percentile(np.array(possible_indices)[:, -1], (25, 50, 75))}')
         return np.array(possible_indices)
 
     def __len__(self):
@@ -485,20 +486,44 @@ class ImputeDataset(FullLengthDataset):
                   'index': index}
         return sample
 
-    def update_dataset(self, index, new_x):
+    def update_dataset(self, index, new_x, uncertainty=None, threshold=0):
         idx = index
-        new_x_np = new_x
+        new_x_np = new_x.reshape(new_x.shape[0], new_x.shape[1], -1)
         i_file = self.possible_indices[idx, 0]
         i_pos = self.possible_indices[idx, 1]
         len_ = self.possible_indices[idx, 2]
 
+        try:
+            len(i_file)
+            pass
+        except Exception:
+            i_file = [[i_file], ]
+            i_pos = [[i_pos], ]
+            len_ = [[len_], ]
+
         for ii in range(len(i_file)):
-            m = self.mask[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0], ..., 0]
-            logging.debug(f'[WARNING] Updating {i_file[ii][0]} at pos {i_pos[ii][0]}: {i_pos[ii][0] + len_[ii][0]} '
-                         f'with vector with {np.sum(~m)} NaN')
-            for idim in range(self.divider):
-                self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0], idim::self.original_divider][m] = new_x_np[ii][:len_[ii][0], :, idim][m]
-                self.mask[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][m] = True
-            if self.original_divider > self.divider:  # only for Qualisys Mocap
-                self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0], self.divider::self.original_divider][m] = 2
+            m = self.mask[i_file[ii][0]][i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]]
+
+            if uncertainty is not None:
+                unc = np.sum(uncertainty[ii, :len_[ii][0]]) / np.sum(m)
+            else:
+                unc = None
+
+            if unc is None or unc <= threshold:
+                logging.debug(
+                f'[WARNING] Updating {i_file[ii][0]} at pos {i_pos[ii][0]}: {i_pos[ii][0] + len_[ii][0]} '
+                f'with vector with {np.sum(m)} NaN and uncertainty {unc}')
+                if self.original_divider == self.divider:
+                    self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][~m] = new_x_np[ii][:len_[ii][0]][~m]
+                    self.mask[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][~m] = True
+                else:  # only for Qualisys Mocap
+                    dims = [i for i in range(self.X.shape[-1]) if i != 0 and i % self.divider == 0]
+                    self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0], dims][~m] = new_x_np[ii][:len_[ii][0]][~m]
+                    self.mask[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][~m] = True
+                    self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0], self.divider::self.original_divider][~m] = 2
+            else:
+                logging.info(
+                f'[WARNING] NOT Updating {i_file[ii][0]} at pos {i_pos[ii][0]}: {i_pos[ii][0] + len_[ii][0]} '
+                f'with vector with {np.sum(m)} NaN and uncertainty {unc}')
+
 

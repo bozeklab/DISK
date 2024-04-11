@@ -133,7 +133,7 @@ def evaluate(_cfg: DictConfig) -> None:
     dataset_constants = read_constant_file(constant_file_path)
     if _cfg.dataset.skeleton_file is not None:
         skeleton_file_path = os.path.join(basedir, 'datasets', _cfg.dataset.skeleton_file)
-        skeleton_graph = Graph(file=_cfg.dataset.skeleton_file)
+        skeleton_graph = Graph(file=skeleton_file_path)
         if not os.path.exists(skeleton_file_path):
             raise ValueError(f'no skeleton file found in', skeleton_file_path)
     else:
@@ -248,7 +248,19 @@ def evaluate(_cfg: DictConfig) -> None:
 
                     x_output_np = de_out[0].detach().cpu().numpy()
                     x_output_np = reconstruct_before_normalization(x_output_np, data_dict, transforms)
-                    dataset.update_dataset(data_dict['index'], x_output_np)
+
+                    mask_holes_np = mask_holes.detach().cpu().numpy()
+
+                    if de_out[1] is not None:
+                        reshaped_mask_holes = np.repeat(mask_holes_np, dataset_constants.DIVIDER, axis=-1)\
+                                              .reshape(x_output_np.shape)
+                        uncertainty = np.sum(
+                        np.sqrt((de_out[1].detach().cpu().numpy() ** 2) * reshaped_mask_holes),
+                        axis=3)  # sum on the keypoint on dimension, shape (batch, time, keypoint)
+                    else:
+                        uncertainty = None
+                    dataset.update_dataset(data_dict['index'], x_output_np, uncertainty,
+                                                                threshold=_cfg.evaluate.threshold_error_score)
 
                     """VISUALIZATION, only first batch"""
                     if _cfg.evaluate.n_plots > 0 and n_plots <= _cfg.evaluate.n_plots:
@@ -261,10 +273,10 @@ def evaluate(_cfg: DictConfig) -> None:
                                                   min(untransformed_data_np.shape[0], _cfg.evaluate.n_plots),
                                                   replace=False):
                             if skeleton_graph is not None:
-                                plot_sequence(transformed_data_np[i, 1:], x_output_np[i, 1:], mask_holes[i, 1:].astype('int'), skeleton_graph,
+                                plot_sequence(transformed_data_np[i, 1:], x_output_np[i, 1:], mask_holes_np[i, 1:].astype('int'), skeleton_graph,
                                               nplots=15,
                                               save_path=os.path.join(visualize_val_outputdir,
-                                                                     f'traj3D_{data_dict["i_file"][i]}-{data_dict["i_pos"][i]}{_cfg.evaluate.suffix}'),
+                                                                     f'traj3D_{data_dict["indices_file"][i]}-{data_dict["indices_pos"][i]}{_cfg.evaluate.suffix}'),
                                               size=2, normalized_coordinates=False)
 
                             def make_xyz_plot():
