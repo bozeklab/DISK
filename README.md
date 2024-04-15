@@ -200,13 +200,15 @@ For the creation of proba missing files, the easiest way is to launch
 
 The steps 1.1 and 1.2 can be skipped if using already prepared datasets like the following.
 
-The method has originally been tested on 5 datasets:
-- 2 motion capture mouse datasets (FL2 and CLB) with 8 keypoints
+The method has originally been tested on 7 datasets:
+- 2 motion capture mouse datasets (FL2 and CLB) with 8 keypoints (in house)
 - 1 motion capture rat dataset (Rat7M) with 20 keypoints [paper](https://www.nature.com/articles/s41592-021-01106-6)
-- 1 motion capture human dataset (MoCap) with 20 keypoints from
-- 1 video tracking drosophila dataset (DF3D) with 38 keypoints [paper](https://elifesciences.org/articles/48571)
+- 1 motion capture human dataset (MoCap) with 20 keypoints from the CMU Graphics Lab Motion Capture Database downloaded from [here](https://ericguo5513.github.io/action-to-motion/#data)
+- 1 3D video tracking drosophila dataset (DF3D) with 38 keypoints [paper](https://elifesciences.org/articles/48571)
+- 1 3D video tracking 2-Zebrafish dataset(2Fish) with 6 keypoints [paper](https://www.biorxiv.org/content/10.1101/2023.11.21.567896v1)
+- 1 3D video tracking 2-mice dataset (2Mice-2D) with 16 keypoints from the [AICrowd challenge](https://www.aicrowd.com/challenges/multi-agent-behavior-representation-modeling-measurement-and-applications/problems/mabe-task-1-classical-classification)
 
-They can be directly used to train and test, and are available for download here (TODO: Need link to download them).
+Some of them can be directly used to train and test, and are available for download [here](https://drive.google.com/drive/folders/1rt5YVVyPi-4yxaBMA39dr8AO5h7DOARH?usp=sharing).
 
 
 ## Step 2. Train a model

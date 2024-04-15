@@ -220,7 +220,7 @@ def create_dataset(_cfg: DictConfig) -> None:
     # and we want to count the number of effective files
     for i_file, f in tqdm.tqdm(enumerate(_cfg.input_files)):
 
-        # one partiton for one file, even if some will be missing because of too many nans
+        # one partition for one file, even if some will be missing because of too many nans
         # TODO: test it with low number of files plot
         if i_file % 10 == 1:
             partition = 'val'
