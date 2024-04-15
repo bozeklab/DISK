@@ -1,0 +1,8 @@
+num_layers: 4
+size_layer: 128
+kernel_size: 3
+dropout: 0.2
+type: 'ST_GCN'
+linear_input: False
+uncertainty_branch: False
+mu_sigma: False

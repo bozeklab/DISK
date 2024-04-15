@@ -1,0 +1,10 @@
+de_num_layers: 2
+en_num_layers: 2
+num_layers: 2
+size_layer: 256
+kernel_size: 3
+dropout: 0.2
+type: 'STS_GCN'
+linear_input: false
+uncertainty_branch: false
+mu_sigma: false

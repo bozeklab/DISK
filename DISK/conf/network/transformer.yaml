@@ -1,0 +1,12 @@
+type: 'transformer'
+input_type: 'independent'  # mixed or independent
+encoding: 'fixed'  # if input_type 'mixed'; 'fixed' or 'learnable', otherwise doesn't matter
+num_layers: 4
+dim_ff: 128
+d_model: 128
+num_heads: 8
+activation: 'relu'
+norm_first: True
+attn_type: 'standard'
+norm: 'layer'
+dropout: 0

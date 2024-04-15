@@ -1,0 +1,4 @@
+num_layers: 3
+dropout: 0
+type: 'GRU'
+size_layer: 512

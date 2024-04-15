@@ -1,0 +1,42 @@
+hydra:
+  run:
+    ## TOCHANGE
+    ## path to outputdir relative to working directory
+    dir: outputs/2023-10-26_treadmill_longer/01-12-23_transformer/impute #${now:%Y-%m-%d}_testdebug_impute_Mocap
+  job:
+    chdir: True
+
+dataset:
+  ## TOCHANGE
+  ## name of the dataset folder (should exist in datasets/)
+  ## make sure the dataset for imputation is compatible is the one the model has been trained on (especially for sequnce length)
+  name: TM_pulledxp_freq300_300stride25_new
+  skeleton_file: ## optional, only used for ST-GCN backbone, can be left blank
+
+feed_data:
+  ## to adjust the verbosity of the output, 0 not verbose, 1 or 2
+  ## produces (a lot of) plots to check transforms
+  verbose: 0
+  pad: [1, 1]
+  batch_size: 8
+
+evaluate:
+  ## TOCHANGE
+  ## path to checkpoint folder, relative to working directory
+  checkpoint: outputs/2023-10-26_treadmill_longer/01-12-23_transformer
+
+  n_cpus: 6
+  ## TOCHANGE, n_plots number of desired plots
+  n_plots: 20
+  ## save: boolean to save plots
+  save: true
+  ## save_dataset: boolean to save the imputed dataset
+  save_dataset: true
+  ## only_holes: bool, for the plots
+  only_holes: true
+  ## suffix: string, for the name of save plots
+  suffix:
+  ## will look into the model config to name the model (plot legend)
+  name_items:
+  - - network
+    - type

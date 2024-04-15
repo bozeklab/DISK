@@ -1,0 +1,7 @@
+num_layers: 4
+size_layer: 256
+kernel_size: 3
+dropout: 0.2
+type: TCN
+mu_sigma: false
+uncertainty_branch: false

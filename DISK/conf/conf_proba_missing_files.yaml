@@ -1,0 +1,12 @@
+hydra:
+  job:
+    chdir: True
+  run:
+    dir: datasets/${dataset_name}
+
+dataset_name: Mocap_keypoints_60_stride30_new
+skeleton_file:
+indep_keypoints: True # if False, look at sets of simultaneous missing keypoints; if True, look at each keypoint independently
+merge_keypoints: False # if False then no merging
+## because each combination of keypoints may not have enough data points to estimate a good missing probability
+## distribution

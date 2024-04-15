@@ -1,0 +1,75 @@
+################################################################################
+### config file companion of test_fillmissing.py script
+### to test a trained neural network model for the imputation task
+### testing will be done on artificial gaps, hence the prediction can be compared
+### with ground truth
+### -> the principal parameters to change are marked with TOCHANGE
+################################################################################
+
+
+hydra:
+  run:
+    # TOCHANGE: output directory
+    dir: outputs/2024-01-09_FL2_multikp/compare_models
+    #outputs/tests/${now:%H-%M-%S}_test_model_timon
+#    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
+  job:
+    chdir: True
+
+
+dataset:
+  name: INH_FL2_keypoints_1_60_wresiduals_w1nan_stride0.5_new
+  # TOCHANGE: stride controls the translation between two samples, need to be an integer
+  # a smaller stride will produce more segments and with a higher overlap
+  stride: 5
+  skeleton_file: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #TM_pulledxp_freq300_300stride25_new/skeleton.py
+
+feed_data:
+  mask: true
+  transforms:
+    add_missing:
+      pad:
+        # here the first pad number is for the sequence padding on the left, the second number for the right padding
+        # if set to (0, 0) the artificial hole can start from the first timestep and go to the last one
+        # if set to (1, 1), the artificial hole can start from the second timestep until the previous to last one
+        # to compare with linear interpolation it should be put to (1, 1) because linear interpolation requires at
+        # least 2 anchor point on both sides of the gap
+        - 1
+        - 1
+      files:
+        # TOCHANGE: proba missing files
+        # order matters: first proba_missing, then proba_missing_length
+        # the 3rd is optional and can precise how many simultaneous missing keypoints
+      - INH_FL2_keypoints_1_60_wresiduals_w1nan_stride0.5_new/proba_missing_set_keypoints.csv
+      - INH_FL2_keypoints_1_60_wresiduals_w1nan_stride0.5_new/proba_missing_length_set_keypoints.csv
+    viewinvariant: true
+    normalize: false
+    normalizecube: true
+  verbose: 0
+
+evaluate:
+  # TOCHANGE n_cpus, to quicken the data loading is several cpus available, if not, then put 0
+  n_cpus: 6
+  # batch_size can be changed: a higher batch size will speed up the script while using more memory
+  # in the case of a memory error, lower the batch_size
+  batch_size: 8
+  checkpoints:
+    # TOCHANGE: folder which contains the saved model(s)
+    # if the given folder contains more than one model folder, then they will all be loaded
+    # you can also list several folders
+    - outputs/2024-01-09_FL2_multikp/16-45-22_transformer
+    - outputs/2024-01-09_FL2_multikp/16-51-19_GRU
+  n_plots: 1
+  azim: 60
+  size: 2.5
+  only_holes: true
+  original_coordinates: false
+  suffix: ''
+  name_items:
+  - - network
+    - type
+  - - training
+    - mu_sigma
+  merge: true
+  merge_sets_file: ''
+  n_repeat: 1
