@@ -570,10 +570,12 @@ if __name__ == '__main__':
     ### DIRECT KNN ON SEQ2SEQ LATENT SPACE
     hi_train, label_train, index_file_train, index_pos_train, statistics_train = extract_hidden(model, train_loader, dataset_constants, model_cfg,
                                            device, compute_statistics=True)
+    time_train = train_dataset.possible_times
     logging.info('Done with train hidden representation...')
 
     hi_eval, label_eval, index_file_eval, index_pos_eval, statistics_eval = extract_hidden(model, val_loader, dataset_constants, model_cfg,
                                          device, compute_statistics=True)
+    time_eval = val_dataset.possible_times
     logging.info('Done with val hidden representation...')
 
 
@@ -601,7 +603,7 @@ if __name__ == '__main__':
     for imc, mc in enumerate(metadata_columns):
         df.loc[df['train_or_test'] == 'train', mc] = label_train[:, imc]
         df.loc[df['train_or_test'] == 'eval', mc] = label_eval[:, imc]
-
+    df.loc[:, 'time'] = np.concatenate([time_train, time_eval])
 
     if 'Mocap' in model_cfg.dataset.name and 'action' in df.columns:
         reverse_dict_label = {0: 'Walk', 1: 'Wash', 2: 'Run', 3: 'Jump', 4: 'Animal Behavior', 5: 'Dance',
