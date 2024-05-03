@@ -24,7 +24,9 @@ evaluate:
   ## TOCHANGE
   ## path to checkpoint folder, relative to working directory
   checkpoint: outputs/2023-10-26_treadmill_longer/01-12-23_transformer
-
+  ## threshold used to reject bad imputed samples when the model is of type transformer_proba or GRU_proba
+  ## to have an idea about the value to put, look at plots output of the test script
+  threshold_error_score: 0.1
   n_cpus: 6
   ## TOCHANGE, n_plots number of desired plots
   n_plots: 20

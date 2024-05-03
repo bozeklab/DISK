@@ -106,7 +106,7 @@ def open_and_extract_data(f):
         # make sure the keypoints are always in the same order even if not saved so in the original files
         new_order = np.argsort(keypoints)
         keypoints = [keypoints[n] for n in new_order]
-        data = data[:, new_order,:]
+        data = data[:, new_order, :]
 
     elif os.path.splitext(f)[1] == '.csv':
         ## for fish data from Liam
@@ -369,7 +369,7 @@ def create_dataset(_cfg: DictConfig) -> None:
             np.savez(outputfile, X=subdata, lengths=sublengths)
 
             outputfile = os.path.join(outputdir, f'{partition}_fulllength_dataset_w-{nan_name}-nans')
-            print(f'saving in {outputfile}...')
+            print(f'saving in {outputfile}...', np.array(fulllength_original_files[(nan_name, partition)]))
             np.savez(outputfile, X=sub_fulllength_data, time=sub_fulllength_time,
                      files=np.array(fulllength_original_files[(nan_name, partition)]))
 
