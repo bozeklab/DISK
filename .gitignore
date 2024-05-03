@@ -3,5 +3,9 @@
 outputs/
 models/
 datasets/
-conf/.ipynb_checkpoints/
+.ipynb_checkpoints/
+DISK/conf
 __pychache__/
+conf/
+.yaml
+.gitignore

@@ -37,8 +37,12 @@ def save_data_original_format(data, time, keypoints, file, file_type, new_folder
     if file_type == 'mocap_rat':
         mat = loadmat(file)
         # for Rat7M dataset
-        mat['mocap'][0][0] = np.moveaxis(data, 0, 1)
-        mat['mocap'][0][0].dtype.fields.keys = keypoints
+        # mat['mocap'][0][0].dtype.fields.keys = keypoints
+        logging.info(f'Changing file {os.path.basename(file)} from {int(time[0])} to {int(time[-1])}')
+        orig_data = np.array(list(mat['mocap'][0][0]))
+        orig_data[:, time.astype(int)] = np.moveaxis(data, 0, 1)
+        mat['mocap'] = ((orig_data,),)
+        # print(np.array(list(mat['mocap'][0][0])).shape)
         savemat(new_file, mat)
 
     elif file_type == 'mocap_qualisys':
@@ -341,11 +345,12 @@ def evaluate(_cfg: DictConfig) -> None:
                 else:
                     np.savez(os.path.join(dataset_path, f'{subset}_fulllength_dataset_imputed.npz'),
                              X=dataset.X, y=dataset.y, time=dataset.time)
-                print(dataset.input_files)
-                if dataset.input_files is not None:
-                    for i_f, f in enumerate(dataset.input_files):
+
+                if dataset.files is not None:
+                    for i_f, f in enumerate(dataset.files):
                         print(f)
-                        save_data_original_format(dataset.X[i_f], dataset.time[i_f], dataset_constants.KEYPOINTS, f[0],
+                        save_data_original_format(dataset.X[i_f], dataset.time[i_f], dataset_constants.KEYPOINTS, 
+                                                  os.path.join(basedir, _cfg.evaluate.path_to_original_files, f[0]),
                                                   f[1], data_subpath, cfg_dataset)
 
                 new_dataset = []

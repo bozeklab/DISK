@@ -6,6 +6,7 @@ hydra:
 
 dataset_name: Rat7M_seq_60stride30_fill10 # output name for the created dataset
 
+
 # frequencies (in Hz):
 # original frequency of your data
 original_freq: 30

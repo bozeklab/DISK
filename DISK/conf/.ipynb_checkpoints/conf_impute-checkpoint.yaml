@@ -18,7 +18,7 @@ feed_data:
   ## produces (a lot of) plots to check transforms
   verbose: 0
   pad: [1, 1]
-  batch_size: 8
+  batch_size: 1
 
 evaluate:
   ## TOCHANGE
