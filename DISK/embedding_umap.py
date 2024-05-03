@@ -154,9 +154,11 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
         raise NotImplementedError
 
     for ith, data_dict in tqdm(enumerate(data_loader), total=len(data_loader), ascii=True, desc='Extract hidden'):
+        if ith >= 2000:
+            break ## for test purposes, quicker TO REMOVE !!!!!
         input_tensor = data_dict['x_supp'].to(device)
-        index_file.append(data_dict['indices_file'])
-        index_pos.append(data_dict['indices_pos'])
+        index_file.append(data_dict['indices_file'].numpy())
+        index_pos.append(data_dict['indices_pos'].numpy())
         if 'label' in data_dict.keys():
             labels = data_dict['label']
             label_.append(torch.squeeze(labels, 1))
@@ -213,8 +215,8 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
     else:
         label_ = np.array([])
     hidden_array_ = np.vstack(hidden_array_)
-    index_pos = np.array(index_pos)
-    index_file = np.array(index_file)
+    index_pos = np.concatenate(index_pos)
+    index_file = np.concatenate(index_file)
     if compute_statistics:
         return hidden_array_, label_, index_file, index_pos, statistics
     else:
@@ -383,7 +385,7 @@ def plot_cluster_expression(df, scalar_columns, all_colors):
 
 def apply_kmeans(k, hi_train, hi_eval, df, proj_train, proj_eval, metadata_columns,
                  outputfile=''):
-    kmeans = KMeans(n_clusters=k).fit(hi_train)
+    kmeans = KMeans(n_clusters=k, n_init=10).fit(hi_train)
 
     kmeans_clustering_train = kmeans.predict(hi_train)
     kmeans_clustering_eval = kmeans.predict(hi_eval)
@@ -403,15 +405,18 @@ def apply_kmeans(k, hi_train, hi_eval, df, proj_train, proj_eval, metadata_colum
 
     # Build a dataframe with percentage of each cluster per mouse x experiment
     df_gp = df.groupby(metadata_columns + ['cluster', 'train_or_test'])['cluster'].agg('count').rename('count').reset_index()
-    df_count_per_GT = df.groupby(metadata_columns).agg('count').rename({'cluster': 'count'}, axis=1).reset_index()
-
-    def norm(x):
-        mask = (df_count_per_GT[metadata_columns[0]] == x[metadata_columns[0]])
-        for c in metadata_columns[1:]:
-            mask = mask & (df_count_per_GT[c] == x[c])
-        return x['count'] / df_count_per_GT.loc[mask, 'count'].values[0]
-
-    df_gp.loc[:, 'percent'] = df_gp.apply(norm, axis=1)
+    if len(metadata_columns) > 0:
+        df_count_per_GT = df.groupby(metadata_columns).agg('count').rename({'cluster': 'count'}, axis=1).reset_index()
+    
+        def norm(x):
+            mask = (df_count_per_GT[metadata_columns[0]] == x[metadata_columns[0]])
+            for c in metadata_columns[1:]:
+                mask = mask & (df_count_per_GT[c] == x[c])
+            return x['count'] / df_count_per_GT.loc[mask, 'count'].values[0]
+    
+        df_gp.loc[:, 'percent'] = df_gp.apply(norm, axis=1)
+    else:
+        df_gp.loc[:, 'percent'] = df_gp['count'] / df_gp.shape[0]
 
     return df, df_gp, kmeans.cluster_centers_
 
@@ -453,7 +458,7 @@ def plot_sequential(coordinates, skeleton_graph, keypoints, nplots, save_path, s
                            [- v[1], v[0], 0]])
             c = np.dot(old_vect, vect_ref)
             s = np.linalg.norm(v)
-            R = np.identity(3) + vx + vx**2 * (1 - c) / s ** 2
+            R = np.identity(3) + vx + vx**2 * (1 - c) / (s ** 2 + 1e-9)
             matrix_gt = Rotation.from_matrix(R).apply(matrix_gt)
             ax = plt.subplot(gs[idx_time], projection='3d')
             ax.view_init(elev=15., azim=azim)
@@ -499,6 +504,8 @@ if __name__ == '__main__':
     p.add_argument("--checkpoint_folder", type=str, required=True)
     p.add_argument("--stride", type=float, required=True, default='in seconds')
     p.add_argument("--suffix", type=str, default='', help='string suffix added to the save files')
+    p.add_argument("--dataset_path", type=str, default='', help='absolute path where to find datasets')
+    p.add_argument("--k", type=int, default=10, help='number of k-means clusters')
     args = p.parse_args()
 
     logging.basicConfig(level=logging.INFO,
@@ -507,18 +514,14 @@ if __name__ == '__main__':
     logging.getLogger("matplotlib").setLevel(logging.WARNING)
     logging.getLogger("numpy").setLevel(logging.WARNING)
 
-    basedir = '/projects/ag-bozek/france/results_behavior'
-    if not os.path.exists(basedir):
-        basedir = '/home/france/Mounted_dir/results_behavior'
-
     config_file = os.path.join(args.checkpoint_folder, '.hydra', 'config.yaml')
     model_cfg = OmegaConf.load(config_file)
     model_path = glob(os.path.join(args.checkpoint_folder, 'model_epoch*'))[0]  # model_epoch to not take the model from the lastepoch
 
-    dataset_constants = read_constant_file(os.path.join(basedir, 'datasets', model_cfg.dataset.name, 'constants.py'))
+    dataset_constants = read_constant_file(os.path.join(args.dataset_path, 'datasets', model_cfg.dataset.name, 'constants.py'))
 
     if model_cfg.dataset.skeleton_file is not None:
-        skeleton_file_path = os.path.join(basedir, 'datasets', model_cfg.dataset.skeleton_file)
+        skeleton_file_path = os.path.join(args.dataset_path, 'datasets', model_cfg.dataset.skeleton_file)
         if not os.path.exists(skeleton_file_path):
             raise ValueError(f'no skeleton file found in', skeleton_file_path)
         skeleton_graph = Graph(file=skeleton_file_path)
@@ -528,7 +531,7 @@ if __name__ == '__main__':
 
     """ DATA """
     transforms, _ = init_transforms(model_cfg, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
-                                 dataset_constants.SEQ_LENGTH, basedir, args.checkpoint_folder)
+                                 dataset_constants.SEQ_LENGTH, args.dataset_path, args.checkpoint_folder)
 
     logging.info('Loading datasets...')
     train_dataset, val_dataset, test_dataset = load_datasets(dataset_name=model_cfg.dataset.name,
@@ -537,7 +540,7 @@ if __name__ == '__main__':
                                                              dataset_type='full_length',
                                                              stride=args.stride,
                                                              suffix='_w-0-nans',
-                                                             root_path=basedir,
+                                                             root_path=args.dataset_path,
                                                              length_sample=dataset_constants.SEQ_LENGTH,
                                                              freq=dataset_constants.FREQ,
                                                              outputdir=args.checkpoint_folder,
@@ -564,17 +567,15 @@ if __name__ == '__main__':
                                            device, compute_statistics=True)
     logging.info('Done with train hidden representation...')
 
-    time_train = train_dataset.possible_times
-    i_file_train = train_dataset.possible_indices[:, 0]
+    time_train = train_dataset.possible_times[:hi_train.shape[0]]
     hi_eval, label_eval, index_file_eval, index_pos_eval, statistics_eval = extract_hidden(model, val_loader, dataset_constants, model_cfg,
                                          device, compute_statistics=True)
     logging.info('Done with val hidden representation...')
 
-    time_eval = val_dataset.possible_times
-    i_file_eval = val_dataset.possible_indices[:, 0]
+    time_eval = val_dataset.possible_times[:hi_eval.shape[0]]
 
-    logging.info(f'hidden vectors eval {hi_eval.shape}')
-    logging.info(f'hidden train eval {hi_train.shape}')
+    logging.info(f'hidden eval vectors {hi_eval.shape}')
+    logging.info(f'hidden train vectors {hi_train.shape}')
 
     ##############################################################################################
     ### Plot umap with different coloring
@@ -587,10 +588,7 @@ if __name__ == '__main__':
 
     # Create dataframe with metdata
     df = pd.DataFrame()
-    df.loc[:, 'train_or_test'] = np.concatenate([['train'] * len(label_train), ['eval'] * len(label_eval)])
-    latent_columns = [f'latent_{i:02d}' for i in range(hi_train.shape[1])]
-    df.loc[df['train_or_test'] == 'train', latent_columns] = hi_train
-    df.loc[df['train_or_test'] == 'eval', latent_columns] = hi_eval
+    df.loc[:, 'train_or_test'] = np.concatenate([['train'] * hi_train.shape[0], ['eval'] * hi_eval.shape[0]])
     df.loc[df['train_or_test'] == 'train', 'index_file'] = index_file_train
     df.loc[df['train_or_test'] == 'eval', 'index_file'] = index_file_eval
     df.loc[df['train_or_test'] == 'train', 'index_pos'] = index_pos_train
@@ -642,7 +640,7 @@ if __name__ == '__main__':
     proj_eval = myumap.transform(hi_eval)
     logging.info('Finished projecting on the eval')
     df.loc[df['train_or_test'] == 'train', ['umap_x', 'umap_y']] = proj_train
-    df.loc[df['train_or_test'] == 'eval', ['umap_x', 'umap_y']] = proj_eval
+    # df.loc[df['train_or_test'] == 'eval', ['umap_x', 'umap_y']] = proj_eval
 
     logging.info('Apply k-means...')
     df, df_percent, cluster_centers = apply_kmeans(args.k, hi_train, hi_eval, df, proj_train, proj_eval, metadata_columns,
@@ -658,7 +656,7 @@ if __name__ == '__main__':
     df[columns].to_csv(os.path.join(args.checkpoint_folder, f'{model_cfg.dataset.name}_metadata.csv'),
               index=False)
     np.save(os.path.join(args.checkpoint_folder, f'{model_cfg.dataset.name}_latent_train'), hi_train)
-    np.save(os.path.join(args.checkpoint_folder, f'{model_cfg.dataset.name}_latent_eval'), hi_eval)
+    # np.save(os.path.join(args.checkpoint_folder, f'{model_cfg.dataset.name}_latent_eval'), hi_eval)
     np.save(os.path.join(args.checkpoint_folder, f'{model_cfg.dataset.name}_cluster_centers'), cluster_centers)
 
     ##############################################################################################
@@ -671,7 +669,12 @@ if __name__ == '__main__':
 
     ## Find cluster representatives
     for lbl, center in zip(np.unique(df['cluster']), cluster_centers):
-        dist_to_center = cdist(df.loc[df['cluster'] == lbl, latent_columns], [center])
+        train_or_eval = df.loc[df['cluster'] == lbl, 'train_or_test'].values[0]
+        if train_or_eval == 'train':
+            train_df = df.loc[df['train_or_test'] == train_or_eval]
+            mask = (train_df['cluster'] == lbl).values
+            vect = hi_train[mask]
+            dist_to_center = cdist(vect, [center])
         indices = np.argsort(dist_to_center.flatten())[:10]
         original_indices = df.loc[df['cluster'] == lbl].index[indices]
         train_or_test = df.loc[df['cluster'] == lbl, 'train_or_test'].values[indices]
@@ -683,9 +686,9 @@ if __name__ == '__main__':
             else:
                 data_dict = val_dataset.__getitem__(ind - len(hi_train))
             coordinates.append(data_dict['x_supp'][..., :dataset_constants.DIVIDER].detach().numpy())
-            print(data_dict['label'].detach().numpy()[0, 0], data_dict['label'].detach().numpy().shape)
-            labels.append(reverse_dict_label[data_dict['label'].detach().numpy()[0, 0]])
+            # print(data_dict['label'].detach().numpy()[0, dataset_constants.METADATA.index('action')])
+            labels.append(reverse_dict_label[data_dict['label'].detach().numpy()[0, dataset_constants.METADATA.index('action')]])
         for i in range(3):
-            print(coordinates[i].shape)
+            # print(coordinates[i].shape)
             plot_sequential(coordinates[i], skeleton_graph, dataset_constants.KEYPOINTS, 20,
                             os.path.join(args.checkpoint_folder, f'cluster-{lbl}_representatives-{i}_traj3D_{labels[i]}'), size=20, azim=45)

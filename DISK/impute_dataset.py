@@ -64,6 +64,7 @@ def save_data_original_format(data, time, keypoints, file, file_type, new_folder
     elif file_type == 'npy':
         ## for human MoCap files
         np.save(new_file, np.array(data, dtype=[(k, np.float64) for k in keypoints]))
+        print('saved in ', new_file)
 
     elif file_type == 'pkl':
         ## for DeepFly data
@@ -193,7 +194,7 @@ def evaluate(_cfg: DictConfig) -> None:
 
     transforms, proba_n_missing = init_transforms(cfg_model, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
                                  dataset_constants.SEQ_LENGTH, basedir, outputdir, add_missing=False)
-
+    
     if proba_n_missing is None or np.max(np.where(proba_n_missing > 0)[0]) > 1:
         all_segments = True
     else:
@@ -340,9 +341,10 @@ def evaluate(_cfg: DictConfig) -> None:
                 else:
                     np.savez(os.path.join(dataset_path, f'{subset}_fulllength_dataset_imputed.npz'),
                              X=dataset.X, y=dataset.y, time=dataset.time)
-
-                if dataset.files is not None:
-                    for i_f, f in enumerate(dataset.files):
+                print(dataset.input_files)
+                if dataset.input_files is not None:
+                    for i_f, f in enumerate(dataset.input_files):
+                        print(f)
                         save_data_original_format(dataset.X[i_f], dataset.time[i_f], dataset_constants.KEYPOINTS, f[0],
                                                   f[1], data_subpath, cfg_dataset)
 

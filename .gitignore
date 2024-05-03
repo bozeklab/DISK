@@ -1,0 +1,7 @@
+
+*.pyc
+outputs/
+models/
+datasets/
+conf/.ipynb_checkpoints/
+__pychache__/
