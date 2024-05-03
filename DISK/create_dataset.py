@@ -319,6 +319,8 @@ def create_dataset(_cfg: DictConfig) -> None:
                         fulllength_data[(nan_name, partition)].append(new_data[indices_ttv[i_partition]: indices_ttv[i_partition + 1]].reshape(crop_len, -1))
                         fulllength_time[(nan_name, partition)].append(new_time_vect[indices_ttv[i_partition]: indices_ttv[i_partition + 1]])
                         fulllength_maxlength[(nan_name, partition)].append(crop_len)
+                        fulllength_original_files[(nan_name, partition)].append([f, file_type])
+
                     i_file += 1
             else:
                 # chopped_data has shape (n_samples, times, keypoints * 3D)
