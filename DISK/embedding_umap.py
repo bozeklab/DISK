@@ -499,6 +499,11 @@ def plot_sequential(coordinates, skeleton_graph, keypoints, nplots, save_path, s
 
 if __name__ == '__main__':
 
+    ###################################################################################################################
+    ### Only works with Human Mocap and MABe dataset
+    ### And DISK-transformer models
+    ###################################################################################################################
+
     p = argparse.ArgumentParser()
     p.add_argument("--batch_size", type=int, default=1)
     p.add_argument("--checkpoint_folder", type=str, required=True)
@@ -567,15 +572,14 @@ if __name__ == '__main__':
                                            device, compute_statistics=True)
     logging.info('Done with train hidden representation...')
 
-    time_train = train_dataset.possible_times[:hi_train.shape[0]]
     hi_eval, label_eval, index_file_eval, index_pos_eval, statistics_eval = extract_hidden(model, val_loader, dataset_constants, model_cfg,
                                          device, compute_statistics=True)
     logging.info('Done with val hidden representation...')
 
-    time_eval = val_dataset.possible_times[:hi_eval.shape[0]]
 
     logging.info(f'hidden eval vectors {hi_eval.shape}')
     logging.info(f'hidden train vectors {hi_train.shape}')
+
 
     ##############################################################################################
     ### Plot umap with different coloring
@@ -588,6 +592,7 @@ if __name__ == '__main__':
 
     # Create dataframe with metdata
     df = pd.DataFrame()
+
     df.loc[:, 'train_or_test'] = np.concatenate([['train'] * hi_train.shape[0], ['eval'] * hi_eval.shape[0]])
     df.loc[df['train_or_test'] == 'train', 'index_file'] = index_file_train
     df.loc[df['train_or_test'] == 'eval', 'index_file'] = index_file_eval
@@ -596,7 +601,7 @@ if __name__ == '__main__':
     for imc, mc in enumerate(metadata_columns):
         df.loc[df['train_or_test'] == 'train', mc] = label_train[:, imc]
         df.loc[df['train_or_test'] == 'eval', mc] = label_eval[:, imc]
-    df.loc[:, 'time'] = np.concatenate([time_train, time_eval])
+
 
     if 'Mocap' in model_cfg.dataset.name and 'action' in df.columns:
         reverse_dict_label = {0: 'Walk', 1: 'Wash', 2: 'Run', 3: 'Jump', 4: 'Animal Behavior', 5: 'Dance',
@@ -617,7 +622,7 @@ if __name__ == '__main__':
 
     if statistics_train is not None:
         for key in statistics_train.keys():
-            df.loc[:, key] = statistics_train[key] + statistics_eval[key]
+            df.loc[:, key] = statistics_train[key] #+ statistics_eval[key]
 
     logging.info('Computing the umap projection')
 
@@ -640,7 +645,7 @@ if __name__ == '__main__':
     proj_eval = myumap.transform(hi_eval)
     logging.info('Finished projecting on the eval')
     df.loc[df['train_or_test'] == 'train', ['umap_x', 'umap_y']] = proj_train
-    # df.loc[df['train_or_test'] == 'eval', ['umap_x', 'umap_y']] = proj_eval
+    df.loc[df['train_or_test'] == 'eval', ['umap_x', 'umap_y']] = proj_eval
 
     logging.info('Apply k-means...')
     df, df_percent, cluster_centers = apply_kmeans(args.k, hi_train, hi_eval, df, proj_train, proj_eval, metadata_columns,
