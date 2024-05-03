@@ -8,11 +8,11 @@ dataset_name: Rat7M_seq_60stride30_fill10 # output name for the created dataset
 
 # frequencies (in Hz):
 # original frequency of your data
-original_freq: 1
+original_freq: 30
 # subsampling_freq <= original_freq
 # equal if no subsampling desired
 # otherwise lower
-subsampling_freq: 1
+subsampling_freq: 30
 
 length: 60 # in number of timepoints at susampling_freq
 # a good rule of thumb is to put stride to length or length/2
