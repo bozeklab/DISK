@@ -423,7 +423,7 @@ def create_dataset(_cfg: DictConfig) -> None:
             try:
                 center = int(center_index)
             except NameError:
-                print('Wong input')
+                print('Wrong input')
 
 
         ## Now right the skeleton file
