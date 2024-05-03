@@ -1,18 +1,39 @@
-network:
-  num_layers: 3
-  dropout: 0
-  type: GRU
-  size_layer: 512
+################################################################################
+### config file companion of main_fillmissing.py script
+### to train a neural network model for the imputation task
+### -> the principal parameters to change are marked with TOCHANGE
+################################################################################
+
+defaults:
+  # TOCHANGE: this loads the default config for a given backbone
+  # can be: gru, ae_tcn, st_gcn, sts_gcn, transformer
+  # we advise gru or transformer for better performance
+  - network: transformer
+
+hydra:
+  job:
+    chdir: True
+  run:
+    # TOCHANGE: specify the output
+    dir: outputs/2023-10-16_FL2_newnewmissing/${now:%d-%m-%y}_transformer_noviewinvariant #outputs/2023-10-26_treadmill/${now:%d-%m-%y}_GRU_new
+
+# TOCHANGE: name of the dataset, should match the folder name in `datasets
 dataset:
-  name: Mocap_keypoints_60_stride30_new
-  skeleton_file: Mocap_keypoints_60_stride30_new/skeleton.py
-training:
-  epochs: 10
+  name: INH_FL2_keypoints_1_60_wresiduals_stride0.5
+  # path from datasets folder, can be left blank if not using st_gcn as network
+  skeleton_file: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
+
+training: # a priori not to be changed
+  epochs: 1500
   batch_size: 32
+  # from experience, learning rate of 0.0001 is better for GRU and 0.001 for transformer
   learning_rate: 0.001
   seed: false
-  load: null
-  n_cpus: 8
+  # load can be used to continue a training
+  # if a valid path is given, then the saved model will be loaded
+  # instead of starting from a random initialization of the weights
+  load: # example: outputs/2023-09-27_Fishv3_newnewmissing/09-26-47_STGCN_stride60
+  n_cpus: 8 # TOCHANGE: if no multiprocessing, put 0
   loss:
     type: l1
     mask: true
@@ -21,20 +42,32 @@ training:
     type: lambdalr
     steps_epoch: 500
     rate: 0.95
-  print_every: 3
-  mu_sigma: false
-  beta_mu_sigma: 0.5
+  print_every: 10
+  # print_every modifies the frequency at which the model infers on the validation set and the frequency at which
+  # models can be saved (save when validation loss is better than previous one)
+
+  ## if mu_sigma is True, then will change the output of the model from a point prediction (one value per keypoint per timepoint)
+  ## to a probabilistic output where for each keypoint and each timepoint, it will output a mean (mu) and a standard
+  ## deviation (sigma). The network is trained with a different loss (a different loss profile is expected).
+  ## Used in this framework to approximate the network imputation error on each sample (cf test_fillmissing.py)
+  ## Used also to filter the imputations in impute_dataset (cf impute_dataset.py)
+  mu_sigma: False # TOCHANGE (True or False)
+  beta_mu_sigma: 0.5 # default is 0 for the standard NLL loss
+
+
 feed_data:
   mask: true
   transforms:
     add_missing:
-      pad:
-      - 1
-      - 0
-      indep_keypoints: true
+      pad: [1, 0]
+      indep_keypoints: True
       files:
-      - Mocap_keypoints_60_stride30_new/proba_missing_uniform.csv
-      - Mocap_keypoints_60_stride30_new/proba_missing_length_uniform.csv
+       # TOCHANGE:
+       # first proba missing, then missing length. order matters!
+       # the 3rd file specifying the number of simultaneous missing keypoints is optional
+       # path from datasets folder
+      - INH_FL2_keypoints_1_60_wresiduals_proba_missing.txt
+      - INH_FL2_keypoints_1_60_wresiduals_proba_missing_length.csv
     viewinvariant: false
     normalize: false
     normalizecube: true
