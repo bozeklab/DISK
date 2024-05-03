@@ -319,7 +319,7 @@ def create_dataset(_cfg: DictConfig) -> None:
                         fulllength_data[(nan_name, partition)].append(new_data[indices_ttv[i_partition]: indices_ttv[i_partition + 1]].reshape(crop_len, -1))
                         fulllength_time[(nan_name, partition)].append(new_time_vect[indices_ttv[i_partition]: indices_ttv[i_partition + 1]])
                         fulllength_maxlength[(nan_name, partition)].append(crop_len)
-                        fulllength_original_files[(nan_name, partition)].append([f, file_type])
+                        fulllength_original_files[(nan_name, partition)].append([os.path.basename(f), file_type])
 
                     i_file += 1
             else:
@@ -340,7 +340,7 @@ def create_dataset(_cfg: DictConfig) -> None:
                 fulllength_data[(nan_name, partition)].append(new_data.reshape(new_data.shape[0], -1))
                 fulllength_time[(nan_name, partition)].append(new_time_vect / _cfg.subsampling_freq)
                 fulllength_maxlength[(nan_name, partition)].append(new_data.shape[0])
-                fulllength_original_files[(nan_name, partition)].append([f, file_type])
+                fulllength_original_files[(nan_name, partition)].append([os.path.basename(f), file_type])
 
     ####################################################################################################
     ###### END FOR LOOP ON THE FILES ######
