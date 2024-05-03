@@ -371,7 +371,7 @@ def create_dataset(_cfg: DictConfig) -> None:
             np.savez(outputfile, X=subdata, lengths=sublengths)
 
             outputfile = os.path.join(outputdir, f'{partition}_fulllength_dataset_w-{nan_name}-nans')
-            print(f'saving in {outputfile}...', np.array(fulllength_original_files[(nan_name, partition)]))
+            print(f'saving in {outputfile}...')
             np.savez(outputfile, X=sub_fulllength_data, time=sub_fulllength_time,
                      files=np.array(fulllength_original_files[(nan_name, partition)]))
 
