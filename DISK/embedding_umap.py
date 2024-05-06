@@ -603,7 +603,7 @@ if __name__ == '__main__':
     for imc, mc in enumerate(metadata_columns):
         df.loc[df['train_or_test'] == 'train', mc] = label_train[:, imc]
         df.loc[df['train_or_test'] == 'eval', mc] = label_eval[:, imc]
-    df.loc[:, 'time'] = np.concatenate([time_train, time_eval])
+    df.loc[:, 'time'] = np.concatenate([time_train[:len(label_train)], time_eval])
 
     if 'Mocap' in model_cfg.dataset.name and 'action' in df.columns:
         reverse_dict_label = {0: 'Walk', 1: 'Wash', 2: 'Run', 3: 'Jump', 4: 'Animal Behavior', 5: 'Dance',
@@ -624,7 +624,7 @@ if __name__ == '__main__':
 
     if statistics_train is not None:
         for key in statistics_train.keys():
-            df.loc[:, key] = statistics_train[key] #+ statistics_eval[key]
+            df.loc[:, key] = statistics_train[key] + statistics_eval[key]
 
     logging.info('Computing the umap projection')
 
