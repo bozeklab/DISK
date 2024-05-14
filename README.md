@@ -236,7 +236,7 @@ Additionally will be created and saved:
 - a lineplot of the averaged RMSE with respect to the length of the artificial hole
 Randomly selected samples will be plotted showing the ground truth and the imputation(s)
 
-TODO: link to example plots here / add an embedded ones
+![Example of produced test barplot](images/test_barplot_wo_RMSE.png)
 
 Modify the `conf_test.yaml`. The fields to be modified are marked with `TOCHANGE`:
 - change the name of the output directory
@@ -263,7 +263,7 @@ giving an idea of the variability of the prediction, as the process of introduci
   - `batch_size` can be increased for faster processing, or reduced to lower the memory load.
 
 Then, go to the `results` directory and simply launch `python test_fillmissing.py hydra.job.chdir=True`
-This step should be relatively quick, and can easily be run on CPUs.
+This step should be relatively quick, and can easily be run on CPUs.F
 
 ## Step 4. Impute the dataset
 
@@ -280,4 +280,7 @@ It will save plots and log file in a subfolder in the `results` directory and th
 
 # Cite us
 
-TODO: add citation
+Deep Imputation for Skeleton Data (DISK) for Behavioral Science.
+France Rose, Monika Michaluk, Timon Blindauer, Bogna M. Ignatowska-Jankowska, Liam O’Shaughnessy, Greg J. Stephens, Talmo D. Pereira, Marylka Y. Uusisaari, Katarzyna Bozek.
+
+bioRxiv 2024.05.03.592173; doi: https://doi.org/10.1101/2024.05.03.592173
