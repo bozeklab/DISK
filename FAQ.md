@@ -8,7 +8,7 @@
 
 The subsampling frequency parameter is used to reduce the frequency, or the number of samples taken from the original data to a lower rate. So, reducing subsampling freq. for example from the original of 25 Hz to 10 Hz results in a freq. of 10 Hz in the end.      
 In other words, if the original data is at 25 Hz, you have 25 values for a second, if you reduce the frequency to 10 Hz, you will encode the same information of 1 second in 10 timepoints. In the code, it is done by averaging the original values.
-If you do not want subsampling, put subsampling_freq the same number as the original_freq.
+If you do not want subsampling, put subsampling_freq the same number as the original_freq. Be careful not to downsample too much with regard to the phenomenon you want to observe (cf Nyquist frequency).
 
 ### What is the **length** parameter?
 
