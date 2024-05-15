@@ -12,7 +12,7 @@ DISK allows to use a bigger proportion of experimental data for downstream behav
     - [Configuration files and script launching](#configuration-files-and-script-launching)
     - [Neural network training](#neural-network-training)
 - [Installation](#installation)
-- [First steps tutorial (google colab notebook)](https://colab.research.google.com/drive/1JZvmYnG2Sw6dCj2D0hi_4Nzm9hp-sHP1?usp=sharing)
+- [First steps tutorial (google colab notebook)](https://drive.google.com/file/d/1ycrxt3r9BP6b8N9LYGQ-4y3mdS5ebRGD/view?usp=sharing)
 - [Detailed usage](#detailed-usage)
   - [Step 0. File organization](#step-0-file-organization)
   - [Step 1. Use an already created dataset or create your training dataset from your own data](#step-1-use-an-already-created-dataset-or-create-your-training-dataset-from-your-own-data)
