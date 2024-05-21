@@ -113,6 +113,7 @@ Then run for the rest of the packages:
 pip install -r DISK/requirements.txt -e .
 ```
 
+This step should take around 15-30 minutes.
 To test it, try importing the `DISK` in python.
 
 # Detailed usage
