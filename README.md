@@ -190,7 +190,6 @@ You can further decrease the **stride** which will be create more samples by ove
 
 On the contrary if the dataset is very large (over 20,000 samples for the training set), then you can increase the **stride**.
 
-
 ### Step 1.2 Create probability missing files
 
 In order to mimmick the real missing data during training, the original data will be browsed to approximate the frequency 
@@ -222,7 +221,7 @@ Modify the `conf_missing.yaml`. The fields to be modified are marked with `TOCHA
 
 Then, go to the `results` directory and simply launch `python main_fillmissing.py hydra.job.chdir=True`
 
-This step will be long. If possible, launch it on a cluster / computer with a GPU. The GPU will be automatically detected and will speed up the training.
+This step will be long, from a few hours to a few days depending on the size of the dataset and the number of required epochs. If possible, launch it on a cluster / computer with a GPU. The GPU will be automatically detected and will speed up the training.
 
 To understand loss plots, see [FAQ](FAQ.md#how-to-know-the-model-has-trained-successfully).
 
