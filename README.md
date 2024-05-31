@@ -92,17 +92,24 @@ If using conda/pip, you can first create a new environment:
 # if using conda environments
 conda create --name env_impute python=3.9 # requires python>=3.8,<3.10
 conda activate env_impute
-git clone https://github.com/bozeklab/DISK.git
-cd DISK
 ```
 
-Pytorch should first be installed with the right version of cuda toolkit. For Linux and Windows,
-`conda install pytorch==1.9.1 cudatoolkit=11.3 -c pytorch -c conda-forge` or `pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html`, check [this page](https://pytorch.org/get-started/previous-versions/).
-(`conda install pytorch==1.9.1 cudatoolkit=11.1 -c pytorch -c conda-forge` worked for me in one occurence.) If you do not have a CPU, you should run `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 cpuonly -c pytorch`
+In all cases, installation from source can be achieved by the following commands:
+- if using GPU (highly recommended for training)
+```bash
+git clone https://github.com/bozeklab/DISK.git
+cd DISK
+pip install -r DISK/requirements.txt -e .
+```
+- if using CPU only
+```bash
+git clone https://github.com/bozeklab/DISK.git
+cd DISK
+pip install -r DISK/requirements_cpu.txt -e .
+```
+This step should take up to 15-30 minutes.
 
-For OSX, `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 -c pytorch` or `pip install torch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1`. 
-
-**[VERY IMPORTANT]** To test that pytorch is seeing the GPU, you can test it in python:
+**[VERY IMPORTANT - if using with GPU]** To test that pytorch is seeing the GPU, you can test it in python:
 ```python
 # inside python interpreter
 import torch
@@ -110,13 +117,17 @@ torch.cuda.is_available()
 # should return True
 ```
 
-Then run for the rest of the packages:
-```bash
-pip install -r DISK/requirements.txt -e .
+For all cases, test if DISK is installed correctly. In Python, run:
+```python
+import DISK
+# should run without returning anything
 ```
 
-This step should take around 15-30 minutes.
-To test it, try importing the `DISK` in python.
+## Python troubleshooting
+
+If you have trouble installing Pytorch, check [this page](https://pytorch.org/get-started/previous-versions/) for pytorch version `1.9.1` and your system.
+You can install separately pytorch as a first step using for example `conda install pytorch==1.9.1 cudatoolkit=11.1 -c pytorch -c conda-forge` or `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 cpuonly -c pytorch` for the CPU-only version.
+For OSX, `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 -c pytorch` or `pip install torch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1`. 
 
 # Detailed usage
 

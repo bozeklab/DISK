@@ -1,4 +1,4 @@
---find-links https://download.pytorch.org/whl/cu113/torch_stable.html
+--find-links https://download.pytorch.org/whl/cpu/torch_stable.html
 
 torch>=1.9.1,<1.13
 numpy>=1.21,<1.24
