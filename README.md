@@ -96,9 +96,11 @@ git clone https://github.com/bozeklab/DISK.git
 cd DISK
 ```
 
-Pytorch should first be installed with the right version of cuda toolkit 
-`conda install pytorch==1.9.1 cudatoolkit=11.3 -c pytorch -c conda-forge`, check [this page](https://pytorch.org/get-started/previous-versions/).
-(`conda install pytorch==1.9.1 cudatoolkit=11.1 -c pytorch -c conda-forge` worked for me in one occurence.)
+Pytorch should first be installed with the right version of cuda toolkit. For Linux and Windows,
+`conda install pytorch==1.9.1 cudatoolkit=11.3 -c pytorch -c conda-forge` or `pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html`, check [this page](https://pytorch.org/get-started/previous-versions/).
+(`conda install pytorch==1.9.1 cudatoolkit=11.1 -c pytorch -c conda-forge` worked for me in one occurence.) If you do not have a CPU, you should run `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 cpuonly -c pytorch`
+
+For OSX, `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 -c pytorch` or `pip install torch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1`. 
 
 **[VERY IMPORTANT]** To test that pytorch is seeing the GPU, you can test it in python:
 ```python
