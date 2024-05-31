@@ -95,28 +95,30 @@ conda activate env_impute
 ```
 
 In all cases, installation from source can be achieved by the following commands:
-- if using GPU
+- if using GPU (highly recommended for training)
 ```bash
 git clone https://github.com/bozeklab/DISK.git
 cd DISK
-pip install -r DISK/requirements.txt
+pip install -r DISK/requirements.txt -e .
 ```
 - if using CPU only
 ```bash
 git clone https://github.com/bozeklab/DISK.git
 cd DISK
-pip install -r DISK/requirements_cpu.txt
+pip install -r DISK/requirements_cpu.txt -e .
 ```
-This step should take around 15-30 minutes.
+This step should take up to 15-30 minutes.
 
-**[VERY IMPORTANT]** To test that pytorch is seeing the GPU, you can test it in python:
+**[VERY IMPORTANT - if using with GPU]** To test that pytorch is seeing the GPU, you can test it in python:
 ```python
 # inside python interpreter
 import torch
 torch.cuda.is_available()
 # should return True
+```
 
-# additional test
+For all cases, test if DISK is installed correctly. In Python, run:
+```python
 import DISK
 # should run without returning anything
 ```
