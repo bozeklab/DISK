@@ -1,5 +1,4 @@
 --find-links https://download.pytorch.org/whl/cu113/torch_stable.html
---extra-index-url https://download.pytorch.org/whl/cu113
 
 torch>=1.9.1,<1.13
 numpy>=1.21,<1.24
