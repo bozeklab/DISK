@@ -112,7 +112,7 @@ torch.cuda.is_available()
 
 Then run for the rest of the packages:
 ```bash
-pip install -r DISK/requirements.txt -e .
+pip install -r DISK/requirements.txt
 ```
 
 This step should take around 15-30 minutes.
