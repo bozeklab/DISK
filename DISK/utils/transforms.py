@@ -13,6 +13,8 @@ def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputd
 
     if 'add_missing' in _cfg.feed_data.transforms.keys():
         length_proba_df = pd.read_csv(os.path.join(basedir, 'datasets', _cfg.feed_data.transforms.add_missing.files[1]))
+        if 'length' not in length_proba_df.columns:
+            raise ValueError(f'No "length" column in file {_cfg.feed_data.transforms.add_missing.files[1]}.')
         length_proba_df['length'] = length_proba_df['length'].astype('int')
         length_proba_df['keypoint'] = length_proba_df['keypoint'].astype('str')
         if _cfg.feed_data.transforms.add_missing.files[0].endswith('.txt'):
