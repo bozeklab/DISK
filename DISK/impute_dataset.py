@@ -25,16 +25,26 @@ import torch
 from torch.utils.data import DataLoader
 
 
-def save_data_original_format(data, time, keypoints, file, file_type, new_folder, cfg_dataset):
+def save_data_original_format(data, time, file, dataset_constants, new_folder):
     """
     :args data: numpy array of 2 dimensions (timepoints, keypoints * 2D or 3D)
     :args time: numpy array with timepoints
     """
     new_file = os.path.join(new_folder, os.path.basename(file))
-    time = time[time != -1]
-    data = data[:len(time)].reshape((time.shape[0], len(keypoints), -1))
 
-    if file_type == 'mocap_rat':
+    data = data[time != -1]
+    time = time[time != -1]
+    if dataset_constants.ORIG_FREQ > dataset_constants.FREQ:
+        time_orig = np.unique(np.linspace(time[0] * dataset_constants.ORIG_FREQ / dataset_constants.FREQ,
+                                time[-1] * dataset_constants.ORIG_FREQ / dataset_constants.FREQ,
+                                int(len(time) * dataset_constants.ORIG_FREQ / dataset_constants.FREQ)).astype(int))
+
+        data_orig = np.vstack([np.interp(time_orig, time, d) for d in data.T]).T
+        time = time_orig
+        data = data_orig
+    data = data[:len(time)].reshape((time.shape[0], len(dataset_constants.KEYPOINTS), -1))
+
+    if dataset_constants.FILE_TYPE == 'mat_dannce':
         mat = loadmat(file)
         # for Rat7M dataset
         # mat['mocap'][0][0].dtype.fields.keys = keypoints
@@ -45,34 +55,75 @@ def save_data_original_format(data, time, keypoints, file, file_type, new_folder
         # print(np.array(list(mat['mocap'][0][0])).shape)
         savemat(new_file, mat)
 
-    elif file_type == 'mocap_qualisys':
+    elif dataset_constants.FILE_TYPE == 'mat_qualisys':
         mat = loadmat(file)
         exp_name = [m for m in mat.keys() if m[:2] != '__'][0]  ## TOCHANGE
         # for in house mouse data, QUALISYS software
         mat[exp_name][0, 0]['Trajectories'][0, 0]['Labeled']['Data'][0, 0] = np.moveaxis(data, 0, 2)
-        mat[exp_name][0, 0]['Trajectories'][0, 0]['Labeled']['Labels'][0, 0][0] = keypoints
+        mat[exp_name][0, 0]['Trajectories'][0, 0]['Labeled']['Labels'][0, 0][0] = dataset_constants.KEYPOINTS
         savemat(new_file, mat)
 
-    elif file_type == 'csv':
+    elif dataset_constants.FILE_TYPE == 'simple_csv':
         ## for fish data from Liam
         # columns time, keypoint_x, kp_y, kp_z
         # sort the keypoints with np.unique
         columns = []
-        for k in keypoints:
+        for k in dataset_constants.KEYPOINTS:
             columns.extend([k + '_x', k + '_y', k + '_z'])
         # get the columns corresponding to sorted keypoints so the data can be stacked
         df = pd.DataFrame(columns=columns, data=data.reshape((data.shape[0], -1)))
         df.loc[:, 'time'] = time
         df.to_csv(new_file, index=False)
 
-    elif file_type == 'npy':
+    elif dataset_constants.FILE_TYPE == 'dlc_csv':
+        ## for csv from DeepLabCut
+        df = pd.read_csv(file, header=[0, 1, 2])
+        header = [c for c in df.columns.levels[0] if c != 'scorer'][0]
+        keypoints = [bp for bp in df.columns.levels[1] if bp != 'bodyparts']
+        keypoints.sort()
+        coordinates = [c for c in df.columns.levels[2] if c != 'likelihood' and c != 'coords']
+        likelihood_columns = []
+        for k in keypoints:
+            likelihood_columns.append((k, 'likelihood'))
+        # how to replace the likelihood where we have changed the values
+        columns = []
+        for k in keypoints:
+            for c in coordinates:
+                columns.append((header, k, c))
+                df.loc[df.loc[:, (header, k, 'likelihood')] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD, (header, k, c)] = np.nan
+            df.loc[df.loc[:, (header, k, 'likelihood')] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD, (header, k, 'likelihood')] = np.nan
+        df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time), columns] = pd.DataFrame(columns=columns,
+                                                                                         data=data.reshape((data.shape[0], -1)))
+        df.to_csv(new_file, index=False)
+
+    elif dataset_constants.FILE_TYPE == 'dlc_h5':
+        content = h5py.File(file)
+        extracted_content = np.vstack([c[1] for c in content['df_with_missing']['table'][:]])
+        mask_columns_likelihood = np.all((extracted_content <= 1) * (extracted_content >= 0), axis=0)
+        likelihood_columns = extracted_content[:, mask_columns_likelihood] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD
+        coordinates_columns = extracted_content[:, ~mask_columns_likelihood]
+        n_dim = coordinates_columns.shape[1] / likelihood_columns.shape[1]
+        assert int(n_dim) == n_dim
+        n_dim = int(n_dim)
+        extracted_content[:, n_dim::(n_dim + 1)][likelihood_columns] = np.nan
+        all_keypoints = [f'{i:02d}' for i in range(int(extracted_content.shape[1] / (n_dim + 1)))]
+        for i_dim in range(n_dim):
+            for data_index_kp, k in enumerate(dataset_constants.KEYPOINTS):
+                orig_index_kp = all_keypoints.index(k)
+                extracted_content[time.astype(int), orig_index_kp * (n_dim + 1)] = data[:, data_index_kp, i_dim]
+
+        with h5py.File(new_file, 'w') as openedf:
+            openedf.create_dataset('df_with_missing/table', data=extracted_content)
+            openedf.create_group('df_with_missing/_i_table', content['df_with_missing']['_i_table'])
+
+    elif dataset_constants.FILE_TYPE == 'npy':
         ## for human MoCap files
-        np.save(new_file, np.array(data, dtype=[(k, np.float64) for k in keypoints]))
+        np.save(new_file, np.array(data, dtype=[(k, np.float64) for k in dataset_constants.KEYPOINTS]))
         print('saved in ', new_file)
 
-    elif file_type == 'pkl':
+    elif dataset_constants.FILE_TYPE == 'df3d_pkl':
         ## for DeepFly data
-        pkl_content = {'points3d': data, 'keypoints': keypoints}
+        pkl_content = {'points3d': data, 'keypoints': dataset_constants.KEYPOINTS}
         with open(new_file, 'rb') as openedf:
             pickle.dump(pkl_content, openedf, protocol=pickle.HIGHEST_PROTOCOL)
         """ from DeepFly3D paper
@@ -82,16 +133,16 @@ def save_data_original_format(data, time, keypoints, file, file_type, new_folder
          see image on github too
         """
 
-    elif file_type == 'sleap_h5':
+    elif dataset_constants.FILE_TYPE == 'sleap_h5':
         ## compatibility with SLEAP analysis h5 files
-        if keypoints[0].startswith('animal'):
+        if dataset_constants.KEYPOINTS[0].startswith('animal'):
             # several animals
-            keypoints_per_animal = ['_'.join(k.split('_')[1:]) for k in keypoints if k.startswith('animal0')]
+            keypoints_per_animal = ['_'.join(k.split('_')[1:]) for k in dataset_constants.KEYPOINTS if k.startswith('animal0')]
             data = np.moveaxis(data.reshape(data.shape[0], -1, len(keypoints_per_animal), data.shape[2]), 1, 3)
         else:
             # one animal
             data = data[..., np.newaxis]
-            keypoints_per_animal = keypoints
+            keypoints_per_animal = dataset_constants.KEYPOINTS
 
         with h5py.File(new_file, 'w') as openedf:
             openedf['tracks'] = data.T
@@ -134,7 +185,7 @@ def evaluate(_cfg: DictConfig) -> None:
     dataset_path = os.path.join(basedir, 'datasets', _cfg.dataset.name)
     constant_file_path = os.path.join(dataset_path, f'constants.py')
     if not os.path.exists(constant_file_path):
-        raise ValueError(f'no constant file found')
+        raise ValueError(f'no constant file found at {constant_file_path}')
     dataset_constants = read_constant_file(constant_file_path)
     if _cfg.dataset.skeleton_file is not None:
         skeleton_file_path = os.path.join(basedir, 'datasets', _cfg.dataset.skeleton_file)
@@ -349,9 +400,9 @@ def evaluate(_cfg: DictConfig) -> None:
                 if dataset.files is not None:
                     for i_f, f in enumerate(dataset.files):
                         print(f)
-                        save_data_original_format(dataset.X[i_f], dataset.time[i_f], dataset_constants.KEYPOINTS, 
-                                                  os.path.join(basedir, _cfg.evaluate.path_to_original_files, f[0]),
-                                                  f[1], data_subpath, cfg_dataset)
+                        save_data_original_format(dataset.X[i_f], dataset.time[i_f],
+                                                  os.path.join(basedir, _cfg.evaluate.path_to_original_files, f),
+                                                  dataset_constants, data_subpath)
 
                 new_dataset = []
                 new_lengths = []

@@ -73,7 +73,7 @@ def find_hole_nan(mask):
     return out  # returns a list of tuples (start, length_nan, keypoint_name)
 
 
-def open_and_extract_data(f):
+def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
     """
     :args f: (str) path to data file
 
@@ -86,21 +86,20 @@ def open_and_extract_data(f):
     :return data: numpy array of shape (timesteps, n_keypoints, 3)
     :return keypoints: list of keypoint names as strings
     """
-    if os.path.splitext(f)[1] == '.mat':
+    if file_type == 'mat_dannce':
         mat = scipy.io.loadmat(f)
-        if 'mocap' in mat.keys():
-            # for Rat7M dataset
-            data = np.moveaxis(np.array(list(mat['mocap'][0][0])), 1, 0)
-            keypoints = list(mat['mocap'][0][0].dtype.fields.keys())
-            file_type = 'mocap_rat'
-        else:
-            # for in house mouse data, QUALISYS software
-            exp_name = [m for m in mat.keys() if m[:2] != '__'][0]  ## TOCHANGE
-            data = np.moveaxis(mat[exp_name][0, 0]['Trajectories'][0, 0]['Labeled']['Data'][0, 0],
-                               2, 0)
-            keypoints = [label[0].replace('coordinate', 'coord') for label in
-                         mat[exp_name][0, 0]['Trajectories'][0, 0]['Labeled']['Labels'][0, 0][0]]
-            file_type = 'mocap_qualisys'
+        # for Rat7M dataset
+        data = np.moveaxis(np.array(list(mat['mocap'][0][0])), 1, 0)
+        keypoints = list(mat['mocap'][0][0].dtype.fields.keys())
+
+    elif file_type == 'mat_qualisys':
+        # for in house mouse data, QUALISYS software
+        mat = scipy.io.loadmat(f)
+        exp_name = [m for m in mat.keys() if m[:2] != '__'][0]  ## TOCHANGE
+        data = np.moveaxis(mat[exp_name][0, 0]['Trajectories'][0, 0]['Labeled']['Data'][0, 0],
+                           2, 0)
+        keypoints = [label[0].replace('coordinate', 'coord') for label in
+                     mat[exp_name][0, 0]['Trajectories'][0, 0]['Labeled']['Labels'][0, 0][0]]
 
         # very important
         # make sure the keypoints are always in the same order even if not saved so in the original files
@@ -108,7 +107,7 @@ def open_and_extract_data(f):
         keypoints = [keypoints[n] for n in new_order]
         data = data[:, new_order, :]
 
-    elif os.path.splitext(f)[1] == '.csv':
+    elif file_type == 'simple_csv':
         ## for fish data from Liam
         df = pd.read_csv(f)  # columns time, keypoint_x, kp_y, kp_z
         # sort the keypoints with np.unique
@@ -118,18 +117,16 @@ def open_and_extract_data(f):
             columns.extend([k + '_x', k + '_y', k + '_z'])
         # get the columns corresponding to sorted keypoints so the data can be stacked
         data = df.loc[:, columns].values.reshape((df.shape[0], len(keypoints), -1))
-        file_type = 'csv'
 
-    elif os.path.splitext(f)[1] == '.npy':
+    elif file_type == 'npy':
         ## for human MoCap files
         data = np.array(np.load(f))
         logging.info(f'[WARNING][CREATE_DATASET][OPEN_AND_EXTRACT_DATA function][NPY INPUT FILES] keypoints cannot be loaded from input files. '
                      f'Expected behavior: the columns correspond to the keypoints and are in fixed order')
         # WARNING - here no information about keypoint, so we expect that the columns match for every file
         keypoints = [f'{i:02d}' for i in range(data.shape[1])]
-        file_type = 'npy'
 
-    elif os.path.splitext(f)[1] == '.pkl':
+    elif file_type == 'df3d_pkl':
         ## for DeepFly data
         with open(f, 'rb') as openedf:
             pkl_content = pickle.load(openedf)
@@ -143,9 +140,39 @@ def open_and_extract_data(f):
          - for measuring head rotations.
          see image on github too
         """
-        file_type = 'pkl'
 
-    elif os.path.splitext(f)[1] == '.h5':
+    elif file_type == 'dlc_csv':
+        ## for csv from DeepLabCut
+        df = pd.read_csv(f, header=[1, 2])
+        keypoints = [bp for bp in df.columns.levels[0] if bp != 'bodyparts']
+        keypoints.sort()
+        coordinates = [c for c in df.columns.levels[1] if c != 'likelihood' and c != 'coords']
+        likelihood_columns = []
+        for k in keypoints:
+            likelihood_columns.append((k, 'likelihood'))
+
+        columns = []
+        for k in keypoints:
+            for c in coordinates:
+                df.loc[df.loc[:, (k, 'likelihood')] <= dlc_likelihood_threshold, (k, c)] = np.nan
+                columns.append((k, c))
+        data = df.loc[:, columns].values.reshape((df.shape[0], len(keypoints), -1))
+
+    elif file_type == 'dlc_h5':
+        content = h5py.File(f)
+        extracted_content = np.vstack([c[1] for c in content['df_with_missing']['table'][:]])
+        mask_columns_likelihood = np.all((extracted_content <= 1) * (extracted_content >= 0), axis=0)
+        likelihood_columns = extracted_content[:, mask_columns_likelihood] <= dlc_likelihood_threshold
+        coordinates_columns = extracted_content[:, ~mask_columns_likelihood]
+        n_dim = coordinates_columns.shape[1] / likelihood_columns.shape[1]
+        assert int(n_dim) == n_dim
+        n_dim = int(n_dim)
+        for i_dim in range(n_dim):
+            coordinates_columns[:, i_dim::n_dim][likelihood_columns] = np.nan
+        data = coordinates_columns.reshape((coordinates_columns.shape[0], -1, n_dim))
+        keypoints = [f'{i:02d}' for i in range(data.shape[1])]
+
+    elif file_type == 'sleap_h5':
         ## compatibility with SLEAP analysis h5 files
         with h5py.File(f, 'r') as openedf:
             data = openedf['tracks'][:].T
@@ -167,14 +194,14 @@ def open_and_extract_data(f):
         new_order = np.argsort(keypoints)
         keypoints = [keypoints[n] for n in new_order]
         data = data[:, new_order]
-        file_type = 'sleap_h5'
 
     else:
-        raise ValueError(f'File format not understood {f}')
+        raise ValueError(f'File format not understood {f}, should be one of the following: mat_dannce, '
+                         f'mat_qualisys,simple_csv, dlc_csv, npy, df3d_pkl, sleap_h5')
 
     # we replace the spaces by underscore because when dealing with set of keypoints we separate them by spaces (fake and orginal holes)
     keypoints = [k.replace(' ', '_') for k in keypoints]
-    return data, keypoints, file_type
+    return data, keypoints
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="conf_create_dataset")
@@ -229,7 +256,7 @@ def create_dataset(_cfg: DictConfig) -> None:
         else:
             partition = 'train'
 
-        data, keypoints, file_type = open_and_extract_data(f)
+        data, keypoints = open_and_extract_data(f, _cfg.file_type, _cfg.dlc_likelihood_threshold)
 
         # shape (keypoints, coordinates + residual, timepoints)
         data = data[_cfg.discard_beginning * _cfg.original_freq: _cfg.discard_end * _cfg.original_freq, :, :3]
@@ -249,8 +276,8 @@ def create_dataset(_cfg: DictConfig) -> None:
                 raise ValueError
             other_indices = np.array([i for i in range(len(keypoints)) if not i in indices])
             data = data[:, other_indices]
-            logging.debug(f'{data.shape} {f}')
-            keypoints = [k for k in keypoints if k not in _cfg.drop_keypoints]
+            logging.debug(f'After removing keypoints, data shape {data.shape} from file {f}')
+            keypoints = [keypoints[i] for i in other_indices]
 
         if i_file == 0:
             logging.info(f'Found keypoints:  {keypoints}')
@@ -315,11 +342,12 @@ def create_dataset(_cfg: DictConfig) -> None:
                     if len(chopped_data) > 0:
                         dataset[(nan_name, partition)].extend(chopped_data)
                         data_lengths[(nan_name, partition)].extend(len_)
-                        crop_len = indices_ttv[i_partition + 1] - indices_ttv[i_partition]
+                    crop_len = indices_ttv[i_partition + 1] - indices_ttv[i_partition]
+                    if crop_len > 0:
                         fulllength_data[(nan_name, partition)].append(new_data[indices_ttv[i_partition]: indices_ttv[i_partition + 1]].reshape(crop_len, -1))
                         fulllength_time[(nan_name, partition)].append(new_time_vect[indices_ttv[i_partition]: indices_ttv[i_partition + 1]])
                         fulllength_maxlength[(nan_name, partition)].append(crop_len)
-                        fulllength_original_files[(nan_name, partition)].append([os.path.basename(f), file_type])
+                        fulllength_original_files[(nan_name, partition)].append(os.path.basename(f))
 
                     i_file += 1
             else:
@@ -340,7 +368,7 @@ def create_dataset(_cfg: DictConfig) -> None:
                 fulllength_data[(nan_name, partition)].append(new_data.reshape(new_data.shape[0], -1))
                 fulllength_time[(nan_name, partition)].append(new_time_vect / _cfg.subsampling_freq)
                 fulllength_maxlength[(nan_name, partition)].append(new_data.shape[0])
-                fulllength_original_files[(nan_name, partition)].append([os.path.basename(f), file_type])
+                fulllength_original_files[(nan_name, partition)].append(os.path.basename(f))
 
     ####################################################################################################
     ###### END FOR LOOP ON THE FILES ######
@@ -383,11 +411,13 @@ def create_dataset(_cfg: DictConfig) -> None:
                     # DIVIDER= 2 for 2D, 3 for 3D, sometimes additional dimension for a confidence score or an error
                     # score for the detection
                     txt += f"DIVIDER = {data.shape[-1]}\n"
+                    txt += f"ORIG_FREQ = {_cfg.original_freq}\n"
                     txt += f"FREQ = {_cfg.subsampling_freq}\n"
                     txt += f"SEQ_LENGTH = {subdata.shape[1]}\n"
                     txt += f"STRIDE = {_cfg.stride}\n"
-                    txt += f"W_RESIDUALS = False"  # for compatibility reasons (see dataset classes)
-
+                    txt += f"W_RESIDUALS = False\n"  # for compatibility reasons (see dataset classes)
+                    txt += f"FILE_TYPE = '{_cfg.file_type}'\n"
+                    txt += f"DLC_LIKELIHOOD_THRESHOLD = {_cfg.dlc_likelihood_threshold}"
                     opened_file.write(txt)
 
 

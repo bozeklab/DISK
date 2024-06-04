@@ -4,7 +4,7 @@ hydra:
   run:
     dir: datasets/${dataset_name}
 
-dataset_name: Mocap_keypoints_60_stride30_new
+dataset_name: test3
 skeleton_file:
 indep_keypoints: True # if False, look at sets of simultaneous missing keypoints; if True, look at each keypoint independently
 merge_keypoints: False # if False then no merging
