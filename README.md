@@ -177,7 +177,8 @@ We will use 2 scripts for this step:
 
 In the `conf/conf_create_dataset.yaml`, you should write:
 - a list of input files to create the dataset from. The accepted formats are:
-    - `.h5` files from SLEAP (cf documentation), 
+    - `.h5` files from SLEAP (cf documentation),
+    - `.h5` and `.csv` from DeepLabCut,
     - `.csv` files with columns as keypoints coordinates, e.g. 'kp1_x', 'kp1_y', 'kp1_z', 'kp2_x', ..., 
     - `.npy` files where only the data are loaded, the keypoints would be named '01', '02', ...,
     - `.mat` files
