@@ -185,7 +185,7 @@ def evaluate(_cfg: DictConfig) -> None:
     dataset_path = os.path.join(basedir, 'datasets', _cfg.dataset.name)
     constant_file_path = os.path.join(dataset_path, f'constants.py')
     if not os.path.exists(constant_file_path):
-        raise ValueError(f'no constant file found')
+        raise ValueError(f'no constant file found at {constant_file_path}')
     dataset_constants = read_constant_file(constant_file_path)
     if _cfg.dataset.skeleton_file is not None:
         skeleton_file_path = os.path.join(basedir, 'datasets', _cfg.dataset.skeleton_file)
