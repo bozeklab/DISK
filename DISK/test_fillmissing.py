@@ -210,7 +210,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                 axis=3)  # sum on the XYZ dimension, output shape (batch, time, keypoint)
                     euclidean_distance_linear_interp = np.sqrt(np.sum(((linear_interp_data - full_data_np) ** 2) * reshaped_mask_holes,
                                                 axis=3))  # sum on the XYZ dimension, output shape (batch, time, keypoint)
-                    pck_linear_interpolation = [euc <= pck_final_threshold for euc in euclidean_distance]
+                    pck_linear_interpolation = euclidean_distance_linear_interp <= pck_final_threshold
 
                 coverage = [[]] * n_models
                 bandexcess = [[]] * n_models
