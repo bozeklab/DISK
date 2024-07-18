@@ -502,7 +502,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 # pivot_df only for one method
                 pivot_df = pd.pivot(
                     total_rmse.loc[(total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_name[i_model]) * (total_rmse['metric_type'] == 'RMSE'), :],
-                    values='metric_values', index='id_sample', columns='metric_type')
+                    values='metric_value', index='id_sample', columns='metric_type')
                 pivot_df['mean_uncertainty'] = pivot_df['mean_uncertainty'].astype(float)
                 pivot_df['3D'] = pivot_df['3D'].astype(float)
                 pcoeff, ppval = pearsonr(pivot_df['3D'].values, pivot_df['mean_uncertainty'].values)
