@@ -235,46 +235,46 @@ def evaluate(_cfg: DictConfig) -> None:
                         bandexcess[i_model] = be[n_missing > 0] / be[n_missing > 0]
 
 
-                for i in range(data_with_holes_np.shape[0]):
+                for i_sample_in_batch in range(data_with_holes_np.shape[0]):
                     ## gives the length of a hole, one keypoint at a time, a sample can have multiple holes one after the other:
                     id_hole = 0
-                    out = find_holes(mask_holes_np[i], dataset_constants.KEYPOINTS, indep=False)
-                    for o in out:  # (start, keypoint_name, length)
-                        slice_ = [i, slice(o[0], o[0] + o[1], 1), [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]
-                        for j in range(n_models):
-                            mean_euclidean = np.mean(euclidean_distance[j][slice_])
-                            mean_rmse = np.sqrt(np.mean(rmse[j][slice_]))
-                            mean_pck = np.sum(pck[j][slice_] * mask_holes_np[slice_])/ np.sum(mask_holes_np[slice_])
+                    out = find_holes(mask_holes_np[i_sample_in_batch], dataset_constants.KEYPOINTS, indep=False)
+                    for o in out:  # (start, length, keypoint_name)
+                        slice_ = [i_sample_in_batch, slice(o[0], o[0] + o[1], 1), [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]
+                        for i_model in range(n_models):
+                            mean_euclidean = np.mean(euclidean_distance[i_model][slice_])
+                            mean_rmse = np.sqrt(np.mean(rmse[i_model][slice_]))
+                            mean_pck = np.sum(pck[i_model][slice_] * mask_holes_np[slice_])/ np.sum(mask_holes_np[slice_])
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
-                                                                      model_configs[j].network.type, model_name[j],
+                                                                      model_configs[i_model].network.type, model_name[i_model],
                                                                       mean_rmse, 'RMSE',
                                                                       o[1]]
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
-                                                                      model_configs[j].network.type, model_name[j],
+                                                                      model_configs[i_model].network.type, model_name[i_model],
                                                                       mean_euclidean,  'MPJPE',
                                                                       o[1]]
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
-                                                                      model_configs[j].network.type, model_name[j],
+                                                                      model_configs[i_model].network.type, model_name[i_model],
                                                                       mean_pck, pck_name,
                                                                       o[1]]
                             if model_configs[j].training.mu_sigma:
-                                total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[0].network.type,
-                                                                          model_name[j], 
-                                                                          np.mean(uncertainty[j][slice_]),
+                                total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
+                                                                          model_name[i_model],
+                                                                          np.mean(uncertainty[i_model][slice_]),
                                                                           'mean_uncertainty',
                                                                           o[1]]
-                                total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[0].network.type,
+                                total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
                                                                           model_name[j], 
-                                                                          np.max(uncertainty[j][slice_]),
+                                                                          np.max(uncertainty[i_model][slice_]),
                                                                           'max_uncertainty',
                                                                           o[1]]
-                                total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[0].network.type,
-                                                                          model_name[j], 
-                                                                          bandexcess[j][i], 'bandexcess_2sigma',
+                                total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
+                                                                          model_name[i_model],
+                                                                          bandexcess[i_model][i_sample_in_batch], 'bandexcess_2sigma',
                                                                           o[1]]
-                                total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[0].network.type,
-                                                                          model_name[j], 
-                                                                          coverage[j][i], 'coverage_2sigma',
+                                total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
+                                                                          model_name[i_model],
+                                                                          coverage[i_model][i_sample_in_batch], 'coverage_2sigma',
                                                                           o[1]]
                         if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                             mean_rmse_linear = np.sqrt(np.mean(rmse_linear_interp[slice_]))
@@ -302,39 +302,39 @@ def evaluate(_cfg: DictConfig) -> None:
                     if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   'linear_interp', 'linear_interp',
-                                                                  np.sum(pck_linear_interpolation[i] * mask_holes_np[i]) / n_missing[i],
+                                                                  np.sum(pck_linear_interpolation[i_sample_in_batch] * mask_holes_np[i_sample_in_batch]) / n_missing[i_sample_in_batch],
                                                                   pck_name,
-                                                                  n_missing[i]]
+                                                                  n_missing[i_sample_in_batch]]
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   'linear_interp', 'linear_interp',
-                                                                  np.sum(euclidean_distance_linear_interp[i]) / n_missing[i],
+                                                                  np.sum(euclidean_distance_linear_interp[i_sample_in_batch]) / n_missing[i_sample_in_batch],
                                                                   'MPJPE',
                                                                   n_missing[i]]
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   'linear_interp', 'linear_interp',
-                                                                  np.sqrt(np.sum(rmse_linear_interp[i]) / n_missing[i]),
+                                                                  np.sqrt(np.sum(rmse_linear_interp[i_sample_in_batch]) / n_missing[i_sample_in_batch]),
                                                                   'RMSE',
                                                                   n_missing[i]]
-                    for j in range(n_models):
+                    for i_model in range(n_models):
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
-                                                                  model_configs[j].network.type, model_name[j],
-                                                                  np.sum(pck[j][i] * mask_holes_np[i]) / n_missing[i],
+                                                                  model_configs[i_model].network.type, model_name[i_model],
+                                                                  np.sum(pck[i_model][i_sample_in_batch] * mask_holes_np[i_sample_in_batch]) / n_missing[i_sample_in_batch],
                                                                   pck_name,
-                                                                  n_missing[i]]
+                                                                  n_missing[i_sample_in_batch]]
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
-                                                                  model_configs[j].network.type, model_name[j],
-                                                                  np.sum(euclidean_distance[j][i]) / n_missing[i],
+                                                                  model_configs[i_sample_in_batch].network.type, model_name[i_sample_in_batch],
+                                                                  np.sum(euclidean_distance[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch],
                                                                   'MPJPE',
-                                                                  n_missing[i]]
+                                                                  n_missing[i_sample_in_batch]]
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
-                                                                  model_configs[j].network.type, model_name[j],
-                                                                  np.sqrt(np.sum(rmse[j][i]) / n_missing[i]),
+                                                                  model_configs[i_model].network.type, model_name[i_model],
+                                                                  np.sqrt(np.sum(rmse[i_sample_in_batch][i_model]) / n_missing[i_model]),
                                                                   'RMSE',
-                                                                  n_missing[i]]
-                        if model_configs[j].training.mu_sigma:
-                            total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all', model_configs[0].network.type,
-                                                                      model_name[j], 
-                                                                      np.sum(uncertainty[j][i]) / n_missing[i],
+                                                                  n_missing[i_sample_in_batch]]
+                        if model_configs[i_model].training.mu_sigma:
+                            total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all', model_configs[i_model].network.type,
+                                                                      model_name[i_model],
+                                                                      np.sum(uncertainty[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch],
                                                                       'mean_uncertainty',
                                                                       o[1]]
 
