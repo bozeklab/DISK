@@ -239,12 +239,12 @@ def evaluate(_cfg: DictConfig) -> None:
                     id_hole = 0
                     out = find_holes(mask_holes_np[i], dataset_constants.KEYPOINTS, indep=False)
                     for o in out:  # (start, keypoint_name, length)
+                        slice_ = [i, slice(o[0], o[0] + o[1], 1), [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]
                         for j in range(n_models):
-                            mean_euclidean = np.mean(euclidean_distance[j][i, o[0]: o[0] + o[1],
-                                                                              [dataset_constants.KEYPOINTS.index(kp) for
-                                                                               kp in o[2].split(' ')]])
-                            mean_rmse = np.sqrt(np.mean(rmse[j][i, o[0]: o[0] + o[1], [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]))
-                            mean_pck = np.mean(pck[j][i, o[0]: o[0] + o[1], [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]])
+                            mean_euclidean = np.mean(euclidean_distance[j][slice_])
+                            mean_rmse = np.sqrt(np.mean(rmse[j][slice_]))
+                            mean_pck = np.sum(pck[j][slice_])\
+                                       / np.sum(mask_holes_np[slice_])
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
                                                                       model_configs[j].network.type, model_name[j],
                                                                       mean_rmse, 'RMSE',
@@ -279,7 +279,10 @@ def evaluate(_cfg: DictConfig) -> None:
                         if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                             mean_rmse_linear = np.sqrt(np.mean(rmse_linear_interp[i, o[0]: o[0] + o[1],  [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]))
                             mean_euclidean_linear = np.mean(euclidean_distance_linear_interp[i, o[0]: o[0] + o[1],  [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]])
-                            mean_pck_linear = np.mean(pck_linear_interpolation[i, o[0]: o[0] + o[1],  [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]])
+                            mean_pck_linear = np.sum(pck_linear_interpolation[i, o[0]: o[0] + o[1],  [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]) \
+                                              / np.sum(mask_holes_np[i, o[0]: o[0] + o[1],
+                                                       [dataset_constants.KEYPOINTS.index(kp) for kp in
+                                                        o[2].split(' ')]])
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
                                                                       'linear_interp', 'linear_interp',
                                                                       mean_rmse_linear,
@@ -467,7 +470,7 @@ def evaluate(_cfg: DictConfig) -> None:
         def lineplot_length():
             mask = (total_rmse['keypoint'] != 'all') * (total_rmse['metric_type'] == metric)
             total_rmse['length_hole'] = total_rmse.loc[:, 'length_hole'].astype('float')
-            sns.lineplot(data=total_rmse.loc[mask, :], x='length_hole', y='RMSE',
+            sns.lineplot(data=total_rmse.loc[mask, :], x='length_hole', y='metric_value',
                          hue='method_param')
             plt.tight_layout()
 
@@ -481,7 +484,7 @@ def evaluate(_cfg: DictConfig) -> None:
         def lineplot_all_length():
             mask = (total_rmse['keypoint'] != 'all') * (total_rmse['metric_type'] == metric)
             total_rmse.loc[:, 'length_hole'] = total_rmse.loc[:, 'length_hole'].astype('float')
-            sns.lineplot(data=total_rmse.loc[mask, :], x='length_hole', y='RMSE',
+            sns.lineplot(data=total_rmse.loc[mask, :], x='length_hole', y='metric_value',
                          hue='method_param')
             plt.tight_layout()
 
