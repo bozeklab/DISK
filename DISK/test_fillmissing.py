@@ -264,7 +264,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                           'mean_uncertainty',
                                                                           o[1]]
                                 total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
-                                                                          model_name[j], 
+                                                                          model_name[i_model],
                                                                           np.max(uncertainty[i_model][slice_]),
                                                                           'max_uncertainty',
                                                                           o[1]]
