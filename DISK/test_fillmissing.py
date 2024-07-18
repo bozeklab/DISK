@@ -494,39 +494,55 @@ def evaluate(_cfg: DictConfig) -> None:
 
         total_rmse.to_csv(os.path.join(outputdir, f'total_metrics{suffix}.csv'), index=False)
 
-        thresholding_df = pd.DataFrame(columns=['th', 'RMSE', 'RMSE_std', 'count', 'method'])
+        thresholding_df = pd.DataFrame(columns=['th', 'RMSE', 'RMSE_std', 'MPJPE', 'MPJPE_std', pck_name, f'{pck_name}_std', 'count', 'method'])
         for i_model in range(n_models):
             if uncertainty_estimates[i_model] is not None:
                 # pivot_df only for one method
                 pivot_df = pd.pivot(
-                    total_rmse.loc[(total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_name[i_model]) * (total_rmse['metric_type'] == 'RMSE'), :],
+                    total_rmse.loc[(total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_name[i_model]), :],
                     values='metric_value', index='id_sample', columns='metric_type')
                 pivot_df['mean_uncertainty'] = pivot_df['mean_uncertainty'].astype(float)
-                pivot_df['3D'] = pivot_df['3D'].astype(float)
+                pivot_df['RMSE'] = pivot_df['RMSE'].astype(float)
+                pivot_df[pck_name] = pivot_df[pck_name].astype(float)
+                pivot_df['MPJPE'] = pivot_df['MPJPE'].astype(float)
                 pcoeff, ppval = pearsonr(pivot_df['3D'].values, pivot_df['mean_uncertainty'].values)
                 logging.info(f'Model {model_name[i_model]}: PEARSONR COEFF {pcoeff}, PVAL {ppval}')
 
                 def corr_plot():
-                    sns.histplot(data=pivot_df, x='3D', y='mean_uncertainty')
-                    sns.kdeplot(data=pivot_df, x='3D', y='mean_uncertainty')
-                    plt.plot([0, pivot_df['3D'].max()], [0, pivot_df['3D'].max()], 'r--')
+                    sns.histplot(data=pivot_df, x=metric, y='mean_uncertainty')
+                    sns.kdeplot(data=pivot_df, x=metric, y='mean_uncertainty')
+                    plt.plot([0, pivot_df[metric].max()], [0, pivot_df['3D'].max()], 'r--')
                     plt.title(f'Pearson coeff: {pcoeff:.3f}')
 
-                plot_save(corr_plot,
-                          title=f'corrplot-model-{model_name[i_model]}{suffix}', only_png=False,
-                          outputdir=outputdir)
-                plt.close('all')
+                for metric in [pck_name, 'RMSE', 'MPJPE']:
+                    plot_save(corr_plot,
+                              title=f'corrplot-model-{metric}-{model_name[i_model]}{suffix}', only_png=False,
+                              outputdir=outputdir)
+                    plt.close('all')
 
                 th_vals = np.unique(pivot_df['mean_uncertainty'])[10:]
                 th_vals = th_vals[::len(th_vals) // 10]
                 for th in th_vals:
                     filtered_id_samples = total_rmse.loc[
-                        (total_rmse['metric_type'] == 'mean_uncertainty') * (total_rmse['metric_value'] <= th) * (total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_name[i_model]), 'id_sample'].values
+                        (total_rmse['metric_type'] == 'mean_uncertainty') * (total_rmse['metric_value'] <= th) *
+                        (total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_name[i_model]),
+                        'id_sample'].values
                     if len(filtered_id_samples) == 0:
                         continue
-                    vals = total_rmse[(total_rmse['metric_type'] == 'RMSE') * (total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_name[i_model]) * (total_rmse['id_sample'].isin(filtered_id_samples))]['RMSE'].agg(['mean', 'std', 'count'])
+                    vals_RMSE = total_rmse[(total_rmse['metric_type'] == 'RMSE') * (total_rmse['keypoint'] == 'all') *
+                                      (total_rmse['method_param'] == model_name[i_model]) *
+                                      (total_rmse['id_sample'].isin(filtered_id_samples))]['RMSE'].agg(['mean', 'std', 'count'])
+                    vals_MPJPE = total_rmse[(total_rmse['metric_type'] == 'MPJPE') * (total_rmse['keypoint'] == 'all') *
+                                      (total_rmse['method_param'] == model_name[i_model]) *
+                                      (total_rmse['id_sample'].isin(filtered_id_samples))]['MPJPE'].agg(['mean', 'std', 'count'])
+                    vals_pck = total_rmse[(total_rmse['metric_type'] == pck_name) * (total_rmse['keypoint'] == 'all') *
+                                      (total_rmse['method_param'] == model_name[i_model]) *
+                                      (total_rmse['id_sample'].isin(filtered_id_samples))][pck_name].agg(['mean', 'std', 'count'])
                     ## add values in thresholding_df which holds the results for all uncertainty methods
-                    thresholding_df.loc[thresholding_df.shape[0], :] = [th, vals['mean'], vals['std'], vals['count'], model_name[i_model]]
+                    thresholding_df.loc[thresholding_df.shape[0], :] = [th, vals_RMSE['mean'], vals_RMSE['std'],
+                                                                        vals_MPJPE['mean'], vals_MPJPE['std'],
+                                                                        vals_pck['mean'], vals_pck['std'],
+                                                                        vals_RMSE['count'], model_name[i_model]]
 
         if np.any([unc is not None for unc in uncertainty_estimates]):
             def plot_thresholding():
@@ -536,20 +552,21 @@ def evaluate(_cfg: DictConfig) -> None:
                         continue
                     m = model_name[i_model]
                     count = thresholding_df.loc[thresholding_df['method'] == m, 'count'].astype(int)
-                    rmse = thresholding_df.loc[thresholding_df['method'] == m, 'RMSE'].astype(float)
-                    rmse_std = thresholding_df.loc[thresholding_df['method'] == m, 'RMSE_std'].astype(float)
-                    pl = ax1.plot(count, rmse,'+-', label=m)
+                    rmse = thresholding_df.loc[thresholding_df['method'] == m, metric].astype(float)
+                    rmse_std = thresholding_df.loc[thresholding_df['method'] == m, f'{metric}_std'].astype(float)
+                    pl = ax1.plot(count, rmse, '+-', label=m)
                     ax1.fill_between(x=count, y1=rmse - rmse_std, y2=rmse + rmse_std, label=m, color=pl[0].get_color(), alpha=0.5)
                 ax1.legend()
-                ax1.set_ylabel('Mean RMSE')
+                ax1.set_ylabel(f'Mean {metric}')
                 ax1.set_xlabel('Remaining samples')
 
-            plot_save(plot_thresholding,
-                      title=f'thresholding_curve{suffix}', only_png=False,
-                      outputdir=outputdir)
-            plt.close('all')
+            for metric in [pck_name, 'RMSE', 'MPJPE']:
+                plot_save(plot_thresholding,
+                          title=f'thresholding_curve_{metric}{suffix}', only_png=False,
+                          outputdir=outputdir)
+                plt.close('all')
 
-    pd.concat(mean_RMSE).to_csv(os.path.join(outputdir, f'mean_RMSE{_cfg.evaluate.suffix}.csv'), index=False)
+    pd.concat(mean_RMSE).to_csv(os.path.join(outputdir, f'mean_metrics{_cfg.evaluate.suffix}.csv'), index=False)
 
 
 if __name__ == '__main__':
