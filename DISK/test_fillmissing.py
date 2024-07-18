@@ -328,7 +328,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                   n_missing[i_sample_in_batch]]
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   model_configs[i_model].network.type, model_name[i_model],
-                                                                  np.sqrt(np.sum(rmse[i_sample_in_batch][i_model]) / n_missing[i_model]),
+                                                                  np.sqrt(np.sum(rmse[i_model][i_sample_in_batch]) / n_missing[i_model]),
                                                                   'RMSE',
                                                                   n_missing[i_sample_in_batch]]
                         if model_configs[i_model].training.mu_sigma:
