@@ -70,8 +70,32 @@ def _loss(data, de_out, out_distribution, uncertainty_estimate, mask_holes_tenso
     return loss, loss_original
 
 
-def apply_model(model, input_tensor_with_holes, mask_holes, n_dim, cfg, device,
+def apply_model(model, input_tensor_with_holes, mask_holes, n_dim, cfg,
                 data_full=None, criterion_seq=None, **kwargs):
+    """
+
+    Parameters
+    ----------
+    model : pytorch model
+    input_tensor_with_holes : tensor of shape (batch, time, keypoints, n_dim)
+    mask_holes : tensor of shape (batch, time, keypoints)
+    n_dim : last dimension of the tensor (2D or 3D, can have an additional dimension )
+    cfg : configuration dictionary from hydra
+    data_full : tensor of same shape as input_tensor_with_holes but without holes
+    criterion_seq : criterion of the loss
+    kwargs : additional arguments for the pytorch model
+
+    Returns
+    -------
+    de_out : pytorch tensor with predictions, shape (batch, time, keypoints, n_dim)
+    uncertainty_estimate : None if the model has no probability head,
+                           else pytorch tensor of shape shape (batch, time, keypoints, n_dim)
+    loss : [optional, only if ground truth data_full is not None] average loss per batch,
+           according to the given criterion_seq
+    loss_original : [optional, only if ground truth data_full is not None] original value of the loss,
+                    without clamping and scaling
+    rmse : [optional, only if ground truth data_full is not None] rmse per sample
+    """
 
     uncertainty_estimate = None
     out_distribution = None
@@ -137,26 +161,48 @@ def apply_model(model, input_tensor_with_holes, mask_holes, n_dim, cfg, device,
 
         rmse = _rmse(data_full, de_out, mask_holes_tensor, n_missing_per_sample)
 
-        loss, loss_original = _loss(data_full, de_out, out_distribution, uncertainty_estimate, mask_holes_tensor, criterion_seq, cfg)
+        loss, loss_original = _loss(data_full, de_out, out_distribution, uncertainty_estimate, mask_holes_tensor,
+                                    criterion_seq, cfg)
 
         return de_out, uncertainty_estimate, loss, loss_original, rmse
 
 
-def feed_forward_list(data_with_holes, mask_holes, n_dim, models, cfgs, device,
-                      data_full=None, criterion_seq=None):
+def feed_forward_list(data_with_holes, mask_holes, n_dim, models, cfgs,  data_full=None, criterion_seq=None):
+    """
+
+    Parameters
+    ----------
+    data_with_holes : tensor of shape (batch, time, keypoints, n_dim)
+    mask_holes : tensor of shape (batch, time, keypoints)
+    n_dim : original dimension 2D or 3D
+    models : list of pytorch models
+    cfgs : list of configuration dictionaries from hydra
+    data_full : [optional] tensor of same shape as input_tensor_with_holes but without holes,
+                to compute the loss and RMSE
+    criterion_seq : [optional] criterion of the loss
+
+    Returns
+    -------
+    de_out : list of model outputs, pytorch tensors of shape (batch, time, keypoints, n_dim)
+    uncertainty_estimate : lsit of None if the model has no probability head,
+                           else pytorch tensor of shape (batch, time, keypoints, n_dim)
+    loss : [optional, only if ground truth data_full is not None] numpy array of average losses per model,
+           according to the given criterion_seq
+    rmse : [optional, only if ground truth data_full is not None] numpy array of average RMSEs per mndel
+    """
     de_out = []
     uncertainty_out = []
     loss_out = []
     rmse_out = []
     for m, cfg in zip(models, cfgs):
         if data_full is None or criterion_seq is None:
-            out, uncertainty_estimate = feed_forward(data_with_holes, mask_holes, n_dim, m, cfg, device,
-                      data_full=None, criterion_seq=None)
+            out, uncertainty_estimate = feed_forward(data_with_holes, mask_holes, n_dim, m, cfg,  data_full=None,
+                                                     criterion_seq=None)
             de_out.append(out)
             if uncertainty_estimate:
                 uncertainty_out.append(uncertainty_estimate)
         else:
-            out, uncertainty_estimate, loss, _, list_rmse = feed_forward(data_with_holes, mask_holes, n_dim, m, cfg, device,
+            out, uncertainty_estimate, loss, _, list_rmse = feed_forward(data_with_holes, mask_holes, n_dim, m, cfg,
                                                    data_full=data_full, criterion_seq=criterion_seq)
             de_out.append(out)
             uncertainty_out.append(uncertainty_estimate)
@@ -169,21 +215,50 @@ def feed_forward_list(data_with_holes, mask_holes, n_dim, models, cfgs, device,
         return de_out, uncertainty_out, np.array(loss_out), np.array(rmse_out)
 
 
-def feed_forward(data_with_holes, mask_holes, n_dim, model, cfg, device,
+def feed_forward(data_with_holes, mask_holes, n_dim, model, cfg,
                  data_full=None, criterion_seq=None, **kwargs):
+    """
+
+    Parameters
+    ----------
+    data_with_holes : tensor of shape (batch, time, keypoints, n_dim)
+    mask_holes : tensor of shape (batch, time, keypoints)
+    n_dim : original dimension 2D or 3D
+    model : pytorch model
+    cfg : configuration dictionary from hydra
+    data_full : [optional] tensor of same shape as input_tensor_with_holes but without holes,
+                to compute the loss and RMSE
+    criterion_seq : [optional] criterion of the loss
+    kwargs : additional arguments for the pytorch model
+
+    Returns
+    -------
+    de_out : model output, pytorch tensor of shape (batch, time, keypoints, n_dim)
+    uncertainty_estimate : None if the model has no probability head,
+                           else pytorch tensor of shape (batch, time, keypoints, n_dim)
+    loss : [optional, only if ground truth data_full is not None] average loss per batch,
+           according to the given criterion_seq
+    loss_original : [optional, only if ground truth data_full is not None] original value of the loss,
+                    without clamping and scaling
+    rmse : [optional, only if ground truth data_full is not None] rmse per sample
+    """
     if cfg.feed_data.mask:
-        input_tensor_with_holes = torch.cat([data_with_holes[..., :n_dim], torch.unsqueeze(mask_holes, dim=-1)], dim=3)
+        input_tensor_with_holes = torch.cat([data_with_holes[..., :n_dim],
+                                             torch.unsqueeze(mask_holes, dim=-1)], dim=3)
     else:
         input_tensor_with_holes = data_with_holes[..., :3].detach().clone().type(torch.float32)
     input_tensor_with_holes[:, 1:, :] = input_tensor_with_holes[:, :-1, :].clone()
     if data_full is None or mask_holes is None or criterion_seq is None:
-        de_out, uncertainty_estimate = apply_model(model, input_tensor_with_holes, mask_holes, n_dim, cfg, device,
-                             data_full=None, criterion_seq=None)
+        de_out, uncertainty_estimate = apply_model(model, input_tensor_with_holes, mask_holes, n_dim, cfg,
+                                                   data_full=None, criterion_seq=None)
 
         return de_out, uncertainty_estimate
     else:
-        de_out, uncertainty_estimate, loss, loss_original, list_rmse = apply_model(model, input_tensor_with_holes, mask_holes, n_dim, cfg, device,
-                                                             data_full=data_full, criterion_seq=criterion_seq, **kwargs)
+        de_out, uncertainty_estimate, loss, loss_original, list_rmse = apply_model(model, input_tensor_with_holes,
+                                                                                   mask_holes, n_dim, cfg,
+                                                                                   data_full=data_full,
+                                                                                   criterion_seq=criterion_seq,
+                                                                                   **kwargs)
 
         return de_out, uncertainty_estimate, loss, loss_original, list_rmse
 
@@ -212,8 +287,8 @@ def compute_loss(model, data_loader, n_dim, criterion_seq, cfg, device):
         data_with_holes = data_with_holes[:max_len]
         mask_holes = mask_holes[:max_len]
 
-        _, _, tl, lo, lr = feed_forward(data_with_holes, mask_holes, n_dim, model, cfg, device, data_full=data_full,
-                                     criterion_seq=criterion_seq)
+        _, _, tl, lo, lr = feed_forward(data_with_holes, mask_holes, n_dim, model, cfg, data_full=data_full,
+                                        criterion_seq=criterion_seq)
         total_loss += tl.item()
         total_rmse += torch.mean(lr).item()
         loss_original += lo.item()

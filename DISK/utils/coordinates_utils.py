@@ -254,7 +254,7 @@ def f2m(vect, divider=3, n_keypoints=10):
         matrix = vect.reshape(n_keypoints, divider)
     elif len(vect.shape) == 2:
         matrix = vect.reshape(-1, n_keypoints, divider)
-    elif len(vect.shape) == divider:
+    elif len(vect.shape) == 3:
         matrix = vect.reshape((vect.shape[0], vect.shape[1], n_keypoints, divider))
     else:
         raise NotImplementedError(f'vect has to be of len 1, 2, or 3')

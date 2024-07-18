@@ -60,6 +60,7 @@ evaluate:
     - models/03-07-06_GRU
     - models/03-10-24_transformer_NLL
   n_plots: 10
+  threshold_pck: 0.1 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
   size: 2.5
   only_holes: true

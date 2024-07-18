@@ -153,7 +153,7 @@ def my_app(_cfg: DictConfig) -> None:
 
             de_out, _, total_loss, loss_original, list_rmse = feed_forward(data_with_holes,
                                                                            mask_holes, dataset_constants.DIVIDER,
-                                                                           model, _cfg, device, data_full=data_full,
+                                                                           model, _cfg, data_full=data_full,
                                                                            criterion_seq=criterion_seq)
             ave_loss_train += total_loss.item()
             ave_rmse_train += list_rmse.mean().item()

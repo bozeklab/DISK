@@ -290,7 +290,7 @@ def evaluate(_cfg: DictConfig) -> None:
                     assert not torch.any(torch.isnan(transformed_data))
 
                     de_out = feed_forward(transformed_data, mask_holes,  # 1 for missing, 0 for non-missing
-                                          dataset_constants.DIVIDER, model, cfg_model, device,
+                                          dataset_constants.DIVIDER, model, cfg_model,
                                           key_padding_mask=lengths)
                     # References for key_padding_mask for transformer
                     # https://pytorch.org/docs/stable/_modules/torch/nn/modules/activation.html#MultiheadAttention

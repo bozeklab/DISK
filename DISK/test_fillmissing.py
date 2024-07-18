@@ -129,6 +129,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                              stride=_cfg.dataset.stride,
                                                              length_sample=dataset_constants.SEQ_LENGTH,
                                                              freq=dataset_constants.FREQ)
+    pck_final_threshold = train_dataset.kwargs['max_dist_bw_keypoints'] * _cfg.evaluate.threshold_pck
 
     test_loader = DataLoader(test_dataset, batch_size=_cfg.evaluate.batch_size, shuffle=False,
                              num_workers=_cfg.evaluate.n_cpus, persistent_workers=True)
@@ -143,8 +144,9 @@ def evaluate(_cfg: DictConfig) -> None:
     for i_repeat in range(_cfg.evaluate.n_repeat):
         suffix = _cfg.evaluate.suffix + f'_repeat-{i_repeat}'
         """RMSE computation"""
-        total_rmse = pd.DataFrame(columns=['id_sample', 'id_hole', 'keypoint', 'method', 'method_param', 'RMSE',
-                                           'type_RMSE', 'length_hole'])
+        total_rmse = pd.DataFrame(columns=['id_sample', 'id_hole', 'keypoint', 'method', 'method_param',
+                                           'euclidean_distance', f'PCK@{_cfg.evaluate.threshold_pck}',
+                                           'RMSE', 'type_RMSE', 'length_hole'])
         id_sample = 0
         n_plots = 0
         """Visualization 3D, one timepoint each"""
@@ -161,8 +163,10 @@ def evaluate(_cfg: DictConfig) -> None:
                 assert not torch.any(torch.isnan(data_with_holes))
                 assert not torch.any(torch.isnan(data_full))
 
-                de_outs, uncertainty_estimates, _, _ = feed_forward_list(data_with_holes, mask_holes, dataset_constants.DIVIDER, models,
-                                                  model_configs, device, data_full=data_full, criterion_seq=criterion_seq)
+                de_outs, uncertainty_estimates, _, _ = feed_forward_list(data_with_holes, mask_holes,
+                                                                         dataset_constants.DIVIDER, models,
+                                                                         model_configs, data_full=data_full,
+                                                                         criterion_seq=criterion_seq)
 
                 full_data_np = data_full.detach().cpu().clone().numpy()
                 data_with_holes_np = data_with_holes.detach().cpu().numpy()
@@ -190,16 +194,23 @@ def evaluate(_cfg: DictConfig) -> None:
                 ## TODO: need to scale this in case of original coordinates!!
                 uncertainty_estimates_np = [unc if unc is None else unc.detach().cpu().numpy() for unc in uncertainty_estimates]
                 uncertainty = [unc if unc is None else np.sum(np.sqrt((unc ** 2) * reshaped_mask_holes), axis=3)
-                               for unc in uncertainty_estimates_np]  # sum on the keypoint on dimension, shape (batch, time, keypoint)
+                               for unc in uncertainty_estimates_np]  # sum on the XYZ dimension, output shape (batch, time, keypoint)
 
-                rmse = [np.sum(np.sqrt(((out - full_data_np) ** 2) * reshaped_mask_holes), axis=3)
-                               for out in x_outputs_np]  # sum on the keypoint on dimension, shape (batch, time, keypoint)
+                # de_out : model output, pytorch tensor of shape (batch, time, keypoints, n_dim)
+                euclidean_distance = [np.sqrt(np.sum(((out - full_data_np) ** 2) * reshaped_mask_holes, axis=3))
+                                      for out in x_outputs_np]  # sum on the XYZ dimension, output shape (batch, time, keypoint)
+                pck = [euc <= pck_final_threshold for euc in euclidean_distance]
+                rmse = [np.sum(((out - full_data_np) ** 2) * reshaped_mask_holes, axis=3)
+                                      for out in x_outputs_np]  # sum on the XYZ dimension, output shape (batch, time, keypoint)
 
                 if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                     linear_interp_data = compute_interp(data_with_holes_np, mask_holes_np, dataset_constants.KEYPOINTS,
                                                         dataset_constants.DIVIDER)
-                    rmse_linear_interp = np.sum(np.sqrt(((linear_interp_data - full_data_np) ** 2) * reshaped_mask_holes),
-                                                axis=3)  # sum on the keypoint on dimension, shape (batch, time, keypoint)
+                    rmse_linear_interp = np.sum(((linear_interp_data - full_data_np) ** 2) * reshaped_mask_holes,
+                                                axis=3)  # sum on the XYZ dimension, output shape (batch, time, keypoint)
+                    euclidean_distance_linear_interp = np.sqrt(np.sum(((linear_interp_data - full_data_np) ** 2) * reshaped_mask_holes,
+                                                axis=3))  # sum on the XYZ dimension, output shape (batch, time, keypoint)
+                    pck_linear_interpolation = [euc <= pck_final_threshold for euc in euclidean_distance]
 
                 coverage = [[]] * n_models
                 bandexcess = [[]] * n_models
@@ -229,32 +240,39 @@ def evaluate(_cfg: DictConfig) -> None:
                     out = find_holes(mask_holes_np[i], dataset_constants.KEYPOINTS, indep=False)
                     for o in out:  # (start, keypoint_name, length)
                         for j in range(n_models):
+                            mean_euclidean = np.mean(euclidean_distance[j][i, o[0]: o[0] + o[1],
+                                                                              [dataset_constants.KEYPOINTS.index(kp) for
+                                                                               kp in o[2].split(' ')]])
+                            mean_rmse = np.sqrt(np.mean(rmse[j][i, o[0]: o[0] + o[1], [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]))
+                            mean_pck = np.mean(pck[j][i, o[0]: o[0] + o[1], [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]])
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
                                                                       model_configs[j].network.type, model_name[j],
-                                                                      np.mean(rmse[j][i, o[0]: o[0] + o[1], [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]), '3D',
+                                                                      mean_pck, mean_euclidean, mean_rmse, '3D',
                                                                       o[1]]
                             if model_configs[j].training.mu_sigma:
                                 total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[0].network.type,
-                                                                          model_name[j],
+                                                                          model_name[j], np.nan, np.nan,
                                                                           np.mean(uncertainty[j][i, o[0]: o[0] + o[1],  [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]), 'mean_uncertainty',
                                                                           o[1]]
                                 total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[0].network.type,
-                                                                          model_name[j],
+                                                                          model_name[j], np.nan, np.nan,
                                                                           np.max(uncertainty[j][i, o[0]: o[0] + o[1],  [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]), 'max_uncertainty',
                                                                           o[1]]
                                 total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[0].network.type,
-                                                                          model_name[j],
+                                                                          model_name[j], np.nan, np.nan,
                                                                           bandexcess[j][i], 'bandexcess_2sigma',
                                                                           o[1]]
                                 total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[0].network.type,
-                                                                          model_name[j],
+                                                                          model_name[j], np.nan, np.nan,
                                                                           coverage[j][i], 'coverage_2sigma',
                                                                           o[1]]
                         if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
-
+                            mean_rmse_linear = np.sqrt(np.mean(rmse_linear_interp[i, o[0]: o[0] + o[1],  [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]))
+                            mean_euclidean_linear = np.mean(euclidean_distance_linear_interp[i, o[0]: o[0] + o[1],  [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]])
+                            mean_pck_linear = np.mean(pck_linear_interpolation[i, o[0]: o[0] + o[1],  [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]])
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
                                                                       'linear_interp', 'linear_interp',
-                                                                      np.mean(rmse_linear_interp[i, o[0]: o[0] + o[1],  [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]),
+                                                                      mean_pck_linear, mean_euclidean_linear, mean_rmse_linear,
                                                                       '3D',
                                                                       o[1]]
                         id_hole += 1
@@ -263,17 +281,22 @@ def evaluate(_cfg: DictConfig) -> None:
                     if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   'linear_interp', 'linear_interp',
-                                                                  np.sum(rmse_linear_interp[i]) / n_missing[i],
+                                                                  np.sum(pck_linear_interpolation[i]) / n_missing[i],
+                                                                  np.sum(euclidean_distance_linear_interp[i]) / n_missing[i],
+                                                                  np.sqrt(np.sum(rmse_linear_interp[i]) / n_missing[i]),
                                                                   '3D',
                                                                   n_missing[i]]
                     for j in range(n_models):
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   model_configs[j].network.type, model_name[j],
-                                                                  np.sum(rmse[j][i]) / n_missing[i], '3D',
+                                                                  np.sum(pck[j][i]) / n_missing[i],
+                                                                  np.sum(euclidean_distance[j][i]) / n_missing[i],
+                                                                  np.sqrt(np.sum(rmse[j][i]) / n_missing[i]),
+                                                                  '3D',
                                                                   n_missing[i]]
                         if model_configs[j].training.mu_sigma:
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all', model_configs[0].network.type,
-                                                                      model_name[j],
+                                                                      model_name[j], np.nan, np.nan,
                                                                       np.sum(uncertainty[j][i]) / n_missing[i],
                                                                       'mean_uncertainty',
                                                                       o[1]]
@@ -296,12 +319,11 @@ def evaluate(_cfg: DictConfig) -> None:
                                               size=_cfg.evaluate.size, azim=_cfg.evaluate.azim,
                                               normalized_coordinates=(not _cfg.evaluate.original_coordinates))
 
-                        title = f'RMSE '
+                        title = f'RMSE & MPJPE'
                         title += ' -  '.join(
-                            [f'{i_model}: {np.mean(rmse[i_model][i]):.3f}' for i_model in range(n_models)])
+                            [f'{i_model}: {np.sqrt(np.mean(rmse[i_model][i])):.3f} & {np.mean(euclidean_distance[i_model][i]):.3f}' for i_model in range(n_models)])
                         if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
-                            title += f'; linear:{np.mean(rmse_linear_interp[i]):.3f}'
-
+                            title += f'; linear: {np.sqrt(np.mean(rmse_linear_interp[i])):.3f} & {np.mean(euclidean_distance_linear_interp[i]):.3f}'
                         def make_xyz_plot():
                             fig, axes = plt.subplots(dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER,
                                                      figsize=(max(dataset_constants.SEQ_LENGTH // 10,
@@ -356,9 +378,11 @@ def evaluate(_cfg: DictConfig) -> None:
                             return
 
                         plot_save(make_xyz_plot,
-                                  title=f'reconstruction_xyz_{indices_sample[i][0]}{suffix}',
+                                  title=f'RMSE_reconstruction_xyz_{indices_sample[i][0]}{suffix}',
                                   only_png=False,
                                   outputdir=visualize_val_outputdir)
+
+
 
                         n_plots += 1
 

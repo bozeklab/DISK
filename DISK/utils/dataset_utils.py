@@ -212,10 +212,8 @@ class SupervisedDataset(ParentDataset):
 
         # compute an estimation of the average distance between keypoints of one pose, so when adding the gaussian noise
         # we add it proportionally
-        subsample = self.X[np.random.choice(self.__len__(), min(1000, self.__len__()), replace=False), 0]
-        subsample = f2m(subsample, self.original_divider, self.n_keypoints)[..., :3]
-        dist_bw_keypoints = np.mean(list(map(pdist, subsample)))
-        self.var_dist = dist_bw_keypoints / 50  # factor 10 to be discussed
+        subsample = self.X[np.random.choice(self.__len__(), min(1000, self.__len__()), replace=False)].reshape((-1, self.n_keypoints, self.n_dim))
+        max_dist_bw_keypoints = np.max(list(map(pdist, subsample)))
         self.max_dataset = np.max(self.X.max(axis=(0, 1)).reshape((-1, self.original_divider)),
                                   axis=0)  # should be of shape divider (for the x, y, and z axes)
         self.min_dataset = np.max(self.X.min(axis=(0, 1)).reshape((-1, self.original_divider)), axis=0)  # same
@@ -225,7 +223,7 @@ class SupervisedDataset(ParentDataset):
             self.X.reshape(self.X.shape[0], self.X.shape[1], self.n_keypoints, self.original_divider), axis=(1, 2))
 
         self.kwargs = dict(min_coordinates_dataset=self.min_dataset, max_coordinates_dataset=self.max_dataset,
-                           var_dist_dataset=self.var_dist)
+                           max_dist_bw_keypoints=max_dist_bw_keypoints)
         self.kwargs.update(kwargs)
 
     def __len__(self):
@@ -281,6 +279,14 @@ class FullLengthDataset(ParentDataset):
         self.max_per_sample = [np.nanmax(
             self.X[pi[0], pi[1]: pi[1] + self.length_sample].reshape(-1, self.n_keypoints, self.original_divider),
             axis=(0, 1))[..., :self.divider] for pi in self.possible_indices]
+
+        subsample = self.X[self.time > -1]
+        subsample = subsample[np.random.choice(len(subsample), min(10000, len(subsample)), replace=False)]\
+            .reshape((-1, self.n_keypoints, self.original_divider))
+        max_dist_bw_keypoints = np.max(list(map(pdist, subsample)))
+
+        self.kwargs = dict(max_dist_bw_keypoints=max_dist_bw_keypoints)
+        self.kwargs.update(kwargs)
 
     def get_possible_indices(self):
         logging.debug('calling get_possible_indices from FullLengthDataset')
