@@ -322,7 +322,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                   pck_name,
                                                                   n_missing[i_sample_in_batch]]
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
-                                                                  model_configs[i_sample_in_batch].network.type, model_name[i_sample_in_batch],
+                                                                  model_configs[i_model].network.type, model_name[i_model],
                                                                   np.sum(euclidean_distance[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch],
                                                                   'MPJPE',
                                                                   n_missing[i_sample_in_batch]]
