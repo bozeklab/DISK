@@ -211,6 +211,7 @@ def evaluate(_cfg: DictConfig) -> None:
                     euclidean_distance_linear_interp = np.sqrt(np.sum(((linear_interp_data - full_data_np) ** 2) * reshaped_mask_holes,
                                                 axis=3))  # sum on the XYZ dimension, output shape (batch, time, keypoint)
                     pck_linear_interpolation = euclidean_distance_linear_interp <= pck_final_threshold
+                    print(pck_linear_interpolation.shape)
 
                 coverage = [[]] * n_models
                 bandexcess = [[]] * n_models
@@ -243,8 +244,7 @@ def evaluate(_cfg: DictConfig) -> None:
                         for j in range(n_models):
                             mean_euclidean = np.mean(euclidean_distance[j][slice_])
                             mean_rmse = np.sqrt(np.mean(rmse[j][slice_]))
-                            mean_pck = np.sum(pck[j][slice_])\
-                                       / np.sum(mask_holes_np[slice_])
+                            mean_pck = np.sum(pck[j][slice_] * mask_holes_np[slice_])/ np.sum(mask_holes_np[slice_])
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
                                                                       model_configs[j].network.type, model_name[j],
                                                                       mean_rmse, 'RMSE',
@@ -260,12 +260,12 @@ def evaluate(_cfg: DictConfig) -> None:
                             if model_configs[j].training.mu_sigma:
                                 total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[0].network.type,
                                                                           model_name[j], 
-                                                                          np.mean(uncertainty[j][i, o[0]: o[0] + o[1],  [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]), 
+                                                                          np.mean(uncertainty[j][slice_]),
                                                                           'mean_uncertainty',
                                                                           o[1]]
                                 total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[0].network.type,
                                                                           model_name[j], 
-                                                                          np.max(uncertainty[j][i, o[0]: o[0] + o[1],  [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]), 
+                                                                          np.max(uncertainty[j][slice_]),
                                                                           'max_uncertainty',
                                                                           o[1]]
                                 total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[0].network.type,
@@ -277,12 +277,10 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                           coverage[j][i], 'coverage_2sigma',
                                                                           o[1]]
                         if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
-                            mean_rmse_linear = np.sqrt(np.mean(rmse_linear_interp[i, o[0]: o[0] + o[1],  [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]))
-                            mean_euclidean_linear = np.mean(euclidean_distance_linear_interp[i, o[0]: o[0] + o[1],  [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]])
-                            mean_pck_linear = np.sum(pck_linear_interpolation[i, o[0]: o[0] + o[1],  [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]]) \
-                                              / np.sum(mask_holes_np[i, o[0]: o[0] + o[1],
-                                                       [dataset_constants.KEYPOINTS.index(kp) for kp in
-                                                        o[2].split(' ')]])
+                            mean_rmse_linear = np.sqrt(np.mean(rmse_linear_interp[slice_]))
+                            mean_euclidean_linear = np.mean(euclidean_distance_linear_interp[slice_])
+                            mean_pck_linear = np.sum(pck_linear_interpolation[slice_] * mask_holes_np[slice_])\
+                                              / np.sum(mask_holes_np[slice_])
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
                                                                       'linear_interp', 'linear_interp',
                                                                       mean_rmse_linear,
@@ -304,7 +302,7 @@ def evaluate(_cfg: DictConfig) -> None:
                     if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   'linear_interp', 'linear_interp',
-                                                                  np.sum(pck_linear_interpolation[i]) / n_missing[i],
+                                                                  np.sum(pck_linear_interpolation[i] * mask_holes_np[i]) / n_missing[i],
                                                                   pck_name,
                                                                   n_missing[i]]
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
@@ -320,7 +318,7 @@ def evaluate(_cfg: DictConfig) -> None:
                     for j in range(n_models):
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   model_configs[j].network.type, model_name[j],
-                                                                  np.sum(pck[j][i]) / n_missing[i],
+                                                                  np.sum(pck[j][i] * mask_holes_np[i]) / n_missing[i],
                                                                   pck_name,
                                                                   n_missing[i]]
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
