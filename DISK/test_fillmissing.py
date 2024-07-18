@@ -257,7 +257,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                       model_configs[i_model].network.type, model_name[i_model],
                                                                       mean_pck, pck_name,
                                                                       o[1]]
-                            if model_configs[j].training.mu_sigma:
+                            if model_configs[i_model].training.mu_sigma:
                                 total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
                                                                           model_name[i_model],
                                                                           np.mean(uncertainty[i_model][slice_]),
