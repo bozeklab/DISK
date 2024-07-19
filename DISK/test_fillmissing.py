@@ -211,7 +211,6 @@ def evaluate(_cfg: DictConfig) -> None:
                     euclidean_distance_linear_interp = np.sqrt(np.sum(((linear_interp_data - full_data_np) ** 2) * reshaped_mask_holes,
                                                 axis=3))  # sum on the XYZ dimension, output shape (batch, time, keypoint)
                     pck_linear_interpolation = euclidean_distance_linear_interp <= pck_final_threshold
-                    print(pck_linear_interpolation.shape)
 
                 coverage = [[]] * n_models
                 bandexcess = [[]] * n_models
@@ -529,6 +528,7 @@ def evaluate(_cfg: DictConfig) -> None:
                         'id_sample'].values
                     if len(filtered_id_samples) == 0:
                         continue
+                    print(total_rmse.columns, (total_rmse['metric_type'] == 'RMSE'))
                     vals_RMSE = total_rmse[(total_rmse['metric_type'] == 'RMSE') * (total_rmse['keypoint'] == 'all') *
                                       (total_rmse['method_param'] == model_name[i_model]) *
                                       (total_rmse['id_sample'].isin(filtered_id_samples))]['RMSE'].agg(['mean', 'std', 'count'])
