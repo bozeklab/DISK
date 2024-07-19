@@ -505,13 +505,13 @@ def evaluate(_cfg: DictConfig) -> None:
                 pivot_df['RMSE'] = pivot_df['RMSE'].astype(float)
                 pivot_df[pck_name] = pivot_df[pck_name].astype(float)
                 pivot_df['MPJPE'] = pivot_df['MPJPE'].astype(float)
-                pcoeff, ppval = pearsonr(pivot_df['3D'].values, pivot_df['mean_uncertainty'].values)
-                logging.info(f'Model {model_name[i_model]}: PEARSONR COEFF {pcoeff}, PVAL {ppval}')
+                pcoeff, ppval = pearsonr(pivot_df['RMSE'].values, pivot_df['mean_uncertainty'].values)
+                logging.info(f'Model {model_name[i_model]}: PEARSONR COEFF w RMSE {pcoeff}, PVAL {ppval}')
 
                 def corr_plot():
                     sns.histplot(data=pivot_df, x=metric, y='mean_uncertainty')
                     sns.kdeplot(data=pivot_df, x=metric, y='mean_uncertainty')
-                    plt.plot([0, pivot_df[metric].max()], [0, pivot_df['3D'].max()], 'r--')
+                    plt.plot([0, pivot_df[metric].max()], [0, pivot_df[metric].max()], 'r--')
                     plt.title(f'Pearson coeff: {pcoeff:.3f}')
 
                 for metric in [pck_name, 'RMSE', 'MPJPE']:
