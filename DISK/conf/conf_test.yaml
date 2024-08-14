@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: models/test_Human
+    dir: outputs/2023-09-27_Fishv3_newnewmissing/input_lengths_experiments/test_240stride240_new
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -18,11 +18,11 @@ hydra:
 
 
 dataset:
-  name: Mocap_keypoints_60_stride30_new
+  name: Fish_v3_240stride240
   # TOCHANGE: stride controls the translation between two samples, need to be an integer
   # a smaller stride will produce more segments and with a higher overlap
-  stride: 30
-  skeleton_file: Mocap_keypoints_60_stride30_new/skeleton.py #TM_pulledxp_freq300_300stride25_new/skeleton.py
+  stride: 240
+  skeleton_file:  #TM_pulledxp_freq300_300stride25_new/skeleton.py
 
 feed_data:
   mask: true
@@ -40,8 +40,8 @@ feed_data:
         # TOCHANGE: proba missing files
         # order matters: first proba_missing, then proba_missing_length
         # the 3rd is optional and can precise how many simultaneous missing keypoints
-        - Mocap_keypoints_60_stride30_new/proba_missing_uniform.csv
-        - Mocap_keypoints_60_stride30_new/proba_missing_length_uniform.csv
+      - Fish_v3_240stride120/proba_missing.csv
+      - Fish_v3_240stride120/proba_missing_length.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
@@ -57,9 +57,9 @@ evaluate:
     # TOCHANGE: folder which contains the saved model(s)
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
-    - models/03-07-06_GRU
-    - models/03-10-24_transformer_NLL
-  n_plots: 2
+  - outputs/2023-09-27_Fishv3_newnewmissing/input_lengths_experiments/17-53-20_transformer_240stride240
+  - outputs/2023-09-27_Fishv3_newnewmissing/input_lengths_experiments/17-59-48_GRU_240stride240
+  n_plots: 20
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
   size: 2.5
@@ -73,4 +73,4 @@ evaluate:
     - mu_sigma
   merge: true
   merge_sets_file: ''
-  n_repeat: 1
+  n_repeat: 5
