@@ -462,7 +462,7 @@ class Swap2Kp(Transform):
         rd_kps = np.random.choice(a=x.shape[1],
                                  size=2,
                                  replace=False)  # returns a 1D-array
-        length = np.random.choice(a=np.arange(1, x.shape[0] + 1),
+        length = np.random.choice(a=np.arange(1, x.shape[0]),
                                  size=1,
                                  replace=False)[0]  # returns an int
         start_index = np.random.choice(a=x.shape[0] - length,
