@@ -52,6 +52,9 @@ def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputd
     if _cfg.feed_data.transforms.normalizecube:
         transforms.append(NormalizeCube(proba=1, divider=divider, verbose=0, outputdir=outputdir))
 
+    if _cfg.feed_data.transforms.swap:
+        transforms.append(Swap2Kp(proba=0.1, divider=divider, verbose=0, outputdir=outputdir))
+
     return transforms, proba_n_missing
 
 
@@ -428,6 +431,58 @@ class Normalize(Transform):
             raise ValueError
 
         reconstructed = min_tiled + (max_tiled - min_tiled) * (1 + x) / 2
+
+        return reconstructed
+
+
+class Swap2Kp(Transform):
+    """
+    The idea is to swap 2 keypoints randomly for a random time, to train/test DISK to be robust to swaps.
+    For now all the probability distributions are uniform over keypoint pairs, and start + length
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def __str__(self):
+        return 'Swap_2_keypoints'
+
+    def __call__(self, x, *args, x_supp=None, **kwargs):
+        """Compute the transform
+        :args x: the input sample
+        :kwargs x_supp: the corresponding ground truth that could also be changed. Here it will not be changed,
+                        as swapping is corrupting the data
+        """
+        # x of shape (time points, keypoints,  3)
+        rd_kps = np.random.choice(a=x.shape[1],
+                                 size=2,
+                                 replace=False)  # returns a 1D-array
+        length = np.random.choice(a=x.shape[0],
+                                 size=1,
+                                 replace=False)[0]  # returns an int
+        start_index = np.random.choice(a=x.shape[0] - length,
+                                 size=1,
+                                 replace=False)[0]  # returns an int
+        kwargs['swap_kp'] = rd_kps
+        kwargs['swap_length'] = length
+        kwargs['swap_start_index'] = start_index
+        # print(f'[Problem in Swap2Kp] {min_}, {max_}, {x}')
+
+        """Apply the transform"""
+        x_prime = np.array(x)
+        x_prime[start_index: start_index + length, rd_kps[0]] = x[start_index: start_index + length, rd_kps[1]]
+        x_prime[start_index: start_index + length, rd_kps[1]] = x[start_index: start_index + length, rd_kps[0]]
+
+        return x_prime, x_supp, kwargs
+
+    def untransform(self, x, *args, **kwargs):
+        rd_kps = kwargs['swap_kp']
+        length = kwargs['swap_length']
+        start_index = kwargs['swap_start_index']
+
+        # swap again, symmetrical
+        reconstructed = np.array(x)
+        reconstructed[start_index: start_index + length, rd_kps[0]] = x[start_index: start_index + length, rd_kps[1]]
+        reconstructed[start_index: start_index + length, rd_kps[1]] = x[start_index: start_index + length, rd_kps[0]]
 
         return reconstructed
 

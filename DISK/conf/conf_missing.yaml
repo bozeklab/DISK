@@ -8,20 +8,20 @@ defaults:
   # TOCHANGE: this loads the default config for a given backbone
   # can be: gru, ae_tcn, st_gcn, sts_gcn, transformer
   # we advise gru or transformer for better performance
-  - network: gru
+  - network: transformer
 
 hydra:
   job:
     chdir: True
   run:
     # TOCHANGE: specify the output
-    dir: outputs/${now:%d-%m-%y}_gru_test3 #outputs/2023-10-26_treadmill/${now:%d-%m-%y}_GRU_new
+    dir: outputs/${now:%d-%m-%y}_MABe_swap #outputs/2023-10-26_treadmill/${now:%d-%m-%y}_GRU_new
 
 # TOCHANGE: name of the dataset, should match the folder name in `datasets
 dataset:
-  name: test3
+  name: MABE_task1_60stride60
   # path from datasets folder, can be left blank if not using st_gcn as network
-  skeleton_file: #INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
+  skeleton_file: MABE_task1_60stride60/skeleton.py#INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
 
 training: # a priori not to be changed
   epochs: 10
@@ -36,7 +36,7 @@ training: # a priori not to be changed
   n_cpus: 8 # TOCHANGE: if no multiprocessing, put 0
   loss:
     type: l1
-    mask: true
+    mask: false
     factor: 100
   model_scheduler:
     type: lambdalr
@@ -51,7 +51,7 @@ training: # a priori not to be changed
   ## deviation (sigma). The network is trained with a different loss (a different loss profile is expected).
   ## Used in this framework to approximate the network imputation error on each sample (cf test_fillmissing.py)
   ## Used also to filter the imputations in impute_dataset (cf impute_dataset.py)
-  mu_sigma: False # TOCHANGE (True or False)
+  mu_sigma: True # TOCHANGE (True or False)
   beta_mu_sigma: 0.5 # default is 0 for the standard NLL loss
 
 
@@ -66,9 +66,10 @@ feed_data:
        # first proba missing, then missing length. order matters!
        # the 3rd file specifying the number of simultaneous missing keypoints is optional
        # path from datasets folder
-       - test3/proba_missing.csv
-       - test3/proba_missing_length.csv
+      - MABE_task1_60stride60/proba_missing_uniform.csv
+      - MABE_task1_60stride60/proba_missing_length_uniform.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
+    swap: true
   verbose: 0
