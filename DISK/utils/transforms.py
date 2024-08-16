@@ -51,7 +51,6 @@ def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputd
         transforms.append(Normalize(proba=1, divider=divider, verbose=0, outputdir=outputdir))
     if _cfg.feed_data.transforms.normalizecube:
         transforms.append(NormalizeCube(proba=1, divider=divider, verbose=0, outputdir=outputdir))
-
     if _cfg.feed_data.transforms.swap:
         transforms.append(Swap2Kp(proba=0.1, divider=divider, verbose=0, outputdir=outputdir))
 
@@ -435,6 +434,7 @@ class Normalize(Transform):
         return reconstructed
 
 
+
 class Swap2Kp(Transform):
     """
     The idea is to swap 2 keypoints randomly for a random time, to train/test DISK to be robust to swaps.
@@ -452,6 +452,12 @@ class Swap2Kp(Transform):
         :kwargs x_supp: the corresponding ground truth that could also be changed. Here it will not be changed,
                         as swapping is corrupting the data
         """
+        if np.random.rand() >= self.proba:
+            kwargs.pop('swap_kp', None)
+            kwargs.pop('swap_length', None)
+            kwargs.pop('swap_start_index', None)
+            return x, x_supp, kwargs
+
         # x of shape (time points, keypoints,  3)
         rd_kps = np.random.choice(a=x.shape[1],
                                  size=2,
@@ -475,16 +481,19 @@ class Swap2Kp(Transform):
         return x_prime, x_supp, kwargs
 
     def untransform(self, x, *args, **kwargs):
-        rd_kps = kwargs['swap_kp']
-        length = kwargs['swap_length']
-        start_index = kwargs['swap_start_index']
+        if 'swap_kp' in kwargs:
+            rd_kps = kwargs['swap_kp']
+            length = kwargs['swap_length']
+            start_index = kwargs['swap_start_index']
 
-        # swap again, symmetrical
-        reconstructed = np.array(x)
-        reconstructed[start_index: start_index + length, rd_kps[0]] = x[start_index: start_index + length, rd_kps[1]]
-        reconstructed[start_index: start_index + length, rd_kps[1]] = x[start_index: start_index + length, rd_kps[0]]
+            # swap again, symmetrical
+            reconstructed = np.array(x)
+            reconstructed[start_index: start_index + length, rd_kps[0]] = x[start_index: start_index + length, rd_kps[1]]
+            reconstructed[start_index: start_index + length, rd_kps[1]] = x[start_index: start_index + length, rd_kps[0]]
 
-        return reconstructed
+            return reconstructed
+
+        return x
 
 
 

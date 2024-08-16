@@ -192,6 +192,9 @@ class ParentDataset(data.Dataset):
             output['indices_file'] = sample['i_file']
             output['indices_pos'] = sample['i_pos']
 
+        if 'swap' in sample:
+            output['swap'] = sample['swap']
+
         if self.label_type is not None and 'y' in sample and sample['y'] is not None:
             output['label'] = torch.from_numpy(sample['y']).type(torch.float)
 
@@ -240,7 +243,8 @@ class SupervisedDataset(ParentDataset):
         sample = {'x': x,
                   'm': m,
                   'y': y,
-                  'z': z}
+                  'z': z,
+                  'swap': True if 'swap_length' in self.kwargs else False}
         return sample
 
 
@@ -336,7 +340,8 @@ class FullLengthDataset(ParentDataset):
                   'z': z,
                   'y': y,
                   'i_file': i_file,
-                  'i_pos': i_pos}
+                  'i_pos': i_pos,
+                  'swap': True if 'swap_length' in self.kwargs else False}
         return sample
 
 
