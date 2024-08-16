@@ -24,7 +24,7 @@ dataset:
   skeleton_file: MABE_task1_60stride60/skeleton.py #INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
 
 training: # a priori not to be changed
-  epochs: 10
+  epochs: 1500
   batch_size: 32
   # from experience, learning rate of 0.0001 is better for GRU and 0.001 for transformer
   learning_rate: 0.001
@@ -33,7 +33,7 @@ training: # a priori not to be changed
   # if a valid path is given, then the saved model will be loaded
   # instead of starting from a random initialization of the weights
   load: # example: outputs/2023-09-27_Fishv3_newnewmissing/09-26-47_STGCN_stride60
-  n_cpus: 8 # TOCHANGE: if no multiprocessing, put 0
+  n_cpus: 6 # TOCHANGE: if no multiprocessing, put 0
   loss:
     type: l1
     mask: false
@@ -42,7 +42,7 @@ training: # a priori not to be changed
     type: lambdalr
     steps_epoch: 500
     rate: 0.95
-  print_every: 2
+  print_every: 10
   # print_every modifies the frequency at which the model infers on the validation set and the frequency at which
   # models can be saved (save when validation loss is better than previous one)
 
