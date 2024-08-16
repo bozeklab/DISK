@@ -342,7 +342,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 """VISUALIZATION, only first batch"""
                 if n_plots < _cfg.evaluate.n_plots:
                     logging.info(f'Starting sample plots')
-                    potential_indices = np.where(n_missing > 100)[0]
+                    potential_indices = np.where(n_missing > 0)[0]
                     np.random.seed(0)
                     for i in np.random.choice(potential_indices,  #full_data_np.shape[0],
                                               min(len(potential_indices), _cfg.evaluate.n_plots),
@@ -357,7 +357,8 @@ def evaluate(_cfg: DictConfig) -> None:
 
                         title = f'RMSE & MPJPE'
                         title += ' -  '.join(
-                            [f'{i_model}: {np.sqrt(np.mean(rmse[i_model][i])):.3f} & {np.mean(euclidean_distance[i_model][i]):.3f}' for i_model in range(n_models)])
+                            [f'{i_model}: {np.sqrt(np.mean(rmse[i_model][i])):.3f} & '
+                             f'{np.mean(euclidean_distance[i_model][i]):.3f}' for i_model in range(n_models)])
                         if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                             title += f'; linear: {np.sqrt(np.mean(rmse_linear_interp[i])):.3f} & {np.mean(euclidean_distance_linear_interp[i]):.3f}'
                         def make_xyz_plot():
