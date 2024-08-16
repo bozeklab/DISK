@@ -72,4 +72,4 @@ feed_data:
     normalize: false
     normalizecube: true
     swap: true
-  verbose: 1
+  verbose: 2

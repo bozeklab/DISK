@@ -620,8 +620,6 @@ def transform_x(x, transformations, **kwargs):
             x, x_supp, kwargs = t(x, x_supp=x_supp, **kwargs)
     else:
         for t in transformations:
-            if 'x_supp' in kwargs:
-                print(t)
             x, x_supp, kwargs = t(x, **kwargs)
     return x, x_supp, kwargs
 
