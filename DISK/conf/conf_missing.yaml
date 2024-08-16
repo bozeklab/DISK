@@ -21,7 +21,7 @@ hydra:
 dataset:
   name: MABE_task1_60stride60
   # path from datasets folder, can be left blank if not using st_gcn as network
-  skeleton_file: MABE_task1_60stride60/skeleton.py#INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
+  skeleton_file: MABE_task1_60stride60/skeleton.py #INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
 
 training: # a priori not to be changed
   epochs: 10
