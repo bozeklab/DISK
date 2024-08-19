@@ -471,16 +471,16 @@ class Swap2Kp(Transform):
         kwargs['swap_kp'] = rd_kps
         kwargs['swap_length'] = length
         kwargs['swap_start_index'] = start_index
-        print(f'[Problem in Swap2Kp] {rd_kps}, {start_index}, {length}')
+        # print(f'[Problem in Swap2Kp] {rd_kps}, {start_index}, {length}')
 
         """Apply the transform"""
         x_prime = np.array(x)
         x_prime[start_index: start_index + length, rd_kps[0]] = np.array(x[start_index: start_index + length, rd_kps[1]])
         x_prime[start_index: start_index + length, rd_kps[1]] = np.array(x[start_index: start_index + length, rd_kps[0]])
 
-        x_supp_prime = np.array(x_supp)
-        x_supp_prime[start_index: start_index + length, rd_kps[0]] = np.array(x_supp[start_index: start_index + length, rd_kps[1]])
-        x_supp_prime[start_index: start_index + length, rd_kps[1]] = np.array(x_supp[start_index: start_index + length, rd_kps[0]])
+        # x_supp_prime = np.array(x_supp)
+        # x_supp_prime[start_index: start_index + length, rd_kps[0]] = np.array(x_supp[start_index: start_index + length, rd_kps[1]])
+        # x_supp_prime[start_index: start_index + length, rd_kps[1]] = np.array(x_supp[start_index: start_index + length, rd_kps[0]])
 
         return x_prime, x_supp_prime, kwargs
 
