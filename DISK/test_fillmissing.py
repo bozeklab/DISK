@@ -162,7 +162,6 @@ def evaluate(_cfg: DictConfig) -> None:
                 mask_holes = data_dict['mask_holes'].to(device)
                 data_swapped_np = data_dict['x_swap'].detach().cpu().numpy() if 'x_swap' in data_dict \
                                   else np.zeros((_cfg.evaluate.batch_size, data_dict['X'].shape[1], dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER)) * np.nan
-                logging.info(f'{data_swapped_np.shape}')
                 assert not torch.any(torch.isnan(data_with_holes))
                 assert not torch.any(torch.isnan(data_full))
 
@@ -381,7 +380,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                     t_mask = np.ones_like(mask_holes_np[i, 1:, j]).astype(bool)
                                     t_mask_holes = (mask_holes_np[i, 1:, j] == 1)
                                 for i_dim in range(dataset_constants.DIVIDER):
-                                    axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, data_swapped_np[i, 1:, j, i_dim], 'o-', color='grey')
+                                    axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, data_swapped_np[i, 1:, j, i_dim], 'o-', color='grey', ms=1)
                                     axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, full_data_np[i, 1:, j, i_dim], 'o-')
                                     if np.sum(t_mask) > 0:
                                         for i_model, xo in enumerate(x_outputs_np):
