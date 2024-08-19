@@ -59,6 +59,7 @@ evaluate:
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
   - outputs/16-08-24_MABe_swap
+  - utputs/2024-02-19_MABe_task1_newnewmissing/10-44-22_transformer_NLL
   n_plots: 20
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
@@ -69,8 +70,9 @@ evaluate:
   name_items:
   - - network
     - type
-  - - training
-    - mu_sigma
+  - - - feed_data
+    - - transforms
+    - - swap
   merge: true
   merge_sets_file: ''
   n_repeat: 1
