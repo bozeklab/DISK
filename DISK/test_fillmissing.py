@@ -383,7 +383,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                         for i_model, xo in enumerate(x_outputs_np):
                                             plot_ = axes[dataset_constants.DIVIDER * j + i_dim].scatter(t_vect[t_mask],
                                                                                                      xo[i, 1:, j, i_dim][t_mask],
-                                                                                                     marker='x', markersize=10,
+                                                                                                     marker='x', 
                                                                                                      label=model_name[i_model])
                                             if model_configs[i_model].training.mu_sigma:
                                                 # 3 * std otherwise 1/ we do not see anything,
