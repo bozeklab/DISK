@@ -373,8 +373,10 @@ def evaluate(_cfg: DictConfig) -> None:
                             for j in range(dataset_constants.N_KEYPOINTS):
                                 if _cfg.evaluate.only_holes:
                                     t_mask = (mask_holes_np[i, 1:, j] == 1)
+                                    t_mask_holes = (mask_holes_np[i, 1:, j] == 1)
                                 else:
                                     t_mask = np.ones_like(mask_holes_np[i, 1:, j]).astype(bool)
+                                    t_mask_holes = (mask_holes_np[i, 1:, j] == 1)
                                 for i_dim in range(dataset_constants.DIVIDER):
                                     axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, full_data_np[i, 1:, j, i_dim], 'o-')
                                     if np.sum(t_mask) > 0:
@@ -392,7 +394,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                           color=plot_[0].get_color(), alpha=0.2)
                                             assert not np.any(np.isnan(xo))
 
-                                    out = find_holes(np.array(t_mask).reshape(dataset_constants.SEQ_LENGTH - 1, 1).astype(int), ['0'], indep=True)
+                                    out = find_holes(np.array(t_mask_holes).reshape(dataset_constants.SEQ_LENGTH - 1, 1).astype(int), ['0'], indep=True)
                                     if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                                         for o in out:
                                             axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[o[0]:o[0]+o[1]],
