@@ -383,10 +383,9 @@ def evaluate(_cfg: DictConfig) -> None:
                                         for i_model, xo in enumerate(x_outputs_np):
                                             plot_ = axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[t_mask],
                                                                                                      xo[i, 1:, j, i_dim][t_mask],
-                                                                                                     color='green',
-                                                                                                     marker='+',
+                                                                                                     marker='o',
                                                                                                      linestyle='dashed',
-                                            linewidth = 0, markersize = 12,
+                                            linewidth=1, markersize=1,
                                                                                                      label=model_name[i_model])
                                             if model_configs[i_model].training.mu_sigma:
                                                 # 3 * std otherwise 1/ we do not see anything,
