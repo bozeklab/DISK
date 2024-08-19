@@ -52,6 +52,7 @@ def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputd
     if _cfg.feed_data.transforms.normalizecube:
         transforms.append(NormalizeCube(proba=1, divider=divider, verbose=0, outputdir=outputdir))
     if _cfg.feed_data.transforms.swap:
+        logging.info(f'INIT SWAPPING')
         transforms.append(Swap2Kp(proba=1, divider=divider, verbose=0, outputdir=outputdir))
 
     return transforms, proba_n_missing
@@ -462,7 +463,7 @@ class Swap2Kp(Transform):
         rd_kps = np.random.choice(a=x.shape[1],
                                  size=2,
                                  replace=False)  # returns a 1D-array
-        length = np.random.choice(a=np.arange(1, x.shape[0]),
+        length = np.random.choice(a=np.arange(30, x.shape[0]),
                                  size=1,
                                  replace=False)[0]  # returns an int
         start_index = np.random.choice(a=x.shape[0] - length,
@@ -471,7 +472,7 @@ class Swap2Kp(Transform):
         kwargs['swap_kp'] = rd_kps
         kwargs['swap_length'] = length
         kwargs['swap_start_index'] = start_index
-        # print(f'[Problem in Swap2Kp] {min_}, {max_}, {x}')
+        print(f'[Problem in Swap2Kp] {rd_kps}, {start_index}, {length}')
 
         """Apply the transform"""
         x_prime = np.array(x)
