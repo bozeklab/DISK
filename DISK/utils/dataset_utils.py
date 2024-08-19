@@ -194,7 +194,7 @@ class ParentDataset(data.Dataset):
 
         if 'swap' in sample:
             output['swap'] = sample['swap']
-            output['swap_gt'] = sample['swap_gt']
+            # output['swap_gt'] = sample['swap_gt']
 
         if self.label_type is not None and 'y' in sample and sample['y'] is not None:
             output['label'] = torch.from_numpy(sample['y']).type(torch.float)
