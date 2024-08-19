@@ -162,6 +162,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 mask_holes = data_dict['mask_holes'].to(device)
                 data_swapped_np = data_dict['swap_gt'].detach().cpu().numpy() if 'swap_gt' in data_dict \
                                   else np.zeros((_cfg.evaluate.batch_size, data_dict['X'].shape[0], dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER)) * np.nan
+                logging.info(f'{data_swapped_np.shape}')
                 assert not torch.any(torch.isnan(data_with_holes))
                 assert not torch.any(torch.isnan(data_full))
 
