@@ -15,7 +15,7 @@ hydra:
     chdir: True
   run:
     # TOCHANGE: specify the output
-    dir: outputs/${now:%d-%m-%y}_MABe_swap_test #outputs/2023-10-26_treadmill/${now:%d-%m-%y}_GRU_new
+    dir: outputs/${now:%d-%m-%y}_MABe_swap_lossmask #outputs/2023-10-26_treadmill/${now:%d-%m-%y}_GRU_new
 
 # TOCHANGE: name of the dataset, should match the folder name in `datasets
 dataset:
@@ -36,7 +36,7 @@ training: # a priori not to be changed
   n_cpus: 6 # TOCHANGE: if no multiprocessing, put 0
   loss:
     type: l1
-    mask: false
+    mask: true
     factor: 100
   model_scheduler:
     type: lambdalr
@@ -71,5 +71,5 @@ feed_data:
     viewinvariant: true
     normalize: false
     normalizecube: true
-    swap: true
+    swap: 0.1
   verbose: 2
