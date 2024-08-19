@@ -70,9 +70,9 @@ evaluate:
   name_items:
   - - network
     - type
-  - - - feed_data
-    - - transforms
-      - swap
+  - - feed_data
+    - transforms
+    - swap
   merge: true
   merge_sets_file: ''
   n_repeat: 1
