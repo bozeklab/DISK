@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: outputs/2023-09-27_Fishv3_newnewmissing/input_lengths_experiments/test_240stride240_new
+    dir: outputs/MABE_task1_60stride60/test
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
