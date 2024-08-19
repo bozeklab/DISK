@@ -94,7 +94,6 @@ def evaluate(_cfg: DictConfig) -> None:
     for imodel, model_cfg in enumerate(model_configs):
         models.append(construct_NN_model(model_cfg, dataset_constants, skeleton_file_path, device))
         for ini, name_item in enumerate(_cfg.evaluate.name_items):
-            print(name_item)
             val = model_cfg[name_item[0]]
             for item in name_item[1:]:
                 val = val[item]
