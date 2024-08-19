@@ -476,8 +476,8 @@ class Swap2Kp(Transform):
 
         """Apply the transform"""
         x_prime = np.array(x)
-        x_prime[start_index: start_index + length, rd_kps[0]] = x[start_index: start_index + length, rd_kps[1]]
-        x_prime[start_index: start_index + length, rd_kps[1]] = x[start_index: start_index + length, rd_kps[0]]
+        x_prime[start_index: start_index + length, rd_kps[0]] = np.array(x[start_index: start_index + length, rd_kps[1]])
+        x_prime[start_index: start_index + length, rd_kps[1]] = np.array(x[start_index: start_index + length, rd_kps[0]])
 
         return x_prime, x_supp, kwargs
 
