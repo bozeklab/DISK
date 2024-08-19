@@ -160,8 +160,8 @@ def evaluate(_cfg: DictConfig) -> None:
                 data_with_holes = data_dict['X'].to(device)  # shape (timepoints, n_keypoints, 2 or 3 or 4)
                 data_full = data_dict['x_supp'].to(device)
                 mask_holes = data_dict['mask_holes'].to(device)
-                data_swapped_np = data_dict['swap_gt'].detach().cpu().numpy() if 'swap_gt' in data_dict \
-                                  else np.zeros((_cfg.evaluate.batch_size, data_dict['X'].shape[0], dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER)) * np.nan
+                data_swapped_np = data_dict['x_swap'].detach().cpu().numpy() if 'x_swap' in data_dict \
+                                  else np.zeros((_cfg.evaluate.batch_size, data_dict['X'].shape[1], dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER)) * np.nan
                 logging.info(f'{data_swapped_np.shape}')
                 assert not torch.any(torch.isnan(data_with_holes))
                 assert not torch.any(torch.isnan(data_full))
