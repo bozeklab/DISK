@@ -338,7 +338,7 @@ class FullLengthDataset(ParentDataset):
         m = self.mask[i_file, i_pos: i_pos + self.length_sample]
         z = np.array([self.length_sample])  # we add this to fit the other supervised dataset item format
         if "swap_gt" in self.kwargs:
-            logging.info(f'{x.shape}, {self.kwargs["swap_gt"].shape}')
+            logging.info(f'{(x.shape[0], self.n_keypoints, self.original_divider)}, {self.kwargs["swap_gt"].shape}')
         sample = {'x': x,
                   'm': m,
                   'z': z,
@@ -346,7 +346,7 @@ class FullLengthDataset(ParentDataset):
                   'i_file': i_file,
                   'i_pos': i_pos,
                   'swap': True if 'swap_length' in self.kwargs else False,
-                  'swap_gt': self.kwargs['swap_gt'] if 'swap_gt' in self.kwargs else np.zeros(x.shape) * np.nan}
+                  'swap_gt': self.kwargs['swap_gt'] if 'swap_gt' in self.kwargs else np.zeros((x.shape[0], self.n_keypoints, self.original_divider)) * np.nan}
         return sample
 
 
