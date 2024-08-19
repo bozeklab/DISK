@@ -381,9 +381,9 @@ def evaluate(_cfg: DictConfig) -> None:
                                     axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, full_data_np[i, 1:, j, i_dim], 'o-')
                                     if np.sum(t_mask) > 0:
                                         for i_model, xo in enumerate(x_outputs_np):
-                                            plot_ = axes[dataset_constants.DIVIDER * j + i_dim].scatter(t_vect[t_mask],
+                                            plot_ = axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[t_mask],
                                                                                                      xo[i, 1:, j, i_dim][t_mask],
-                                                                                                     marker='x', 
+                                                                                                     fmt='x:k', markersize=10,
                                                                                                      label=model_name[i_model])
                                             if model_configs[i_model].training.mu_sigma:
                                                 # 3 * std otherwise 1/ we do not see anything,
