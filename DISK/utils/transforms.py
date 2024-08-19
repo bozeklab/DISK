@@ -456,6 +456,7 @@ class Swap2Kp(Transform):
             kwargs.pop('swap_kp', None)
             kwargs.pop('swap_length', None)
             kwargs.pop('swap_start_index', None)
+            kwargs.pop('swap_gt', None)
             return x, x_supp, kwargs
 
         # x of shape (time points, keypoints,  3)
