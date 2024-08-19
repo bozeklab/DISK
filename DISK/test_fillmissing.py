@@ -385,7 +385,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                                                      xo[i, 1:, j, i_dim][t_mask],
                                                                                                      marker='o',
                                                                                                      linestyle='dashed',
-                                            linewidth=1, markersize=1,
+                                                                                                     linewidth=1, markersize=1,
                                                                                                      label=model_name[i_model])
                                             if model_configs[i_model].training.mu_sigma:
                                                 # 3 * std otherwise 1/ we do not see anything,
@@ -408,7 +408,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                     if not _cfg.evaluate.original_coordinates:
                                         axes[dataset_constants.DIVIDER * j + i_dim].set_ylim(-1.2, 1.2)
 
-                                if np.any(t_mask):
+                                if np.any(t_mask_holes):
                                     axes[dataset_constants.DIVIDER * j].legend()
                                     axes[dataset_constants.DIVIDER * j + 1].set_title(title)
 
