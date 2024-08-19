@@ -343,7 +343,8 @@ class FullLengthDataset(ParentDataset):
                   'y': y,
                   'i_file': i_file,
                   'i_pos': i_pos,
-                  'swap': True if 'swap_length' in self.kwargs else False}
+                  'swap': True if 'swap_length' in self.kwargs else False,
+                  'swap_gt': self.kwargs['swap_gt'] if 'swap_gt' in self.kwargs else np.zeros(x.shape) * np.nan}
         return sample
 
 
