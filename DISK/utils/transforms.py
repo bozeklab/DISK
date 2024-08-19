@@ -479,7 +479,11 @@ class Swap2Kp(Transform):
         x_prime[start_index: start_index + length, rd_kps[0]] = np.array(x[start_index: start_index + length, rd_kps[1]])
         x_prime[start_index: start_index + length, rd_kps[1]] = np.array(x[start_index: start_index + length, rd_kps[0]])
 
-        return x_prime, x_supp, kwargs
+        x_supp_prime = np.array(x_supp)
+        x_supp_prime[start_index: start_index + length, rd_kps[0]] = np.array(x_supp[start_index: start_index + length, rd_kps[1]])
+        x_supp_prime[start_index: start_index + length, rd_kps[1]] = np.array(x_supp[start_index: start_index + length, rd_kps[0]])
+
+        return x_prime, x_supp_prime, kwargs
 
     def untransform(self, x, *args, **kwargs):
         if 'swap_kp' in kwargs:
