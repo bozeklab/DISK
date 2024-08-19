@@ -478,9 +478,10 @@ class Swap2Kp(Transform):
         x_prime[start_index: start_index + length, rd_kps[0]] = np.array(x[start_index: start_index + length, rd_kps[1]])
         x_prime[start_index: start_index + length, rd_kps[1]] = np.array(x[start_index: start_index + length, rd_kps[0]])
 
-        # x_supp_prime = np.array(x_supp)
-        # x_supp_prime[start_index: start_index + length, rd_kps[0]] = np.array(x_supp[start_index: start_index + length, rd_kps[1]])
-        # x_supp_prime[start_index: start_index + length, rd_kps[1]] = np.array(x_supp[start_index: start_index + length, rd_kps[0]])
+        x_supp_prime = np.array(x_supp)
+        x_supp_prime[start_index: start_index + length, rd_kps[0]] = np.array(x_supp[start_index: start_index + length, rd_kps[1]])
+        x_supp_prime[start_index: start_index + length, rd_kps[1]] = np.array(x_supp[start_index: start_index + length, rd_kps[0]])
+        kwargs['swap_gt'] = x_supp_prime
 
         # return x_prime, x_supp_prime, kwargs
         return x_prime, x_supp, kwargs
