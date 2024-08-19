@@ -485,8 +485,8 @@ class Swap2Kp(Transform):
         x_supp_prime = [x_supp]
         for xx in x_supp:
             yy = np.array(x_supp)
-            yy[start_index: start_index + length, rd_kps[0]] = np.array(x_supp[start_index: start_index + length, rd_kps[1]])
-            yy[start_index: start_index + length, rd_kps[1]] = np.array(x_supp[start_index: start_index + length, rd_kps[0]])
+            yy[start_index: start_index + length, rd_kps[0]] = np.array(xx[start_index: start_index + length, rd_kps[1]])
+            yy[start_index: start_index + length, rd_kps[1]] = np.array(xx[start_index: start_index + length, rd_kps[0]])
             x_supp_prime.append(yy)
 
         return x_prime, tuple(x_supp_prime), kwargs
