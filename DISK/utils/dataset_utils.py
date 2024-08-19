@@ -245,7 +245,8 @@ class SupervisedDataset(ParentDataset):
                   'm': m,
                   'y': y,
                   'z': z,
-                  'swap': True if 'swap_length' in self.kwargs else False}
+                  'swap': True if 'swap_length' in self.kwargs else False,
+                  'swap_gt': self.kwargs['swap_gt'] if 'swap_gt' in self.kwargs else np.zeros(x.shape) * np.nan}
         return sample
 
 
