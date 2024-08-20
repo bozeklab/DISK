@@ -22,7 +22,7 @@ dataset:
   # TOCHANGE: stride controls the translation between two samples, need to be an integer
   # a smaller stride will produce more segments and with a higher overlap
   stride: 30
-  skeleton_file: INHCP_CLB_keypoints_60stride30_new/skeleton.py #TM_pulledxp_freq300_300stride25_new/skeleton.py
+  skeleton_file: INHCP_FL2_keypoints_60stride30/skeleton.py #TM_pulledxp_freq300_300stride25_new/skeleton.py
 
 feed_data:
   mask: true
