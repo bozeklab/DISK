@@ -131,7 +131,10 @@ def evaluate(_cfg: DictConfig) -> None:
                                                              stride=_cfg.dataset.stride,
                                                              length_sample=dataset_constants.SEQ_LENGTH,
                                                              freq=dataset_constants.FREQ)
-    pck_final_threshold = train_dataset.kwargs['max_dist_bw_keypoints'] * _cfg.evaluate.threshold_pck
+    if _cfg.evaluate.original_coordinates:
+        pck_final_threshold = train_dataset.kwargs['max_dist_bw_keypoints'] * _cfg.evaluate.threshold_pck
+    else:
+        pck_final_threshold = np.sqrt(2**2 + 2**2 + 2**2) * _cfg.evaluate.threshold_pck  # because scaled between -1 and 1
     pck_name = f'PCK@{_cfg.evaluate.threshold_pck}'
     
     test_loader = DataLoader(test_dataset, batch_size=_cfg.evaluate.batch_size, shuffle=False,
