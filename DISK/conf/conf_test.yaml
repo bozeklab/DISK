@@ -63,7 +63,7 @@ evaluate:
   azim: 60
   size: 2.5
   only_holes: false
-  original_coordinates: false
+  original_coordinates: true
   suffix: ''
   name_items:
   - - network
