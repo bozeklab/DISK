@@ -5,7 +5,7 @@ import logging
 import json
 
 import tqdm
-from combat.test_unit import batch
+# from combat.test_unit import batch
 from scipy.stats import pearsonr
 import numpy as np
 import pandas as pd
