@@ -72,4 +72,4 @@ evaluate:
     - mu_sigma
   merge: true
   merge_sets_file: ''
-  n_repeat: 5
+  n_repeat: 2
