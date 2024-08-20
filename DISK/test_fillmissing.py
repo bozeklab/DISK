@@ -519,7 +519,7 @@ def evaluate(_cfg: DictConfig) -> None:
 
                 def corr_plot():
                     sns.histplot(data=pivot_df, x=metric, y='mean_uncertainty')
-                    sns.kdeplot(data=pivot_df, x=metric, y='mean_uncertainty')
+                    sns.kdeplot(data=pivot_df, x=metric, y='mean_uncertainty', warn_singular=False)
                     plt.plot([0, pivot_df[metric].max()], [0, pivot_df[metric].max()], 'r--')
                     plt.title(f'Pearson coeff: {pcoeff:.3f}')
 
