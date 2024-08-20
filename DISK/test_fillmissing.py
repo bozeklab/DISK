@@ -182,7 +182,7 @@ def evaluate(_cfg: DictConfig) -> None:
                     data_with_holes_np = reconstruct_before_normalization(data_with_holes_np, data_dict, transforms)
                     batch_rows = []
                     for d, g in zip(data_with_holes_np, full_data_np):
-                        batch_rows.append([d.tolist(), g.tolist())])
+                        batch_rows.append([d.tolist(), g.tolist()])
                     writer.writerows(batch_rows)
                     batch_rows.clear()
 
