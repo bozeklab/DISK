@@ -63,7 +63,7 @@ evaluate:
   azim: 60
   size: 2.5
   only_holes: false
-  original_coordinates: true
+  original_coordinates: false
   suffix: ''
   name_items:
   - - network
@@ -72,4 +72,4 @@ evaluate:
     - mu_sigma
   merge: true
   merge_sets_file: ''
-  n_repeat: 1
+  n_repeat: 5

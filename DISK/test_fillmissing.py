@@ -526,7 +526,7 @@ def evaluate(_cfg: DictConfig) -> None:
                         plt.plot([0, pivot_df[metric].max()], [0, pivot_df[metric].max()], 'r--')
                     plt.title(f'Pearson coeff: {pcoeff:.3f}')
 
-                for metric in [pck_name, 'RMSE', 'MPJPE']:
+                for metric in ['RMSE', 'MPJPE']:
                     plot_save(corr_plot,
                               title=f'corrplot-model-{metric}-{model_name[i_model]}{suffix}', only_png=False,
                               outputdir=outputdir)
