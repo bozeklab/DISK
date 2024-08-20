@@ -5,6 +5,7 @@ import logging
 import json
 
 import tqdm
+from combat.test_unit import batch
 from scipy.stats import pearsonr
 import numpy as np
 import pandas as pd
@@ -16,6 +17,7 @@ import seaborn as sns
 import gc
 import hydra
 from omegaconf import DictConfig, OmegaConf
+import csv
 
 from DISK.utils.dataset_utils import load_datasets
 from DISK.utils.utils import read_constant_file, plot_save, compute_interp, find_holes, load_checkpoint
@@ -141,9 +143,13 @@ def evaluate(_cfg: DictConfig) -> None:
     if not os.path.isdir(visualize_val_outputdir):
         os.mkdir(visualize_val_outputdir)
 
+
+
     mean_RMSE = []
     for i_repeat in range(_cfg.evaluate.n_repeat):
         suffix = _cfg.evaluate.suffix + f'_repeat-{i_repeat}'
+        writer = csv.writer(open(os.path.join(outputdir, f'test_for_optipose{suffix}.csv'), 'w'), delimiter='|')
+        writer.writerow(['input', 'label'])
         """RMSE computation"""
         total_rmse = pd.DataFrame(columns=['id_sample', 'id_hole', 'keypoint', 'method', 'method_param',
                                            'metric_value', 'metric_type', 'length_hole'])
@@ -174,6 +180,11 @@ def evaluate(_cfg: DictConfig) -> None:
                 if _cfg.evaluate.original_coordinates:
                     full_data_np = reconstruct_before_normalization(full_data_np, data_dict, transforms)
                     data_with_holes_np = reconstruct_before_normalization(data_with_holes_np, data_dict, transforms)
+                    batch_rows = []
+                    for d, g in zip(data_with_holes_np, full_data_np):
+                        batch_rows.append([d, g])
+                    writer.writerows(batch_rows)
+                    batch_rows.clear()
 
                 """Linear interpolation"""
                 mask_holes_np = mask_holes.detach().cpu().numpy()
@@ -189,6 +200,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 if _cfg.evaluate.original_coordinates:
                     x_outputs_np = [reconstruct_before_normalization(out, data_dict, transforms)
                                for out in x_outputs_np]
+                    ## here save to csv for later evaluation of optipose
 
                 # List(number of models) of tensors of size (batch, time, keypoints, 3D) if mu_sigma GRU or transformer model
                 ## TODO: need to scale this in case of original coordinates!!
@@ -378,7 +390,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                     axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, full_data_np[i, 1:, j, i_dim], 'o-')
                                     if np.sum(t_mask) > 0:
                                         for i_model, xo in enumerate(x_outputs_np):
-                                            plot_ = axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[t_mask], xo[i, 1:, j, i_dim][t_mask], 'o',
+                                            plot_ = axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[t_mask], xo[i, 1:, j, i_dim][t_mask], '--',
                                                              label=model_name[i_model], )
                                             if model_configs[i_model].training.mu_sigma:
                                                 # 3 * std otherwise 1/ we do not see anything,
