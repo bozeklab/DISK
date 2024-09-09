@@ -134,7 +134,10 @@ def evaluate(_cfg: DictConfig) -> None:
     if _cfg.evaluate.original_coordinates:
         pck_final_threshold = train_dataset.kwargs['max_dist_bw_keypoints'] * _cfg.evaluate.threshold_pck
     else:
-        pck_final_threshold = np.sqrt(2**2 + 2**2 + 2**2) * _cfg.evaluate.threshold_pck  # because scaled between -1 and 1
+        # this threshold is a high approximation
+        # because all coordinates are scaled between -1 and 1, but it doesn't mean that the max dist
+        # between 2 keypoints of the same timeframe is sqrt(12)
+        pck_final_threshold = np.sqrt(2**2 + 2**2 + 2**2) * _cfg.evaluate.threshold_pck
     pck_name = f'PCK@{_cfg.evaluate.threshold_pck}'
     
     test_loader = DataLoader(test_dataset, batch_size=_cfg.evaluate.batch_size, shuffle=False,
