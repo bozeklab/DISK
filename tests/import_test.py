@@ -1,9 +1,22 @@
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+
 import torch
 
 if torch.cuda.is_available():
-    print('GPU available and accessible by pytorch')
+    print(f'GPU available and accessible by pytorch')
 else:
-    print('GPU not accessible by pytorch')
+    print(f'{bcolors.WARNING}GPU not accessible by pytorch')
 
 try:
     import DISK
@@ -12,4 +25,4 @@ try:
     from omegaconf import OmegaConf
     import os
 except Exception as e:
-        print('Problem with imports')
+        print(f'{bcolors.WARNING}Problem with imports')

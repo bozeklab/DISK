@@ -34,7 +34,7 @@ evaluate:
   ## save: boolean to save plots
   save: false
   ## save_dataset: boolean to save the imputed dataset
-  save_dataset: false
+  save_dataset: true
   path_to_original_files: datasets
   ## only_holes: bool, for the plots
   only_holes: true
