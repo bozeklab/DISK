@@ -37,8 +37,6 @@ cd ../
 
 python cloned-DISK-repo/DISK/main_fillmissing.py
 
-rm -rf datasets/Mocap_keypoints_60_stride30_new
-
 cd models
 gdown https://drive.google.com/uc?id=1b8Px-lbTddOrMZW9dozJPVLjxh0PjnTp
 unzip Human_transformer_proba.zip
@@ -52,6 +50,7 @@ python cloned-DISK-repo/DISK/test_fillmissing.py
 
 { python cloned-DISK-repo/DISK/embedding_umap.py --batch_size 1 --checkpoint_folder models/03-10-24_transformer_NLL --stride 60 --dataset_path . } || { echo "Umap failed" }
 
+rm -rf datasets/Mocap_keypoints_60_stride30_new
 cd datasets
 gdown https://drive.google.com/uc?id=1dpgBqqdwHWN4fcUzaeVt_Sq1wH-e4lhK
 unzip Rat7M_seq_DISK_dataset.zip
