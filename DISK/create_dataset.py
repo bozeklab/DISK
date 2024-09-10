@@ -175,15 +175,24 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
     elif file_type == 'sleap_h5':
         ## compatibility with SLEAP analysis h5 files
         with h5py.File(f, 'r') as openedf:
-            data = openedf['tracks'][:].T
-            keypoints = [n.decode() for n in openedf["node_names"][:]]
+            if 'tracks_3D_smooth' in openedf.keys():
+                data = openedf['tracks_3D_smooth'][:]
+                # shape: ['numFrames' 'numFish' 'numBodyPoints' 'XYZ']
+                data = np.moveaxis(data, 1, 3)
+                # reshape in (numFrames, numBodyPoints, xyz, numFish
+                keypoints = [str(i) for i in range(data.shape[1])]
+            else:
+                data = openedf['tracks'][:].T
+                keypoints = [n.decode() for n in openedf["node_names"][:]]
 
         if data.shape[3] > 1:
             # multi-animal scenario
             new_keypoints = []
+            # data.shape[3] should be number of animals
             for animal_id in range(data.shape[3]):
                 new_keypoints.extend([f'animal{animal_id}_{k}' for k in keypoints])
             keypoints = new_keypoints
+            # move number of animals from 3 to 1 to flatten the 2nd dimension in num animals x num keypoints
             data = np.moveaxis(data, 3, 1).reshape(data.shape[0], -1, data.shape[2])
         else:
             # one animal, remove the last axis
