@@ -68,6 +68,7 @@ cd ..
 
 python cloned-DISK-repo/DISK/impute_dataset.py
 
+conda activate base
 conda remove --name env_impute --all -y
 conda clean --all -y
 #} || {
