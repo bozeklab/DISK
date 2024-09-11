@@ -156,6 +156,10 @@ def evaluate(_cfg: DictConfig) -> None:
         suffix = _cfg.evaluate.suffix + f'_repeat-{i_repeat}'
         writer = csv.writer(open(os.path.join(outputdir, f'test_for_optipose{suffix}.csv'), 'w'), delimiter='|')
         writer.writerow(['input', 'label'])
+        keypoint_columns = [[f'{k}_1', f'{k}_2', f'{k}_3'] for k in range(len(dataset_constants.KEYPOINTS))]
+        keypoint_columns_flat = []
+        for sublist in keypoint_columns:
+            keypoint_columns_flat.extend(sublist)
         """RMSE computation"""
         total_rmse = pd.DataFrame(columns=['id_sample', 'id_hole', 'keypoint', 'method', 'method_param',
                                            'metric_value', 'metric_type', 'length_hole'])
@@ -182,12 +186,19 @@ def evaluate(_cfg: DictConfig) -> None:
 
                 full_data_np = data_full.detach().cpu().clone().numpy()
                 data_with_holes_np = data_with_holes.detach().cpu().numpy()
+                mask_np = mask_holes.detach().cpu().clone().numpy()  # 1 is gap, 0 is non missing
 
                 if _cfg.evaluate.original_coordinates:
                     full_data_np = reconstruct_before_normalization(full_data_np, data_dict, transforms)
                     data_with_holes_np = reconstruct_before_normalization(data_with_holes_np, data_dict, transforms)
                     batch_rows = []
-                    for d, g in zip(data_with_holes_np, full_data_np):
+                    for ii, (d, g, m) in enumerate(zip(data_with_holes_np, full_data_np, mask_np)):
+                        d[m == 1] = np.nan
+                        tmp_df = pd.DataFrame(columns=keypoint_columns_flat, data=d.reshape(d.shape[0], -1))
+                        tmp_df.to_csv(os.path.join(outputdir, f'test_for_optipose{suffix}_sample{id_sample + ii}.csv'),
+                                      index=False)
+
+                        d[m == 1] = -4668
                         batch_rows.append([d.tolist(), g.tolist()])
                     writer.writerows(batch_rows)
                     batch_rows.clear()

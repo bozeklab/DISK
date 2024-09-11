@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: models/test_CLB_optipose
+    dir: models/test_CLB_optipose_debug
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -45,6 +45,7 @@ feed_data:
     viewinvariant: true
     normalize: false
     normalizecube: true
+    swap: 0
   verbose: 0
 
 evaluate:
@@ -72,4 +73,4 @@ evaluate:
     - mu_sigma
   merge: true
   merge_sets_file: ''
-  n_repeat: 2
+  n_repeat: 1
