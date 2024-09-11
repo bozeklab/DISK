@@ -177,6 +177,8 @@ def evaluate(_cfg: DictConfig) -> None:
                 if _cfg.evaluate.original_coordinates:
                     full_data_np = reconstruct_before_normalization(full_data_np, data_dict, transforms)
                     data_with_holes_np = reconstruct_before_normalization(data_with_holes_np, data_dict, transforms)
+                    if swap_bool:
+                        data_swapped_np = reconstruct_before_normalization(data_swapped_np, data_dict, transforms)
 
                 """Linear interpolation"""
                 mask_holes_np = mask_holes.detach().cpu().numpy()
@@ -192,9 +194,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 if _cfg.evaluate.original_coordinates:
                     x_outputs_np = [reconstruct_before_normalization(out, data_dict, transforms)
                                for out in x_outputs_np]
-                    if swap_bool:
-                        data_swapped_np = [reconstruct_before_normalization(out, data_dict, transforms)
-                                   for out in data_swapped_np]
+
 
                 # List(number of models) of tensors of size (batch, time, keypoints, 3D) if mu_sigma GRU or transformer model
                 ## TODO: need to scale this in case of original coordinates!!
