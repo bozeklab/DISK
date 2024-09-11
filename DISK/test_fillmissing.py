@@ -343,7 +343,7 @@ def evaluate(_cfg: DictConfig) -> None:
 
                 """VISUALIZATION, only first batch"""
                 if n_plots < _cfg.evaluate.n_plots:
-                    logging.info(f'Starting sample plots')
+                    logging.info(f'Plotting sample: {n_plots} / {_cfg.evaluate.n_plots}')
                     potential_indices = np.where(n_missing > 0)[0]
                     np.random.seed(0)
                     for i in np.random.choice(potential_indices,  #full_data_np.shape[0],
@@ -432,7 +432,7 @@ def evaluate(_cfg: DictConfig) -> None:
 
                         n_plots += 1
 
-                    logging.info('Done with sample plots')
+                logging.info('Done with sample plots')
 
                 for _ in range(3):
                     torch.cuda.empty_cache()

@@ -77,6 +77,6 @@ evaluate:
   - - feed_data
     - transforms
     - swap
-  merge: true
+  merge: false
   merge_sets_file: ''
   n_repeat: 1
