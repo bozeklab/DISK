@@ -382,7 +382,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                     t_mask = np.ones_like(mask_holes_np[i, 1:, j]).astype(bool)
                                     t_mask_holes = (mask_holes_np[i, 1:, j] == 1)
                                 for i_dim in range(dataset_constants.DIVIDER):
-                                    axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, data_swapped_np[i, 1:, j, i_dim], color='grey')
+                                    axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, data_swapped_np[i, 1:, j, i_dim], 'o-', ms=1, label='swap')
                                     axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, full_data_np[i, 1:, j, i_dim], 'o-')
                                     if np.sum(t_mask) > 0:
                                         for i_model, xo in enumerate(x_outputs_np):
