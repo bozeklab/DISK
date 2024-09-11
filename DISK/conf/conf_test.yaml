@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: outputs/test_compare_MABe_SWAP_origcoord
+    dir: outputs/test_compare_MABe_SWAP
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -68,7 +68,7 @@ evaluate:
   azim: 60
   size: 2.5
   only_holes: false
-  original_coordinates: true
+  original_coordinates: false
   suffix: ''
   name_items:
   - - training

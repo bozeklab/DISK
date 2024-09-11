@@ -129,7 +129,13 @@ def evaluate(_cfg: DictConfig) -> None:
                                                              stride=_cfg.dataset.stride,
                                                              length_sample=dataset_constants.SEQ_LENGTH,
                                                              freq=dataset_constants.FREQ)
-    pck_final_threshold = train_dataset.kwargs['max_dist_bw_keypoints'] * _cfg.evaluate.threshold_pck
+    if _cfg.evaluate.original_coordinates:
+        pck_final_threshold = train_dataset.kwargs['max_dist_bw_keypoints'] * _cfg.evaluate.threshold_pck
+    else:
+        # when normalized coordinates, approximation of the PCK score from the furthest away points could be (1, 1, 1) and (-1, -1, -1)
+        # divider should be 2 in 2D and 3 in 3D
+        pck_final_threshold = 2 * np.sqrt(dataset_constants.DIVIDER) * _cfg.evaluate.threshold_pck
+
     pck_name = f'PCK@{_cfg.evaluate.threshold_pck}'
     
     test_loader = DataLoader(test_dataset, batch_size=_cfg.evaluate.batch_size, shuffle=False,
