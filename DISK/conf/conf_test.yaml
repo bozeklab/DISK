@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: outputs/16-08-24_MABe_swap/test_GTswapped
+    dir: outputs/test_compare_MABe_SWAP
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -58,8 +58,11 @@ evaluate:
     # TOCHANGE: folder which contains the saved model(s)
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
-  - outputs/16-08-24_MABe_swap
-  - outputs/2024-02-19_MABe_task1_newnewmissing/10-44-22_transformer_NLL
+    - outputs/19-08-24_MABe_noswap_nolossmask
+    - outputs/19-08-24_MABe_swap_lossmask
+    - outputs/16-08-24_MABe_swap
+    - 2024-02-19_MABe_task1_newnewmissing/10-44-22_transformer_NLL
+    - 2024-02-19_MABe_task1_newnewmissing/15-32-09_transformer_womaskloss
   n_plots: 20
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
@@ -68,8 +71,9 @@ evaluate:
   original_coordinates: false
   suffix: ''
   name_items:
-  - - network
-    - type
+  - - training
+    - loss
+    - mask
   - - feed_data
     - transforms
     - swap
