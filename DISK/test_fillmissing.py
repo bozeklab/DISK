@@ -432,7 +432,7 @@ def evaluate(_cfg: DictConfig) -> None:
 
                         n_plots += 1
 
-                logging.info('Done with sample plots')
+                    logging.info(f'Done with sample plot {n_plots}')
 
                 for _ in range(3):
                     torch.cuda.empty_cache()
