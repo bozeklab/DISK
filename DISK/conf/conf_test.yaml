@@ -61,8 +61,8 @@ evaluate:
     - outputs/19-08-24_MABe_noswap_nolossmask
     - outputs/19-08-24_MABe_swap_lossmask
     - outputs/16-08-24_MABe_swap
-    - 2024-02-19_MABe_task1_newnewmissing/10-44-22_transformer_NLL
-    - 2024-02-19_MABe_task1_newnewmissing/15-32-09_transformer_womaskloss
+    - outputs/2024-02-19_MABe_task1_newnewmissing/10-44-22_transformer_NLL
+    - outputs/2024-02-19_MABe_task1_newnewmissing/15-32-09_transformer_womaskloss
   n_plots: 5
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
