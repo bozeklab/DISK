@@ -18,11 +18,11 @@ hydra:
 
 
 dataset:
-  name: Mocap_keypoints_60_stride30_new
+  name: INH_FL2_keypoints_1_60_wresiduals_stride0.5
   # TOCHANGE: stride controls the translation between two samples, need to be an integer
   # a smaller stride will produce more segments and with a higher overlap
   stride: 30
-  skeleton_file: Mocap_keypoints_60_stride30_new/skeleton.py #TM_pulledxp_freq300_300stride25_new/skeleton.py
+  skeleton_file: # Mocap_keypoints_60_stride30_new/skeleton.py #TM_pulledxp_freq300_300stride25_new/skeleton.py
 
 feed_data:
   mask: true
@@ -40,11 +40,12 @@ feed_data:
         # TOCHANGE: proba missing files
         # order matters: first proba_missing, then proba_missing_length
         # the 3rd is optional and can precise how many simultaneous missing keypoints
-        - Mocap_keypoints_60_stride30_new/proba_missing_uniform.csv
-        - Mocap_keypoints_60_stride30_new/proba_missing_length_uniform.csv
+      - INH_FL2_keypoints_1_60_wresiduals_proba_missing.txt
+      - INH_FL2_keypoints_1_60_wresiduals_proba_missing_length.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
+    swap: 0
   verbose: 0
 
 evaluate:
@@ -57,8 +58,7 @@ evaluate:
     # TOCHANGE: folder which contains the saved model(s)
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
-    - models/03-07-06_GRU
-    - models/03-10-24_transformer_NLL
+  - outputs/2023-08-29_FL2_newmissing/transformer_baseline
   n_plots: 2
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
@@ -73,4 +73,4 @@ evaluate:
     - mu_sigma
   merge: true
   merge_sets_file: ''
-  n_repeat: 1
+  n_repeat: 5
