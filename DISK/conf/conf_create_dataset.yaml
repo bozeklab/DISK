@@ -4,7 +4,7 @@ hydra:
   run:
     dir: datasets/${dataset_name}
 
-dataset_name: test3 # output name for the created dataset
+dataset_name: DANNCE_seq_keypoints_60_stride30_fill10_new # output name for the created dataset
 
 
 # frequencies (in Hz):
@@ -15,7 +15,7 @@ original_freq: 30
 # otherwise lower
 subsampling_freq: 30
 
-length: 30 # in number of timepoints at susampling_freq
+length: 60 # in number of timepoints at susampling_freq
 # a good rule of thumb is to put stride to length or length/2
 stride: 30 # in number of timepoints at susampling_freq
 
@@ -28,15 +28,13 @@ drop_keypoints: # should be a list with formatting like the input_files entry
 
 sequential: true
 # type_file should be one of the following: mat_dannce, mat_qualisys,simple_csv, dlc_csv, npy, df3d_pkl, sleap_h5
-file_type: dlc_h5
+file_type: mat_dannce
 dlc_likelihood_threshold: 0.8
 # path to input files, .csv, .slp, .h5
-input_files:
-  - /home/france/Documents/DISK/DISK/datasets/21_11_8_one_mouse.top.irDLC_resnet50_moseq_exampleAug21shuffle1_500000.h5
-#  ['/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s1-d1.mat',
-#              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s2-d1.mat',
-#              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s2-d2.mat',
-#              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s3-d1.mat',
-#              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s4-d1.mat',
-#              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s5-d1.mat',
-#              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s5-d2.mat']
+input_files: ['/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s1-d1.mat',
+              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s2-d1.mat',
+              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s2-d2.mat',
+              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s3-d1.mat',
+              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s4-d1.mat',
+              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s5-d1.mat',
+              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s5-d2.mat']
