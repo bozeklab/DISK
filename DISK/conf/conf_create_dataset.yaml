@@ -31,10 +31,10 @@ sequential: true
 file_type: mat_dannce
 dlc_likelihood_threshold: 0.8
 # path to input files, .csv, .slp, .h5
-input_files: ['/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s1-d1.mat',
-              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s2-d1.mat',
-              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s2-d2.mat',
-              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s3-d1.mat',
-              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s4-d1.mat',
-              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s5-d1.mat',
-              '/home/france/Mounted_dir/behavior_data/mouse_dannce_dataset/mocap-s5-d2.mat']
+input_files: ['/projects/ag-bozek/france/behavior_data/mouse_dannce_dataset/mocap-s1-d1.mat',
+              '/projects/ag-bozek/france/behavior_data/mouse_dannce_dataset/mocap-s2-d1.mat',
+              '/projects/ag-bozek/france/behavior_data/mouse_dannce_dataset/mocap-s2-d2.mat',
+              '/projects/ag-bozek/france/behavior_data/mouse_dannce_dataset/mocap-s3-d1.mat',
+              '/projects/ag-bozek/france/behavior_data/mouse_dannce_dataset/mocap-s4-d1.mat',
+              '/projects/ag-bozek/france/behavior_data/mouse_dannce_dataset/mocap-s5-d1.mat',
+              '/projects/ag-bozek/france/behavior_data/mouse_dannce_dataset/mocap-s5-d2.mat']
