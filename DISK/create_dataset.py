@@ -268,7 +268,10 @@ def create_dataset(_cfg: DictConfig) -> None:
         data, keypoints = open_and_extract_data(f, _cfg.file_type, _cfg.dlc_likelihood_threshold)
 
         # shape (keypoints, coordinates + residual, timepoints)
-        data = data[_cfg.discard_beginning * _cfg.original_freq: - _cfg.discard_end * _cfg.original_freq, :, :3]
+        begin = _cfg.discard_beginning * _cfg.original_freq if _cfg.discard_beginning > 0 else 0
+        end = - _cfg.discard_end * _cfg.original_freq if _cfg.discard_end > 0 else -1
+
+        data = data[begin: end, :, :3]
 
         if _cfg.drop_keypoints is not None:
             try:

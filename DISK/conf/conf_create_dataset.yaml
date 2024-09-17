@@ -20,7 +20,7 @@ length: 60 # in number of timepoints at susampling_freq
 stride: 5 # in number of timepoints at susampling_freq
 
 discard_beginning: 0 # if not used, should be set t 0
-discard_end: 0  # if not used, should be set to -1
+discard_end: 0  # if not used, should be set to 0
 fill_gap: 0  # linear interpolation under the provided length, done before resampling
 
 drop_keypoints: # should be a list with formatting like the input_files entry
