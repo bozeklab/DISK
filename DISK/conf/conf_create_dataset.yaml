@@ -4,7 +4,7 @@ hydra:
   run:
     dir: datasets/${dataset_name}
 
-dataset_name: DF3D_keypoints_60stride60_all # output name for the created dataset
+dataset_name: DF3D_keypoints_60stride30_all # output name for the created dataset
 
 
 # frequencies (in Hz):
@@ -17,7 +17,7 @@ subsampling_freq: 100
 
 length: 60 # in number of timepoints at susampling_freq
 # a good rule of thumb is to put stride to length or length/2
-stride: 60 # in number of timepoints at susampling_freq
+stride: 30 # in number of timepoints at susampling_freq
 
 discard_beginning: 0 # if not used, should be set t 0
 discard_end: 0  # if not used, should be set to 0
