@@ -323,6 +323,14 @@ def create_dataset(_cfg: DictConfig) -> None:
                 data[:int(len(data) / (_cfg.original_freq / _cfg.subsampling_freq)) * int(_cfg.original_freq / _cfg.subsampling_freq)] \
                     .reshape((-1, int(_cfg.original_freq / _cfg.subsampling_freq), data.shape[1], data.shape[2])), axis=1)
 
+        if 'DF3D' in _cfg.dataset_name:
+            th_std = 0.2
+            ## here ugly fix for DF3D to remove sequences too flat
+            sub_std = np.array([np.max(np.mean(np.std(data[i - _cfg.length // 2: i + _cfg.length // 2], axis=0), 1)) for i in range(_cfg.length//2, len(data) - _cfg.length//2)])
+            data = data[_cfg.length // 2: - _cfg.length // 2]
+            data[sub_std < th_std] = np.nan
+
+
         # until now we have eventually filled the gaps with linear interpolation and resampled
         # but we haven't removed the lines with nan, so we can assume the corresponding time vector is simply this:
         time_vect = np.arange(data.shape[0])
