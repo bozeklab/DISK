@@ -231,6 +231,7 @@ def create_dataset(_cfg: DictConfig) -> None:
         os.mkdir(outputdir)
 
     th_std = 0.2 if 'DF3D' in _cfg.dataset_name else 0
+    logging.info(f'THRESHOLD TO REMOE FLAT SAMPLES: {th_std}')
 
     #################################################################################################
     ### OPEN FILES AND PROCESS DATA
