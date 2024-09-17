@@ -383,6 +383,8 @@ def create_dataset(_cfg: DictConfig) -> None:
                 if len(chopped_data) == 0:
                     logging.info(f'[WARNING] file {i_file} has not long enough segments for {nan_name}')
                     continue
+                if nb_allowed_nans == 0:
+                    logging.info(f'From file {i_file}, got {chopped_data.shape} from {new_data.shape}')
                 dataset[(nan_name, partition)].extend(chopped_data)
                 data_lengths[(nan_name, partition)].extend(len_)
 
