@@ -132,4 +132,4 @@ input_files: ['bogna_data/INH1A_climbing_proc/INH1A_S10_M10_MC8_CLB_18_04_2019_p
               'bogna_data/INH2B_climbing_proc/INH2B_S72_M12_MC11_CLB_26_03_2020_proc_bij_24_04_2020_B.mat',
               'bogna_data/INH2B_climbing_proc/INH2B_S7_M7_MC10_CLB_10_03_2020_proc_bij_13_04_2020_F.mat',
               'bogna_data/INH2B_climbing_proc/INH2B_S8_M8_MC10_CLB_10_03_2020_proc_bij_13_04_2020_E.mat',
-              'bogna_data/INH2B_climbing_proc/INH2B_S9_M9_MC11_CLB_10_03_2020_proc_bij_14_04_2020_E.mat'],
+              'bogna_data/INH2B_climbing_proc/INH2B_S9_M9_MC11_CLB_10_03_2020_proc_bij_14_04_2020_E.mat']
