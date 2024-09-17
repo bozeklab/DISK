@@ -15,7 +15,8 @@ from omegaconf import DictConfig
 def chop_coordinates_in_timeseries(time_vect: np.array,
                                    coordinates: np.array,
                                    stride: int = 1,
-                                   length: int = 1,):
+                                   length: int = 1,
+                                   th_std: float = 0):
     """
 
     :param time_vect: 1D numpy array
@@ -43,9 +44,11 @@ def chop_coordinates_in_timeseries(time_vect: np.array,
         i = 0
         while len(data) - i * stride > length:
             subdata = data[int(i * stride): int(i * stride) + length, ...]
-            times.append(time_vect[breakpoints[index_good_segment] + 1 + int(i * stride)])
-            lengths.append(length)
-            dataset.append(subdata.reshape(length, -1))
+            sub_std = np.max(np.mean(np.std(subdata, axis=0), 1))
+            if th_std > 0 and sub_std > th_std:
+                times.append(time_vect[breakpoints[index_good_segment] + 1 + int(i * stride)])
+                lengths.append(length)
+                dataset.append(subdata.reshape(length, -1))
             i += 1
     dataset = np.array(dataset)
     lengths = np.array(lengths)
@@ -227,6 +230,8 @@ def create_dataset(_cfg: DictConfig) -> None:
     if not os.path.isdir(outputdir):
         os.mkdir(outputdir)
 
+    th_std = 0.2 if 'DF3D' in _cfg.dataset_name else 0
+
     #################################################################################################
     ### OPEN FILES AND PROCESS DATA
     #################################################################################################
@@ -323,13 +328,6 @@ def create_dataset(_cfg: DictConfig) -> None:
                 data[:int(len(data) / (_cfg.original_freq / _cfg.subsampling_freq)) * int(_cfg.original_freq / _cfg.subsampling_freq)] \
                     .reshape((-1, int(_cfg.original_freq / _cfg.subsampling_freq), data.shape[1], data.shape[2])), axis=1)
 
-        if 'DF3D' in _cfg.dataset_name:
-            th_std = 0.2
-            ## here ugly fix for DF3D to remove sequences too flat
-            sub_std = np.array([np.max(np.mean(np.std(data[i - _cfg.length // 2: i + _cfg.length // 2], axis=0), 1)) for i in range(_cfg.length//2, len(data) - _cfg.length//2)])
-            data = data[_cfg.length // 2: - _cfg.length // 2]
-            data[sub_std < th_std] = np.nan
-
 
         # until now we have eventually filled the gaps with linear interpolation and resampled
         # but we haven't removed the lines with nan, so we can assume the corresponding time vector is simply this:
@@ -356,7 +354,8 @@ def create_dataset(_cfg: DictConfig) -> None:
                     chopped_data, len_, times = chop_coordinates_in_timeseries(new_time_vect[indices_ttv[i_partition]: indices_ttv[i_partition + 1]],
                                                                                new_data[indices_ttv[i_partition]: indices_ttv[i_partition + 1]],
                                                                                length=_cfg.length,
-                                                                               stride=_cfg.stride)
+                                                                               stride=_cfg.stride,
+                                                                               th_std=th_std)
 
                     # NB: times gives the beginning of the sample in the raw indices
                     if len(chopped_data) > 0:
@@ -375,7 +374,8 @@ def create_dataset(_cfg: DictConfig) -> None:
                 chopped_data, len_, times = chop_coordinates_in_timeseries(new_time_vect,
                                                                            new_data,
                                                                            length=_cfg.length,
-                                                                           stride=_cfg.stride)
+                                                                           stride=_cfg.stride,
+                                                                           th_std=th_std)
 
 
                 # NB: times gives the beginning of the sample in the raw indices
