@@ -130,6 +130,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                              length_sample=dataset_constants.SEQ_LENGTH,
                                                              freq=dataset_constants.FREQ)
     pck_final_threshold = train_dataset.kwargs['max_dist_bw_keypoints'] * _cfg.evaluate.threshold_pck
+    logging.info(f'PCK@{_cfg.evaluate.threshold_pck} threshold: {pck_final_threshold}')
     pck_name = f'PCK@{_cfg.evaluate.threshold_pck}'
     
     test_loader = DataLoader(test_dataset, batch_size=_cfg.evaluate.batch_size, shuffle=False,
