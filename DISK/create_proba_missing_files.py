@@ -127,10 +127,9 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
             else:
                 tmp = df.loc[df['original'], ['keypoint', 'original']].groupby('keypoint').count()
                 set_keypoints = np.unique(df.loc[df['keypoint'] != 'non_missing', 'keypoint'])
-                print(tmp, tmp.loc[set_keypoints, 'original'])
                 init_proba = tmp.loc[set_keypoints, 'original'].values.astype('float')
                 init_proba /= np.sum(init_proba)
-                set_keypoints = np.unique(df.loc[df['keypoint'] != 'non_missing', 'keypoint'])#df.loc[:, 'keypoint'])
+                set_keypoints = np.append(set_keypoints, 'non_missing')
                 init_proba = np.append(init_proba, 0)
                 print(set_keypoints, init_proba.shape)
                 df_init_proba = pd.DataFrame(columns=['keypoint', 'proba'], data=np.vstack([set_keypoints, init_proba]).T)
