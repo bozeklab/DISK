@@ -80,7 +80,7 @@ input_files: ['/projects/ag-bozek/france/behavior_data/bogna_data/INH1A_climbing
               '/projects/ag-bozek/france/behavior_data/bogna_data/CP1B_climbing_proc/CP1B_S9_M3_MC4_CLB_4_02_2019_11_30_proc_bij_5_4_2019_A.mat',
                '/projects/ag-bozek/france/behavior_data/bogna_data/CP1B_climbing_proc/CP1B_S22_M4_MC5_CLB_12_02_2019_15_00_proc_bij_31_05_2019_D.mat',
 #  '/projects/ag-bozek/france/behavior_data/bogna_data/CP1A_climbing_proc/CP1_S10_M15_MC2_CLB_18_09_2018_1430_proc_bij_16.11.2018_C.mat',
-              '/projects/ag-bozek/france/behavior_data/bogna_data/CP1A_climbing_proc/CP1_S2_M15_MC2_CLB_12_09_2018_1350_proc_bij_9.11.2018_A.mat',
+#              '/projects/ag-bozek/france/behavior_data/bogna_data/CP1A_climbing_proc/CP1_S2_M15_MC2_CLB_12_09_2018_1350_proc_bij_9.11.2018_A.mat',
 #    '/projects/ag-bozek/france/behavior_data/bogna_data/CP1A_climbing_proc/CP1_S11_M1_MC3_CLB_18_09_2018_1530_proc_bij_19.11.2018_D.mat',
               '/projects/ag-bozek/france/behavior_data/bogna_data/CP1A_climbing_proc/CP1_S3_M1_MC3_CLB_12_09_2018_1450_proc_bij_12.11.2018_B.mat',
     '/projects/ag-bozek/france/behavior_data/bogna_data/CP1A_climbing_proc/CP1_S12_M19_MC3_CLB_18_09_2018_1600_proc_bij_19.11.2018_A.mat',  '/projects/ag-bozek/france/behavior_data/bogna_data/CP1A_climbing_proc/CP1_S4_M19_MC2_CLB_12_09_2018_1540_proc_bij_13.11.2018_C.mat',
