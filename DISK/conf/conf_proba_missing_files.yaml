@@ -4,7 +4,7 @@ hydra:
   run:
     dir: datasets/${dataset_name}
 
-dataset_name: test3
+dataset_name: INHCP_CLB_keypoints_180stride30
 skeleton_file:
 indep_keypoints: True # if False, look at sets of simultaneous missing keypoints; if True, look at each keypoint independently
 merge_keypoints: False # if False then no merging
