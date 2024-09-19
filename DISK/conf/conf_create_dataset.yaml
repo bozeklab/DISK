@@ -26,7 +26,7 @@ fill_gap: 5  # linear interpolation under the provided length, done before resam
 drop_keypoints: ['left_back', 'right_back'] # should be a list with formatting like the input_files entry
 # if no name was given to keypoints just add the index of the keypoint as an integer
 
-sequential: true
+sequential: false
 # type_file should be one of the following: mat_dannce, mat_qualisys, simple_csv, dlc_csv, npy, df3d_pkl, sleap_h5
 file_type: mat_qualisys
 dlc_likelihood_threshold: 0.8
