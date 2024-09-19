@@ -284,7 +284,7 @@ def create_dataset(_cfg: DictConfig) -> None:
             old_keypoints = list(keypoints)
         else:
             if len(set(old_keypoints).symmetric_difference(set(keypoints))) > 0:
-                print(f'[ERROR][CREATE_DATASET] Mismatch between keypoints: \n'
+                print(f'[WARNING][CREATE_DATASET] Mismatch between keypoints: \n'
                                  f'Found {old_keypoints} in file {_cfg.input_files[0]} \n'
                                  f'and {keypoints} in file {f}\n')
                 continue

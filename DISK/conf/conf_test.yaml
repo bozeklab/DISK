@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: models/test_CLB_optipose_long
+    dir: models/test_CLB_optipose_debug
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -18,7 +18,7 @@ hydra:
 
 
 dataset:
-  name: INHCP_CLB_keypoints_180stride30
+  name: INHCP_CLB_keypoints_60stride30
   # TOCHANGE: stride controls the translation between two samples, need to be an integer
   # a smaller stride will produce more segments and with a higher overlap
   stride: 30
@@ -40,8 +40,8 @@ feed_data:
         # TOCHANGE: proba missing files
         # order matters: first proba_missing, then proba_missing_length
         # the 3rd is optional and can precise how many simultaneous missing keypoints
-      - INHCP_CLB_keypoints_180stride30/proba_missing_set_keypoints.csv
-      - INHCP_CLB_keypoints_180stride30/proba_missing_length_set_keypoints.csv
+      - INHCP_CLB_keypoints_60stride30/proba_missing_set_keypoints.csv
+      - INHCP_CLB_keypoints_60stride30/proba_missing_length_set_keypoints.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
