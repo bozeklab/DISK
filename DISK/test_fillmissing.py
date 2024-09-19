@@ -108,9 +108,9 @@ def evaluate(_cfg: DictConfig) -> None:
         model_name.append(full_name)
         logging.info(f'Network {full_name} constructed')
 
-    for path, model in zip(paths_to_models, models):
-        load_checkpoint(model, None, path, device)
-        model.eval()
+    # for path, model in zip(paths_to_models, models):
+    #     load_checkpoint(model, None, path, device)
+    #     model.eval()
 
     """ DATA """
     transforms, _ = init_transforms(_cfg, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
