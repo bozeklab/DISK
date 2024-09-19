@@ -139,7 +139,8 @@ def evaluate(_cfg: DictConfig) -> None:
         # between 2 keypoints of the same timeframe is sqrt(12)
         pck_final_threshold = np.sqrt(2**2 + 2**2 + 2**2) * _cfg.evaluate.threshold_pck
     pck_name = f'PCK@{_cfg.evaluate.threshold_pck}'
-    
+    logging.info(f'PCK@{_cfg.evaluate.threshold_pck} threshold: {pck_final_threshold}')
+
     test_loader = DataLoader(test_dataset, batch_size=_cfg.evaluate.batch_size, shuffle=False,
                              num_workers=_cfg.evaluate.n_cpus, persistent_workers=True)
 
@@ -154,12 +155,18 @@ def evaluate(_cfg: DictConfig) -> None:
     mean_RMSE = []
     for i_repeat in range(_cfg.evaluate.n_repeat):
         suffix = _cfg.evaluate.suffix + f'_repeat-{i_repeat}'
-        writer = csv.writer(open(os.path.join(outputdir, f'test_for_optipose{suffix}.csv'), 'w'), delimiter='|')
+
+        """Same every sample with their holes for external testing with optipose model (tensorflow)"""
+        optipose_dir = os.path.join(outputdir, f'test_for_optipose_repeat_{i_repeat}')
+        if not os.path.exists(optipose_dir):
+            os.mkdir(optipose_dir)
+        writer = csv.writer(open(os.path.join(optipose_dir, f'test{suffix}.csv'), 'w'), delimiter='|')
         writer.writerow(['input', 'label'])
         keypoint_columns = [[f'{k}_1', f'{k}_2', f'{k}_3'] for k in range(len(dataset_constants.KEYPOINTS))]
         keypoint_columns_flat = []
         for sublist in keypoint_columns:
             keypoint_columns_flat.extend(sublist)
+
         """RMSE computation"""
         total_rmse = pd.DataFrame(columns=['id_sample', 'id_hole', 'keypoint', 'method', 'method_param',
                                            'metric_value', 'metric_type', 'length_hole'])
@@ -179,23 +186,19 @@ def evaluate(_cfg: DictConfig) -> None:
                 assert not torch.any(torch.isnan(data_with_holes))
                 assert not torch.any(torch.isnan(data_full))
 
-                de_outs, uncertainty_estimates, _, _ = feed_forward_list(data_with_holes, mask_holes,
-                                                                         dataset_constants.DIVIDER, models,
-                                                                         model_configs, data_full=data_full,
-                                                                         criterion_seq=criterion_seq)
-
                 full_data_np = data_full.detach().cpu().clone().numpy()
                 data_with_holes_np = data_with_holes.detach().cpu().numpy()
                 mask_np = mask_holes.detach().cpu().clone().numpy()  # 1 is gap, 0 is non missing
 
                 if _cfg.evaluate.original_coordinates:
+                    ## here save to csv for later evaluation of optipose
                     full_data_np = reconstruct_before_normalization(full_data_np, data_dict, transforms)
                     data_with_holes_np = reconstruct_before_normalization(data_with_holes_np, data_dict, transforms)
                     batch_rows = []
                     for ii, (d, g, m) in enumerate(zip(data_with_holes_np, full_data_np, mask_np)):
                         d[m == 1] = np.nan
                         tmp_df = pd.DataFrame(columns=keypoint_columns_flat, data=d.reshape(d.shape[0], -1))
-                        tmp_df.to_csv(os.path.join(outputdir, f'test_for_optipose{suffix}_sample{id_sample + ii}.csv'),
+                        tmp_df.to_csv(os.path.join(optipose_dir, f'test{suffix}_sample{id_sample + ii}.csv'),
                                       index=False)
 
                         d[m == 1] = -4668
@@ -203,6 +206,11 @@ def evaluate(_cfg: DictConfig) -> None:
                     writer.writerows(batch_rows)
                     batch_rows.clear()
 
+
+                de_outs, uncertainty_estimates, _, _ = feed_forward_list(data_with_holes, mask_holes,
+                                                                         dataset_constants.DIVIDER, models,
+                                                                         model_configs, data_full=data_full,
+                                                                         criterion_seq=criterion_seq)
                 """Linear interpolation"""
                 mask_holes_np = mask_holes.detach().cpu().numpy()
 
@@ -217,7 +225,6 @@ def evaluate(_cfg: DictConfig) -> None:
                 if _cfg.evaluate.original_coordinates:
                     x_outputs_np = [reconstruct_before_normalization(out, data_dict, transforms)
                                for out in x_outputs_np]
-                    ## here save to csv for later evaluation of optipose
 
                 # List(number of models) of tensors of size (batch, time, keypoints, 3D) if mu_sigma GRU or transformer model
                 ## TODO: need to scale this in case of original coordinates!!
