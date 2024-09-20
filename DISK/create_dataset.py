@@ -45,7 +45,7 @@ def chop_coordinates_in_timeseries(time_vect: np.array,
         while len(data) - i * stride > length:
             subdata = data[int(i * stride): int(i * stride) + length, ...]
             sub_std = np.max(np.mean(np.std(subdata, axis=0), 1))
-            if th_std > 0 and sub_std > th_std:
+            if th_std == 0 or (th_std > 0 and sub_std > th_std):
                 times.append(time_vect[breakpoints[index_good_segment] + 1 + int(i * stride)])
                 lengths.append(length)
                 dataset.append(subdata.reshape(length, -1))
@@ -275,7 +275,7 @@ def create_dataset(_cfg: DictConfig) -> None:
 
         # shape (keypoints, coordinates + residual, timepoints)
         begin = _cfg.discard_beginning * _cfg.original_freq if _cfg.discard_beginning > 0 else 0
-        end = - _cfg.discard_end * _cfg.original_freq if _cfg.discard_end > 0 else -1
+        end = - _cfg.discard_end * _cfg.original_freq if _cfg.discard_end > 0 else len(data)
 
         data = data[begin: end, :, :3]
 
