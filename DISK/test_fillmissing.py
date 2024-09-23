@@ -328,7 +328,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                   n_missing[i_sample_in_batch]]
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   model_configs[i_model].network.type, model_name[i_model],
-                                                                  np.sqrt(np.sum(rmse[i_model][i_sample_in_batch]) / n_missing[i_model]),
+                                                                  np.sqrt(np.sum(rmse[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch]),
                                                                   'RMSE',
                                                                   n_missing[i_sample_in_batch]]
                         if model_configs[i_model].training.mu_sigma:
@@ -514,11 +514,11 @@ def evaluate(_cfg: DictConfig) -> None:
                     plt.plot([0, pivot_df[metric].max()], [0, pivot_df[metric].max()], 'r--')
                     plt.title(f'Pearson coeff: {pcoeff:.3f}')
 
-                for metric in [pck_name, 'RMSE', 'MPJPE']:
-                    plot_save(corr_plot,
-                              title=f'corrplot-model-{metric}-{model_name[i_model]}{suffix}', only_png=False,
-                              outputdir=outputdir)
-                    plt.close('all')
+                metric = 'RMSE'
+                plot_save(corr_plot,
+                          title=f'corrplot-model-{metric}-{model_name[i_model]}{suffix}', only_png=False,
+                          outputdir=outputdir)
+                plt.close('all')
 
                 th_vals = np.unique(pivot_df['mean_uncertainty'])[10:]
                 th_vals = th_vals[::len(th_vals) // 10]
@@ -560,11 +560,11 @@ def evaluate(_cfg: DictConfig) -> None:
                 ax1.set_ylabel(f'Mean {metric}')
                 ax1.set_xlabel('Remaining samples')
 
-            for metric in [pck_name, 'RMSE', 'MPJPE']:
-                plot_save(plot_thresholding,
-                          title=f'thresholding_curve_{metric}{suffix}', only_png=False,
-                          outputdir=outputdir)
-                plt.close('all')
+            metric = 'RMSE'
+            plot_save(plot_thresholding,
+                      title=f'thresholding_curve_{metric}{suffix}', only_png=False,
+                      outputdir=outputdir)
+            plt.close('all')
 
     pd.concat(mean_RMSE).to_csv(os.path.join(outputdir, f'mean_metrics{_cfg.evaluate.suffix}.csv'), index=False)
 

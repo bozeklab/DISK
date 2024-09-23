@@ -294,7 +294,7 @@ class FullLengthDataset(ParentDataset):
         for i_file, file_time in enumerate(self.time):
             file_time = file_time[file_time > -1]
             breakpoints = np.where(np.diff(file_time) > 1 / self.freq + 1e-9)[0]
-            if breakpoints[0] != 0:
+            if len(breakpoints) == 0 or (len(breakpoints) > 0 and breakpoints[0] != 0):
                 breakpoints = np.insert(breakpoints, 0, 0)  # add first point = index 0
             if -1 in file_time:
                 end_point = np.where(file_time == -1)[0][0]
