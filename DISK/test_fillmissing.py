@@ -147,7 +147,7 @@ def evaluate(_cfg: DictConfig) -> None:
         suffix = _cfg.evaluate.suffix + f'_repeat-{i_repeat}'
         """RMSE computation"""
         total_rmse = pd.DataFrame(columns=['id_sample', 'id_hole', 'keypoint', 'method', 'method_param',
-                                           'metric_value', 'metric_type', 'length_hole'])
+                                           'RMSE', 'MPJPE', pck_name, 'mean_uncertainty', 'length_hole'])
         id_sample = 0
         n_plots = 0
         """Visualization 3D, one timepoint each"""
@@ -247,35 +247,9 @@ def evaluate(_cfg: DictConfig) -> None:
                             mean_pck = np.sum(pck[i_model][slice_] * mask_holes_np[slice_])/ np.sum(mask_holes_np[slice_])
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
                                                                       model_configs[i_model].network.type, model_name[i_model],
-                                                                      mean_rmse, 'RMSE',
+                                                                      mean_rmse, mean_euclidean, mean_pck, np.nan,
                                                                       o[1]]
-                            total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
-                                                                      model_configs[i_model].network.type, model_name[i_model],
-                                                                      mean_euclidean,  'MPJPE',
-                                                                      o[1]]
-                            total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
-                                                                      model_configs[i_model].network.type, model_name[i_model],
-                                                                      mean_pck, pck_name,
-                                                                      o[1]]
-                            if model_configs[i_model].training.mu_sigma:
-                                total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
-                                                                          model_name[i_model],
-                                                                          np.mean(uncertainty[i_model][slice_]),
-                                                                          'mean_uncertainty',
-                                                                          o[1]]
-                                total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
-                                                                          model_name[i_model],
-                                                                          np.max(uncertainty[i_model][slice_]),
-                                                                          'max_uncertainty',
-                                                                          o[1]]
-                                total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
-                                                                          model_name[i_model],
-                                                                          bandexcess[i_model][i_sample_in_batch], 'bandexcess_2sigma',
-                                                                          o[1]]
-                                total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
-                                                                          model_name[i_model],
-                                                                          coverage[i_model][i_sample_in_batch], 'coverage_2sigma',
-                                                                          o[1]]
+
                         if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                             mean_rmse_linear = np.sqrt(np.mean(rmse_linear_interp[slice_]))
                             mean_euclidean_linear = np.mean(euclidean_distance_linear_interp[slice_])
@@ -283,18 +257,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                               / np.sum(mask_holes_np[slice_])
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
                                                                       'linear_interp', 'linear_interp',
-                                                                      mean_rmse_linear,
-                                                                      'RMSE',
-                                                                      o[1]]
-                            total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
-                                                                      'linear_interp', 'linear_interp',
-                                                                      mean_euclidean_linear, 
-                                                                      'MPJPE',
-                                                                      o[1]]
-                            total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
-                                                                      'linear_interp', 'linear_interp',
-                                                                      mean_pck_linear, 
-                                                                      pck_name,
+                                                                      mean_rmse_linear, mean_euclidean_linear, mean_pck_linear, np.nan,
                                                                       o[1]]
                         id_hole += 1
 
@@ -302,41 +265,22 @@ def evaluate(_cfg: DictConfig) -> None:
                     if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   'linear_interp', 'linear_interp',
-                                                                  np.sum(pck_linear_interpolation[i_sample_in_batch] * mask_holes_np[i_sample_in_batch]) / n_missing[i_sample_in_batch],
-                                                                  pck_name,
-                                                                  n_missing[i_sample_in_batch]]
-                        total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
-                                                                  'linear_interp', 'linear_interp',
-                                                                  np.sum(euclidean_distance_linear_interp[i_sample_in_batch]) / n_missing[i_sample_in_batch],
-                                                                  'MPJPE',
-                                                                  n_missing[i_sample_in_batch]]
-                        total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
-                                                                  'linear_interp', 'linear_interp',
                                                                   np.sqrt(np.sum(rmse_linear_interp[i_sample_in_batch]) / n_missing[i_sample_in_batch]),
-                                                                  'RMSE',
-                                                                  n_missing[i_sample_in_batch]]
+                                                                  np.sum(euclidean_distance_linear_interp[i_sample_in_batch]) / n_missing[i_sample_in_batch],
+                                                                  np.sum(pck_linear_interpolation[i_sample_in_batch] * mask_holes_np[i_sample_in_batch]) / n_missing[i_sample_in_batch],
+                                                                  np.nan, n_missing[i_sample_in_batch]]
                     for i_model in range(n_models):
-                        total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
-                                                                  model_configs[i_model].network.type, model_name[i_model],
-                                                                  np.sum(pck[i_model][i_sample_in_batch] * mask_holes_np[i_sample_in_batch]) / n_missing[i_sample_in_batch],
-                                                                  pck_name,
-                                                                  n_missing[i_sample_in_batch]]
-                        total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
-                                                                  model_configs[i_model].network.type, model_name[i_model],
-                                                                  np.sum(euclidean_distance[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch],
-                                                                  'MPJPE',
-                                                                  n_missing[i_sample_in_batch]]
+                        if model_configs[i_model].training.mu_sigma:
+                            mean_uncertainty_model = np.sum(uncertainty[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch]
+                        else:
+                            mean_uncertainty_model = np.nan
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   model_configs[i_model].network.type, model_name[i_model],
                                                                   np.sqrt(np.sum(rmse[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch]),
-                                                                  'RMSE',
+                                                                  np.sum(euclidean_distance[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch],
+                                                                  np.sum(pck[i_model][i_sample_in_batch] * mask_holes_np[i_sample_in_batch]) / n_missing[i_sample_in_batch],
+                                                                  mean_uncertainty_model,
                                                                   n_missing[i_sample_in_batch]]
-                        if model_configs[i_model].training.mu_sigma:
-                            total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all', model_configs[i_model].network.type,
-                                                                      model_name[i_model],
-                                                                      np.sum(uncertainty[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch],
-                                                                      'mean_uncertainty',
-                                                                      o[1]]
 
                     id_sample += 1
 
@@ -433,8 +377,8 @@ def evaluate(_cfg: DictConfig) -> None:
         total_rmse = total_rmse.reset_index().convert_dtypes()
         logging.info(f'n lines in result df: {total_rmse.shape[0]}')
         logging.info(f"RMSE per sample averaged: \n"
-                     f"{total_rmse[(total_rmse['metric_type'].isin([pck_name, 'RMSE', 'MPJPE'])) * (total_rmse['keypoint'] == 'all')].groupby(['metric_type', 'method_param'])['metric_value'].agg('mean')}")
-        tmp = total_rmse[(total_rmse['metric_type'].isin([pck_name, 'RMSE', 'MPJPE'])) * (total_rmse['keypoint'] == 'all')].groupby(['metric_type', 'method', 'method_param'])['metric_value'].agg('mean').reset_index()
+                     f"{total_rmse[(total_rmse['keypoint'] == 'all'), :].groupby('method_param')[[pck_name, 'RMSE', 'MPJPE']].agg('mean')}")
+        tmp = total_rmse[(total_rmse['keypoint'] == 'all'), :].groupby(['method_param'])[[pck_name, 'RMSE', 'MPJPE']].agg('mean').reset_index()
         tmp['repeat'] = i_repeat
         tmp['dataset'] = _cfg.dataset.name
         mean_RMSE.append(tmp)
@@ -442,7 +386,7 @@ def evaluate(_cfg: DictConfig) -> None:
         plt.close('all')
 
         def barplot_RMSE_keypoint():
-            mask = (total_rmse['keypoint'] != 'all') * (total_rmse['metric_type'] == metric)
+            mask = (total_rmse['keypoint'] != 'all')
             if len(_cfg.evaluate.merge_sets_file) > 0:
                 with open(os.path.join(basedir, _cfg.evaluate.merge_sets_file)) as f:
                     sets2merge = json.load(f)
@@ -453,10 +397,10 @@ def evaluate(_cfg: DictConfig) -> None:
                 total_rmse.loc[total_rmse['keypoint'] != 'all', 'sets'] = total_rmse.loc[total_rmse['keypoint'] != 'all', 'keypoint']\
                     .apply(lambda x: sets2merge[''.join([str(dataset_constants.KEYPOINTS.index(xx)) for xx in x.split(' ')])])
                 sns.catplot(data=total_rmse.loc[mask, :], kind='bar', y='sets',
-                            hue='method_param', x='metric_value', orient='h')
+                            hue='method_param', x=metric, orient='h')
             else:
                 sns.catplot(data=total_rmse.loc[mask, :], kind='bar', x='keypoint',
-                            hue='method_param', y='metric_value')
+                            hue='method_param', y=metric)
             plt.tight_layout()
 
         for metric in [pck_name, 'RMSE', 'MPJPE']:
@@ -466,9 +410,9 @@ def evaluate(_cfg: DictConfig) -> None:
             plt.close('all')
 
         def lineplot_length():
-            mask = (total_rmse['keypoint'] != 'all') * (total_rmse['metric_type'] == metric)
+            mask = (total_rmse['keypoint'] != 'all')
             total_rmse['length_hole'] = total_rmse.loc[:, 'length_hole'].astype('float')
-            sns.lineplot(data=total_rmse.loc[mask, :], x='length_hole', y='metric_value',
+            sns.lineplot(data=total_rmse.loc[mask, :], x='length_hole', y=metric,
                          hue='method_param')
             plt.tight_layout()
 
@@ -480,9 +424,9 @@ def evaluate(_cfg: DictConfig) -> None:
 
 
         def lineplot_all_length():
-            mask = (total_rmse['keypoint'] != 'all') * (total_rmse['metric_type'] == metric)
+            mask = (total_rmse['keypoint'] != 'all')
             total_rmse.loc[:, 'length_hole'] = total_rmse.loc[:, 'length_hole'].astype('float')
-            sns.lineplot(data=total_rmse.loc[mask, :], x='length_hole', y='metric_value',
+            sns.lineplot(data=total_rmse.loc[mask, :], x='length_hole', y=metric,
                          hue='method_param')
             plt.tight_layout()
 
@@ -494,24 +438,18 @@ def evaluate(_cfg: DictConfig) -> None:
 
         total_rmse.to_csv(os.path.join(outputdir, f'total_metrics{suffix}.csv'), index=False)
 
-        thresholding_df = pd.DataFrame(columns=['th', 'RMSE', 'RMSE_std', 'MPJPE', 'MPJPE_std', pck_name, f'{pck_name}_std', 'count', 'method'])
+        thresholding_df = pd.DataFrame(columns=['th', 'RMSE', 'RMSE_std', 'count', 'method'])
         for i_model in range(n_models):
             if uncertainty_estimates[i_model] is not None:
                 # pivot_df only for one method
-                pivot_df = pd.pivot(
-                    total_rmse.loc[(total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_name[i_model]), :],
-                    values='metric_value', index='id_sample', columns='metric_type')
-                pivot_df['mean_uncertainty'] = pivot_df['mean_uncertainty'].astype(float)
-                pivot_df['RMSE'] = pivot_df['RMSE'].astype(float)
-                pivot_df[pck_name] = pivot_df[pck_name].astype(float)
-                pivot_df['MPJPE'] = pivot_df['MPJPE'].astype(float)
-                pcoeff, ppval = pearsonr(pivot_df['RMSE'].values, pivot_df['mean_uncertainty'].values)
+                mask = (total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_name[i_model])
+                pcoeff, ppval = pearsonr(total_rmse.loc[mask, 'RMSE'].values, total_rmse.loc[mask, 'mean_uncertainty'])
                 logging.info(f'Model {model_name[i_model]}: PEARSONR COEFF w RMSE {pcoeff}, PVAL {ppval}')
 
                 def corr_plot():
-                    sns.histplot(data=pivot_df, x=metric, y='mean_uncertainty')
-                    sns.kdeplot(data=pivot_df, x=metric, y='mean_uncertainty')
-                    plt.plot([0, pivot_df[metric].max()], [0, pivot_df[metric].max()], 'r--')
+                    sns.histplot(data=total_rmse[mask], x=metric, y='mean_uncertainty')
+                    sns.kdeplot(data=total_rmse[mask], x=metric, y='mean_uncertainty')
+                    plt.plot([0, total_rmse[metric].max()], [0, total_rmse[metric].max()], 'r--')
                     plt.title(f'Pearson coeff: {pcoeff:.3f}')
 
                 metric = 'RMSE'
@@ -520,7 +458,7 @@ def evaluate(_cfg: DictConfig) -> None:
                           outputdir=outputdir)
                 plt.close('all')
 
-                th_vals = np.unique(pivot_df['mean_uncertainty'])[10:]
+                th_vals = np.unique(total_rmse.loc[mask, 'mean_uncertainty'])[10:]
                 th_vals = th_vals[::len(th_vals) // 10]
                 for th in th_vals:
                     filtered_id_samples = total_rmse.loc[
@@ -529,19 +467,11 @@ def evaluate(_cfg: DictConfig) -> None:
                         'id_sample'].values
                     if len(filtered_id_samples) == 0:
                         continue
-                    vals_RMSE = total_rmse[(total_rmse['metric_type'] == 'RMSE') * (total_rmse['keypoint'] == 'all') *
+                    vals_RMSE = total_rmse[(total_rmse['keypoint'] == 'all') *
                                       (total_rmse['method_param'] == model_name[i_model]) *
-                                      (total_rmse['id_sample'].isin(filtered_id_samples))]['metric_value'].agg(['mean', 'std', 'count'])
-                    vals_MPJPE = total_rmse[(total_rmse['metric_type'] == 'MPJPE') * (total_rmse['keypoint'] == 'all') *
-                                      (total_rmse['method_param'] == model_name[i_model]) *
-                                      (total_rmse['id_sample'].isin(filtered_id_samples))]['metric_value'].agg(['mean', 'std', 'count'])
-                    vals_pck = total_rmse[(total_rmse['metric_type'] == pck_name) * (total_rmse['keypoint'] == 'all') *
-                                      (total_rmse['method_param'] == model_name[i_model]) *
-                                      (total_rmse['id_sample'].isin(filtered_id_samples))]['metric_value'].agg(['mean', 'std', 'count'])
+                                      (total_rmse['id_sample'].isin(filtered_id_samples))][metric].agg(['mean', 'std', 'count'])
                     ## add values in thresholding_df which holds the results for all uncertainty methods
                     thresholding_df.loc[thresholding_df.shape[0], :] = [th, vals_RMSE['mean'], vals_RMSE['std'],
-                                                                        vals_MPJPE['mean'], vals_MPJPE['std'],
-                                                                        vals_pck['mean'], vals_pck['std'],
                                                                         vals_RMSE['count'], model_name[i_model]]
 
         if np.any([unc is not None for unc in uncertainty_estimates]):
