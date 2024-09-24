@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: outputs/2023-12-07_Mocap_newnewmissing/compare_models_eval_origcoords_2024-09-23
+    dir: outputs/2023-12-07_Mocap_newnewmissing/compare_models_eval_2024-09-23
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -61,7 +61,7 @@ evaluate:
   - outputs/2023-12-07_Mocap_newnewmissing/03-02-21_GRU_NLL
   - outputs/2023-12-07_Mocap_newnewmissing/03-07-06_GRU
   - outputs/2023-12-07_Mocap_newnewmissing/03-08-40_transformer
-  - outputs/2023-12-07_Mocap_newnewmissing/03-10-24_transformer_NLL
+  - outputs/2023-12-07_Mocap_newnewmissing/03-10-24_transformer_NLL/03-10-24_transformer_NLL
   - outputs/2023-12-07_Mocap_newnewmissing/03-14-26_STSGCN
   - outputs/2023-12-07_Mocap_newnewmissing/03-16-07_TCN
   - outputs/2023-12-07_Mocap_newnewmissing/02-31-18_STGCN
@@ -70,7 +70,7 @@ evaluate:
   azim: 60
   size: 2.5
   only_holes: true
-  original_coordinates: true
+  original_coordinates: false
   suffix: ''
   name_items:
   - - network
