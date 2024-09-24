@@ -463,8 +463,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 th_vals = np.unique(total_rmse.loc[mask, 'mean_uncertainty'])[10:]
                 th_vals = th_vals[::len(th_vals) // 10]
                 for th in th_vals:
-                    filtered_id_samples = total_rmse.loc[
-                        (total_rmse['metric_type'] == 'mean_uncertainty') * (total_rmse[metric] <= th) *
+                    filtered_id_samples = total_rmse.loc[(total_rmse[metric] <= th) *
                         (total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_name[i_model]),
                         'id_sample'].values
                     if len(filtered_id_samples) == 0:
