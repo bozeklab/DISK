@@ -377,7 +377,7 @@ def evaluate(_cfg: DictConfig) -> None:
         total_rmse = total_rmse.reset_index().convert_dtypes()
         logging.info(f'n lines in result df: {total_rmse.shape[0]}')
         logging.info(f"RMSE per sample averaged: \n"
-                     f"{total_rmse[(otal_rmse['keypoint'] == 'all'].groupby('method_param')[[pck_name, 'RMSE', 'MPJPE']].agg('mean')}")
+                     f"{total_rmse[total_rmse['keypoint'] == 'all'].groupby('method_param')[[pck_name, 'RMSE', 'MPJPE']].agg('mean')}")
         tmp = total_rmse[total_rmse['keypoint'] == 'all'].groupby(['method_param'])[[pck_name, 'RMSE', 'MPJPE']].agg('mean').reset_index()
         tmp['repeat'] = i_repeat
         tmp['dataset'] = _cfg.dataset.name
