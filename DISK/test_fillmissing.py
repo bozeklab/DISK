@@ -447,8 +447,11 @@ def evaluate(_cfg: DictConfig) -> None:
                 logging.info(f'Model {model_name[i_model]}: PEARSONR COEFF w RMSE {pcoeff}, PVAL {ppval}')
 
                 def corr_plot():
-                    sns.histplot(data=total_rmse[mask], x=metric, y='mean_uncertainty')
-                    sns.kdeplot(data=total_rmse[mask], x=metric, y='mean_uncertainty')
+                    print(total_rmse.loc[mask, metric].dtype)
+                    total_rmse['mean_uncertainty'] = total_rmse['mean_uncertainty'].astype(float)
+                    total_rmse['RMSE'] = total_rmse['RMSE'].astype(float)
+                    sns.histplot(data=total_rmse.loc[mask, :], x=metric, y='mean_uncertainty')
+                    sns.kdeplot(data=total_rmse.loc[mask, :], x=metric, y='mean_uncertainty')
                     plt.plot([0, total_rmse[metric].max()], [0, total_rmse[metric].max()], 'r--')
                     plt.title(f'Pearson coeff: {pcoeff:.3f}')
 
