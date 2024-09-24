@@ -447,7 +447,6 @@ def evaluate(_cfg: DictConfig) -> None:
                 logging.info(f'Model {model_name[i_model]}: PEARSONR COEFF w RMSE {pcoeff}, PVAL {ppval}')
 
                 def corr_plot():
-                    print(total_rmse.loc[mask, metric].dtype)
                     total_rmse['mean_uncertainty'] = total_rmse['mean_uncertainty'].astype(float)
                     total_rmse['RMSE'] = total_rmse['RMSE'].astype(float)
                     sns.histplot(data=total_rmse.loc[mask, :], x=metric, y='mean_uncertainty')
@@ -465,7 +464,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 th_vals = th_vals[::len(th_vals) // 10]
                 for th in th_vals:
                     filtered_id_samples = total_rmse.loc[
-                        (total_rmse['metric_type'] == 'mean_uncertainty') * (total_rmse['metric_value'] <= th) *
+                        (total_rmse['metric_type'] == 'mean_uncertainty') * (total_rmse[metric] <= th) *
                         (total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_name[i_model]),
                         'id_sample'].values
                     if len(filtered_id_samples) == 0:
