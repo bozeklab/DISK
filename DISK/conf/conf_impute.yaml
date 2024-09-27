@@ -2,7 +2,7 @@ hydra:
   run:
     ## TOCHANGE
     ## path to outputdir relative to working directory
-    dir: outputs/impute_test3 #${now:%Y-%m-%d}_testdebug_impute_Mocap
+    dir: outputs/25-09-24_FL2_new_for_comparison/DISK_impute #${now:%Y-%m-%d}_testdebug_impute_Mocap
   job:
     chdir: True
 
@@ -10,20 +10,20 @@ dataset:
   ## TOCHANGE
   ## name of the dataset folder (should exist in datasets/)
   ## make sure the dataset for imputation is compatible is the one the model has been trained on (especially for sequnce length)
-  name: test3
+  name: INH_FL2_keypoints_1_60_wresiduals_w1nan_stride0.5_new
   skeleton_file: #test/skeleton.py ## optional, only used for ST-GCN backbone, can be left blank
 
 feed_data:
   ## to adjust the verbosity of the output, 0 not verbose, 1 or 2
   ## produces (a lot of) plots to check transforms
   verbose: 0
-  pad: [1, 1]
+  pad: [1, 0]
   batch_size: 1
 
 evaluate:
   ## TOCHANGE
   ## path to checkpoint folder, relative to working directory
-  checkpoint: outputs/03-06-24_gru_test3
+  checkpoint: outputs/25-09-24_FL2_new_for_comparison/DISK
   ## threshold used to reject bad imputed samples when the model is of type transformer_proba or GRU_proba
   ## to have an idea about the value to put, look at plots output of the test script
   threshold_error_score: 0.1
