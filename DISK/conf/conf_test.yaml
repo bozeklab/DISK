@@ -59,11 +59,11 @@ evaluate:
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
     - outputs/25-09-24_FL2_new_for_comparison/DISK
-  n_plots: 20
+  n_plots: 0
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
   size: 2.5
-  only_holes: false
+  only_holes: true
   original_coordinates: true
   suffix: ''
   name_items:

@@ -225,6 +225,9 @@ def evaluate(_cfg: DictConfig) -> None:
                 if _cfg.evaluate.original_coordinates:
                     x_outputs_np = [reconstruct_before_normalization(out, data_dict, transforms)
                                for out in x_outputs_np]
+                    tmp_df = pd.DataFrame(columns=keypoint_columns_flat, data=x_outputs_np[0].reshape(-1, len(keypoint_columns_flat)))
+                    tmp_df.to_csv(os.path.join(optipose_dir, 'DISK', f'test{suffix}_sample{id_sample + ii}_DISK.csv'),
+                                  index=False)
 
                 # List(number of models) of tensors of size (batch, time, keypoints, 3D) if mu_sigma GRU or transformer model
                 ## TODO: need to scale this in case of original coordinates!!
@@ -247,27 +250,6 @@ def evaluate(_cfg: DictConfig) -> None:
                     euclidean_distance_linear_interp = np.sqrt(np.sum(((linear_interp_data - full_data_np) ** 2) * reshaped_mask_holes,
                                                 axis=3))  # sum on the XYZ dimension, output shape (batch, time, keypoint)
                     pck_linear_interpolation = euclidean_distance_linear_interp <= pck_final_threshold
-
-                coverage = [[]] * n_models
-                bandexcess = [[]] * n_models
-
-                for i_model in range(n_models):
-                    if model_configs[i_model].training.mu_sigma:
-                        factor = 2
-                        in_ = np.sum((full_data_np <= x_outputs_np[i_model] + uncertainty_estimates_np[i_model] * factor) *
-                                     (full_data_np >= x_outputs_np[i_model] - uncertainty_estimates_np[i_model] * factor) *
-                                     reshaped_mask_holes,
-                                     axis=(1, 2, 3))
-                        out_ = np.sum(((full_data_np > x_outputs_np[i_model] + uncertainty_estimates_np[i_model] * factor) +
-                                       (full_data_np < x_outputs_np[i_model] - uncertainty_estimates_np[i_model] * factor)) *
-                                      reshaped_mask_holes,
-                                      axis=(1, 2, 3))
-                        coverage[i_model] = in_ / (in_ + out_)
-
-                        be = np.sum(
-                            np.abs(np.abs(x_outputs_np[i_model] - full_data_np) - uncertainty_estimates_np[i_model] * factor) * reshaped_mask_holes,
-                            axis=(1, 2, 3))
-                        bandexcess[i_model] = be[n_missing > 0] / be[n_missing > 0]
 
 
                 for i_sample_in_batch in range(data_with_holes_np.shape[0]):
@@ -303,14 +285,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                           np.max(uncertainty[i_model][slice_]),
                                                                           'max_uncertainty',
                                                                           o[1]]
-                                total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
-                                                                          model_name[i_model],
-                                                                          bandexcess[i_model][i_sample_in_batch], 'bandexcess_2sigma',
-                                                                          o[1]]
-                                total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
-                                                                          model_name[i_model],
-                                                                          coverage[i_model][i_sample_in_batch], 'coverage_2sigma',
-                                                                          o[1]]
+
                         if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                             mean_rmse_linear = np.sqrt(np.mean(rmse_linear_interp[slice_]))
                             mean_euclidean_linear = np.mean(euclidean_distance_linear_interp[slice_])
