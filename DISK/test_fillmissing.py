@@ -225,9 +225,10 @@ def evaluate(_cfg: DictConfig) -> None:
                 if _cfg.evaluate.original_coordinates:
                     x_outputs_np = [reconstruct_before_normalization(out, data_dict, transforms)
                                for out in x_outputs_np]
-                    tmp_df = pd.DataFrame(columns=keypoint_columns_flat, data=x_outputs_np[0].reshape(-1, len(keypoint_columns_flat)))
-                    tmp_df.to_csv(os.path.join(optipose_dir, 'DISK', f'test{suffix}_sample{id_sample + ii}_DISK.csv'),
-                                  index=False)
+                    for ii, xx in enumerate(x_outputs_np[0]):
+                        tmp_df = pd.DataFrame(columns=keypoint_columns_flat, data=xx.reshape(-1, len(keypoint_columns_flat)))
+                        tmp_df.to_csv(os.path.join(optipose_dir, 'DISK', f'test{suffix}_sample{id_sample + ii}_DISK.csv'),
+                                      index=False)
 
                 # List(number of models) of tensors of size (batch, time, keypoints, 3D) if mu_sigma GRU or transformer model
                 ## TODO: need to scale this in case of original coordinates!!
