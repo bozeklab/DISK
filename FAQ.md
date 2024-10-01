@@ -114,3 +114,10 @@ The RMSE and the plots are done on the normalized coordinates if `original_coord
 The comparison with linear interpolation is only possible when there is at least one non-missing keypoint before the hole and after the hole. If the padding parameter in the test config file is [1, 0] then linear interpolation cannot be computed for every hole and is not displayed. To compare the network‘s output with linear interpolation the padding parameter should be at least [1, 1]
 
 With this plot, you can compare how the model is doing on different keypoints. You could also compare more than one model when listing more than one folder under `checkpoints` in the config file.
+
+### How to choose `pad_before` and `pad_after` during testing?
+
+![heatmaps_FL2_pad_tests.png](images/heatmaps_FL2_pad_tests.png)
+
+Mean RMSE for the same trained DISK model and different values of parameters `pad_before` and `pad_after` set at test time. Linear interpolation (left matrix) can only be computed when at least one data point at the beginning and one data point at the end of the sequence are available (corresponding to `pad_before` $> 0$ and `pad_after` $> 0$). For values where linear interpolation can be computed, there is little influence of `pad_before` and `pad_after`, and variations can be considered stochastics. 
+For DISK (right matrix), we see that `pad_before` > 0 gives lower error. The dynamics of a sample is usually well imputed, but the exact starting coordinates help reducing the error.
