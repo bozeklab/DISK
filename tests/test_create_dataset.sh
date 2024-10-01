@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-cd /projects/ag-bozek/frose1/results_behavior
+cd /projects/ag-bozek/france/results_behavior
 conda activate env_cuda11.3
 
 yes n | python /home/frose1/DISK/DISK/create_dataset.py dataset_name=test_fl2 original_freq=300 subsampling_freq=60 length=60 stride=30 discard_beginning=0 discard_end=0 fill_gap=0 \
