@@ -2,7 +2,7 @@
 set -e
 
 cd /projects/ag-bozek/france/results_behavior
-conda activate env_cuda11.3
+#conda activate env_cuda11.3
 
 yes n | python /home/frose1/DISK/DISK/create_dataset.py dataset_name=test_fl2 original_freq=300 subsampling_freq=60 length=60 stride=30 discard_beginning=0 discard_end=0 fill_gap=0 \
 drop_keypoints=[] sequential=false file_type=mat_qualisys \
@@ -17,9 +17,9 @@ input_files=[/projects/ag-bozek/france/behavior_data/bogna_data/INH1A_open_field
 /projects/ag-bozek/france/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S9_M9_MC8_FL2_18_04_2019_proc_bij_8_08_19_B.mat,\
 /projects/ag-bozek/france/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S10_M10_MC8_FL2_18_04_2019_proc_nij_8_08_19_C.mat]
 
-python create_proba_missing_files.py dataset_name=test_fl2 indep_keypoints=True merge_keypoints=False
-python create_proba_missing_files.py dataset_name=test_fl2 indep_keypoints=False merge_keypoints=False
-python create_proba_missing_files.py dataset_name=test_fl2 indep_keypoints=False merge_keypoints=True
+python /home/frose1/DISK/DISK/create_proba_missing_files.py dataset_name=test_fl2 indep_keypoints=True merge_keypoints=False
+python /home/frose1/DISK/DISK/create_proba_missing_files.py dataset_name=test_fl2 indep_keypoints=False merge_keypoints=False
+python /home/frose1/DISK/DISK/create_proba_missing_files.py dataset_name=test_fl2 indep_keypoints=False merge_keypoints=True
 
 yes n | python /home/frose1/DISK/DISK/create_dataset.py dataset_name=test_fl2 original_freq=300 subsampling_freq=60 length=60 stride=30 discard_beginning=5 discard_end=5 fill_gap=10 \
 drop_keypoints=[] sequential=false file_type=mat_qualisys \
