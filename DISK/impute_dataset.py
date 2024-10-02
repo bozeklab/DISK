@@ -255,6 +255,7 @@ def evaluate(_cfg: DictConfig) -> None:
     else:
         all_segments = False
 
+    # return full length dataset for imputation
     train_dataset, val_dataset, test_dataset = load_datasets(dataset_name=_cfg.dataset.name,
                                                              dataset_constants=dataset_constants,
                                                              transform=transforms,
@@ -308,6 +309,7 @@ def evaluate(_cfg: DictConfig) -> None:
                     mask_holes_np = mask_holes.detach().cpu().numpy()
 
                     if de_out[1] is not None:
+                        # for proba models
                         reshaped_mask_holes = np.repeat(mask_holes_np, dataset_constants.DIVIDER, axis=-1)\
                                               .reshape(x_output_np.shape)
                         uncertainty = np.sum(
@@ -404,14 +406,15 @@ def evaluate(_cfg: DictConfig) -> None:
                                                   os.path.join(basedir, _cfg.evaluate.path_to_original_files, f),
                                                   dataset_constants, data_subpath)
 
+                # saving new chunked dataset
                 new_dataset = []
                 new_lengths = []
                 new_y = []
                 for i_recording in range(dataset.X.shape[0]):
                     mask_t = dataset.time[i_recording] > -1
-                    logging.info(f'LINE 412 in IMPUTE_DATASET - shape: {dataset.X[i_recording][mask_t].shape}')
+                    logging.info(f'LINE 412 in IMPUTE_DATASET - shape: {mask_t.shape} {dataset.X[i_recording].shape} {dataset.X[i_recording][mask_t].shape}')
                     data, len_, t_ = chop_coordinates_in_timeseries(dataset.time[i_recording][mask_t],
-                                                                    dataset.X[i_recording][mask_t],
+                                                                    dataset.X[i_recording][mask_t], # should be of shape (timepoints, keypoints, 3)
                                                                     stride=dataset_constants.STRIDE,
                                                                     length=dataset_constants.SEQ_LENGTH)
 
