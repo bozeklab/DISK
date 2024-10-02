@@ -24,7 +24,7 @@ def chop_coordinates_in_timeseries(time_vect: np.array,
     Should be in kw_cfg:
     :param length: in timepoints
     :param stride: in timepoints
-    :param 
+    :param th_std: to remove sequences that are too flat (used for DF3D)
     :return:
     """
 
