@@ -414,7 +414,7 @@ def evaluate(_cfg: DictConfig) -> None:
                     mask_t = dataset.time[i_recording] > -1
                     logging.info(f'LINE 412 in IMPUTE_DATASET - shape: {mask_t.shape} {dataset.X[i_recording].shape} {dataset.X[i_recording][mask_t].shape}')
                     data, len_, t_ = chop_coordinates_in_timeseries(dataset.time[i_recording][mask_t],
-                                                                    dataset.X[i_recording][mask_t], # should be of shape (timepoints, keypoints, 3)
+                                                                    dataset.X[i_recording][mask_t].reshape(mask_t.shape[0], len(dataset_constants.KEYPOINTS), -1), # should be of shape (timepoints, keypoints, 3)
                                                                     stride=dataset_constants.STRIDE,
                                                                     length=dataset_constants.SEQ_LENGTH)
 
