@@ -409,6 +409,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 new_y = []
                 for i_recording in range(dataset.X.shape[0]):
                     mask_t = dataset.time[i_recording] > -1
+                    logging.info(f'LINE 412 in IMPUTE_DATASET - shape: {dataset.X[i_recording][mask_t].shape}')
                     data, len_, t_ = chop_coordinates_in_timeseries(dataset.time[i_recording][mask_t],
                                                                     dataset.X[i_recording][mask_t],
                                                                     stride=dataset_constants.STRIDE,
