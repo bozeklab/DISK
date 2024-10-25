@@ -395,7 +395,7 @@ class MarkerTranslation(Transform):
     def __call__(self, x, *args, x_supp=None, **kwargs):
         """Compute the transform"""
         # x of shape (time points, keypoints,  3)
-        min_distance_bw_keypoints = np.min(list(map(pdist, x)))
+        min_distance_bw_keypoints = np.nanmin(list(map(pdist, x)))
         val = min_distance_bw_keypoints * self.percent_of_min_distance
         translation_norm_per_keypoint = np.random.uniform(-val, val, x.shape[1] * x.shape[2])
         kwargs['marker_translation_norm'] = translation_norm_per_keypoint
