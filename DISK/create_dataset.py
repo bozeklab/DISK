@@ -21,11 +21,15 @@ def chop_coordinates_in_timeseries(time_vect: np.array,
 
     :param time_vect: 1D numpy array
     :param coordinates: 3D numpy array (timepoints, keypoints, 3)
-    Should be in kw_cfg:
+    Should be in _cfg:
     :param length: in timepoints
     :param stride: in timepoints
     :param th_std: to remove sequences that are too flat (used for DF3D)
+
     :return:
+    dataset: numpy array of chopped sequences
+    lengths: 1D numpy array of lengths of these sequences
+    times: 1D numpy array of the starting timepoint of these sequences
     """
 
     breakpoints = np.where(np.diff(list(time_vect)) > 1)[0]
@@ -86,7 +90,7 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
 
     If keypoints not found in file, then they will be named '0', '1', '2', ...
 
-    :return data: numpy array of shape (timesteps, n_keypoints, 3)
+    :return data: numpy array of shape (timesteps, n_keypoints, 2D or 3D)
     :return keypoints: list of keypoint names as strings
     """
     if file_type == 'mat_dannce':
@@ -231,18 +235,19 @@ def create_dataset(_cfg: DictConfig) -> None:
         os.mkdir(outputdir)
 
     th_std = 0.2 if 'DF3D' in _cfg.dataset_name else 0
-    logging.info(f'THRESHOLD TO REMOE FLAT SAMPLES: {th_std}')
+    logging.info(f'THRESHOLD TO REMOVE FLAT SAMPLES: {th_std}')
 
     #################################################################################################
     ### OPEN FILES AND PROCESS DATA
     #################################################################################################
-    p_train_val_test = np.array([0, 0.7, 0.85, 1])
+    p_train_val_test = np.array([0, 0.7, 0.85, 1])  ## only used for sequential,
+    ## otherwise 1/10th of the files in test, 1/10th of the files in val, and the rest in train
     nan_modalities = [0, 1, np.inf]
     nan_modalities_names = ['0', '1', 'all']
     partitions = ['train', 'val', 'test']
 
-    dataset = {}
-    data_lengths = {}
+    dataset = {}  # chopped fixed-length sequences
+    data_lengths = {}  # length of the sequence
 
     fulllength_data = {}
     fulllength_time = {}
@@ -306,7 +311,7 @@ def create_dataset(_cfg: DictConfig) -> None:
                                  f'Found {old_keypoints} in file {_cfg.input_files[0]} \n'
                                  f'and {keypoints} in file {f}\n')
 
-        # step 1. interpolation
+        # step 1. linear interpolation for small gaps (smaller than fill_gap value)
         if _cfg.fill_gap > 0:
             flattened_data = data.reshape(data.shape[0], -1)
             out = find_hole_nan(flattened_data)
@@ -324,7 +329,7 @@ def create_dataset(_cfg: DictConfig) -> None:
 
         # step 2. subsampling
         if _cfg.subsampling_freq < _cfg.original_freq:
-            # the reshape creates an additional dimenesion to be averaged by the nanmean with axis = 1
+            # the reshape creates an additional dimension to be averaged by the nanmean with axis = 1
             data = np.nanmean(
                 data[:int(len(data) / (_cfg.original_freq / _cfg.subsampling_freq)) * int(_cfg.original_freq / _cfg.subsampling_freq)] \
                     .reshape((-1, int(_cfg.original_freq / _cfg.subsampling_freq), data.shape[1], data.shape[2])), axis=1)
@@ -384,7 +389,7 @@ def create_dataset(_cfg: DictConfig) -> None:
                     logging.info(f'[WARNING] file {i_file} has not long enough segments for {nan_name}')
                     continue
                 if nb_allowed_nans == 0:
-                    logging.info(f'From file {i_file}, got {chopped_data.shape} from {new_data.shape}')
+                    logging.info(f'From file {i_file}, extracted {chopped_data.shape} with 0 nans from {new_data.shape}')
                 dataset[(nan_name, partition)].extend(chopped_data)
                 data_lengths[(nan_name, partition)].extend(len_)
 
