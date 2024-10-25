@@ -66,8 +66,8 @@ feed_data:
        # first proba missing, then missing length. order matters!
        # the 3rd file specifying the number of simultaneous missing keypoints is optional
        # path from datasets folder
-       - INH_FL2_keypoints_1_60_wresiduals_stride0.5/proba_missing_set_keypoints.csv
-       - INH_FL2_keypoints_1_60_wresiduals_stride0.5/proba_missing_length_set_keypoints.csv
+      - INH_FL2_keypoints_1_60_wresiduals_proba_missing.txt
+      - INH_FL2_keypoints_1_60_wresiduals_proba_missing_length.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
