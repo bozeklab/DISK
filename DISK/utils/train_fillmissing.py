@@ -35,7 +35,7 @@ def _loss(data, de_out, out_distribution, uncertainty_estimate, mask_holes_tenso
         # all ones, no mask
         mask_loss = torch.ones_like(mask_holes_tensor[:, 1:, :])
     n_missing_per_sample = torch.sum(mask_loss[..., -1], dim=(1, 2))
-    if not torch.all(n_missing_per_sample != 0):
+    if cfg.training.loss.mask and (not torch.all(n_missing_per_sample != 0)):
         logging.info(f'n_missing_per_sample: {n_missing_per_sample}')
         raise ValueError('[ERROR][TRAIN_FILLMISSING][_loss function] at least one sample has no missing value. '
                          'It is usually caused by a problem in the gap making (see transforms code and proba_missing files).')

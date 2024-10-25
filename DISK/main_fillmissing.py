@@ -145,7 +145,7 @@ def my_app(_cfg: DictConfig) -> None:
             torch.cuda.empty_cache()
             optimizer.zero_grad()
             data_with_holes = data_dict['X'].to(device)
-            if torch.any(torch.isnan(data_dict['x_supp'])):
+            if 'x_supp' in data_dict and torch.any(torch.isnan(data_dict['x_supp'])):
                 print('[MAIN_FILLMISSING][main train loop] nan in input data')
                 sys.exit(1)
             data_full = data_dict['x_supp'].to(device)

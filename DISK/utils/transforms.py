@@ -4,6 +4,7 @@ import os
 import pandas as pd
 import torch
 import logging
+from scipy.spatial.distance import pdist
 
 from DISK.utils.coordinates_utils import create_skeleton_plot, compute_svd
 
@@ -11,6 +12,7 @@ from DISK.utils.coordinates_utils import create_skeleton_plot, compute_svd
 def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputdir, add_missing=True):
     transforms = []
 
+    proba_n_missing = None
     if 'add_missing' in _cfg.feed_data.transforms.keys():
         length_proba_df = pd.read_csv(os.path.join(basedir, 'datasets', _cfg.feed_data.transforms.add_missing.files[1]))
         if 'length' not in length_proba_df.columns:
@@ -33,8 +35,6 @@ def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputd
         if len(_cfg.feed_data.transforms.add_missing.files) > 2:
             proba_n_missing = np.loadtxt(
                 os.path.join(basedir, 'datasets', _cfg.feed_data.transforms.add_missing.files[2]))
-        else:
-            proba_n_missing = None
 
         if add_missing:
             addmissing_transform = AddMissing_LengthProba(length_proba_df, keypoints, init_proba_df, divider=divider,
@@ -51,6 +51,9 @@ def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputd
         transforms.append(Normalize(proba=1, divider=divider, verbose=0, outputdir=outputdir))
     if _cfg.feed_data.transforms.normalizecube:
         transforms.append(NormalizeCube(proba=1, divider=divider, verbose=0, outputdir=outputdir))
+
+    if _cfg.feed_data.transforms.marker_translation:
+        transforms.append(MarkerTranslation(proba=1, divider=divider, verbose=0, outputdir=outputdir))
 
     return transforms, proba_n_missing
 
@@ -375,6 +378,60 @@ class NormalizeCube(Transform):
 
         return reconstructed
 
+
+class MarkerTranslation(Transform):
+    """
+    Add some translation different for each marker, to simulate the variability in positioning the markers,
+    or when defining the points of interest in markerless approach
+
+    """
+    def __init__(self, p=0.1, **kwargs):
+        super().__init__(**kwargs)
+        self.percent_of_min_distance = p
+
+    def __str__(self):
+        return 'Marker_Translation'
+
+    def __call__(self, x, *args, x_supp=None, **kwargs):
+        """Compute the transform"""
+        # x of shape (time points, keypoints,  3)
+        min_distance_bw_keypoints = np.min(list(map(pdist, x)))
+        val = min_distance_bw_keypoints * self.percent_of_min_distance
+        translation_norm_per_keypoint = np.random.uniform(-val, val, x.shape[1] * x.shape[2])
+        kwargs['marker_translation_norm'] = translation_norm_per_keypoint
+        if np.any(np.isnan(translation_norm_per_keypoint)):
+            print(f'[Problem in MarkerTranslation] {translation_norm_per_keypoint}, {x}')
+
+        """Apply the transform"""
+        translation_norm_per_keypoint_tiled = np.tile(translation_norm_per_keypoint, x.shape[0]).reshape(x.shape)
+        x_prime = x + translation_norm_per_keypoint_tiled
+        if x_supp is None:
+            x_supp_prime = None
+        else:
+            x_supp_prime = x_supp + translation_norm_per_keypoint_tiled
+
+        return x_prime, x_supp_prime, kwargs
+
+    def untransform(self, x, *args, **kwargs):
+        if torch.is_tensor(kwargs['marker_translation_norm']):
+            translation_norm_per_keypoint = kwargs['marker_translation_norm'].detach().cpu().numpy()
+        else:
+            translation_norm_per_keypoint = kwargs['marker_translation_norm']
+
+        if len(x.shape) == 3:  # time, keypoints, 3D or 2D
+            translation_norm_per_keypoint_tiled = np.tile(translation_norm_per_keypoint, x.shape[0]).reshape(x.shape)
+
+        elif len(x.shape) == 4:
+            # x shape: batch, time, keypoints, 2D or 3D
+            # min_sample shape: batch, 2D or 3D
+            translation_norm_per_keypoint_tiled = np.array([np.tile(m,  x.shape[1]) for m in translation_norm_per_keypoint]).reshape(x.shape)
+        else:
+            raise ValueError
+
+        reconstructed = x - translation_norm_per_keypoint_tiled
+        return reconstructed
+
+
 class Normalize(Transform):
     """
     See: https://github.com/shlizee/Predict-Cluster/blob/master/ucla_demo.ipynb
@@ -546,9 +603,8 @@ def transform_x(x, transformations, **kwargs):
     :param kwargs:
     :return:
     '''
-    x_supp = None
+    x_supp = np.copy(x)  # the supp sample is the one without holes, but other reflection, normalization, ...
     if isinstance(transformations[0], AddMissing_LengthProba):
-        x_supp = np.copy(x)  # the supp sample is the one without holes, but other reflection, normalization, ...
         # will be computed on x and applied both on x_supp and x
         x = transformations[0](x, **kwargs)  # the main sample is the one with holes
         # in the case, where no hole is added, x is original x, and x_supp is None
@@ -558,7 +614,7 @@ def transform_x(x, transformations, **kwargs):
         for t in transformations:
             if 'x_supp' in kwargs:
                 print(t)
-            x, x_supp, kwargs = t(x, **kwargs)
+            x, x_supp, kwargs = t(x, x_supp=x_supp, **kwargs)
     return x, x_supp, kwargs
 
 

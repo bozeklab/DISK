@@ -15,7 +15,8 @@ from omegaconf import DictConfig
 def chop_coordinates_in_timeseries(time_vect: np.array,
                                    coordinates: np.array,
                                    stride: int = 1,
-                                   length: int = 1,):
+                                   length: int = 1,
+                                   th_std: float = 0):
     """
 
     :param time_vect: 1D numpy array
@@ -23,7 +24,7 @@ def chop_coordinates_in_timeseries(time_vect: np.array,
     Should be in kw_cfg:
     :param length: in timepoints
     :param stride: in timepoints
-    :param 
+    :param th_std: to remove sequences that are too flat (used for DF3D)
     :return:
     """
 
@@ -43,9 +44,11 @@ def chop_coordinates_in_timeseries(time_vect: np.array,
         i = 0
         while len(data) - i * stride > length:
             subdata = data[int(i * stride): int(i * stride) + length, ...]
-            times.append(time_vect[breakpoints[index_good_segment] + 1 + int(i * stride)])
-            lengths.append(length)
-            dataset.append(subdata.reshape(length, -1))
+            sub_std = np.max(np.mean(np.std(subdata, axis=0), 1))
+            if th_std == 0 or (th_std > 0 and sub_std > th_std):
+                times.append(time_vect[breakpoints[index_good_segment] + 1 + int(i * stride)])
+                lengths.append(length)
+                dataset.append(subdata.reshape(length, -1))
             i += 1
     dataset = np.array(dataset)
     lengths = np.array(lengths)
@@ -175,15 +178,24 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
     elif file_type == 'sleap_h5':
         ## compatibility with SLEAP analysis h5 files
         with h5py.File(f, 'r') as openedf:
-            data = openedf['tracks'][:].T
-            keypoints = [n.decode() for n in openedf["node_names"][:]]
+            if 'tracks_3D_smooth' in openedf.keys():
+                data = openedf['tracks_3D_smooth'][:]
+                # shape: ['numFrames' 'numFish' 'numBodyPoints' 'XYZ']
+                data = np.moveaxis(data, 1, 3)
+                # reshape in (numFrames, numBodyPoints, xyz, numFish
+                keypoints = [str(i) for i in range(data.shape[1])]
+            else:
+                data = openedf['tracks'][:].T
+                keypoints = [n.decode() for n in openedf["node_names"][:]]
 
         if data.shape[3] > 1:
             # multi-animal scenario
             new_keypoints = []
+            # data.shape[3] should be number of animals
             for animal_id in range(data.shape[3]):
                 new_keypoints.extend([f'animal{animal_id}_{k}' for k in keypoints])
             keypoints = new_keypoints
+            # move number of animals from 3 to 1 to flatten the 2nd dimension in num animals x num keypoints
             data = np.moveaxis(data, 3, 1).reshape(data.shape[0], -1, data.shape[2])
         else:
             # one animal, remove the last axis
@@ -217,6 +229,9 @@ def create_dataset(_cfg: DictConfig) -> None:
 
     if not os.path.isdir(outputdir):
         os.mkdir(outputdir)
+
+    th_std = 0.2 if 'DF3D' in _cfg.dataset_name else 0
+    logging.info(f'THRESHOLD TO REMOE FLAT SAMPLES: {th_std}')
 
     #################################################################################################
     ### OPEN FILES AND PROCESS DATA
@@ -259,7 +274,10 @@ def create_dataset(_cfg: DictConfig) -> None:
         data, keypoints = open_and_extract_data(f, _cfg.file_type, _cfg.dlc_likelihood_threshold)
 
         # shape (keypoints, coordinates + residual, timepoints)
-        data = data[_cfg.discard_beginning * _cfg.original_freq: _cfg.discard_end * _cfg.original_freq, :, :3]
+        begin = _cfg.discard_beginning * _cfg.original_freq if _cfg.discard_beginning > 0 else 0
+        end = - _cfg.discard_end * _cfg.original_freq if _cfg.discard_end > 0 else len(data)
+
+        data = data[begin: end, :, :3]
 
         if _cfg.drop_keypoints is not None:
             try:
@@ -311,6 +329,7 @@ def create_dataset(_cfg: DictConfig) -> None:
                 data[:int(len(data) / (_cfg.original_freq / _cfg.subsampling_freq)) * int(_cfg.original_freq / _cfg.subsampling_freq)] \
                     .reshape((-1, int(_cfg.original_freq / _cfg.subsampling_freq), data.shape[1], data.shape[2])), axis=1)
 
+
         # until now we have eventually filled the gaps with linear interpolation and resampled
         # but we haven't removed the lines with nan, so we can assume the corresponding time vector is simply this:
         time_vect = np.arange(data.shape[0])
@@ -336,7 +355,8 @@ def create_dataset(_cfg: DictConfig) -> None:
                     chopped_data, len_, times = chop_coordinates_in_timeseries(new_time_vect[indices_ttv[i_partition]: indices_ttv[i_partition + 1]],
                                                                                new_data[indices_ttv[i_partition]: indices_ttv[i_partition + 1]],
                                                                                length=_cfg.length,
-                                                                               stride=_cfg.stride)
+                                                                               stride=_cfg.stride,
+                                                                               th_std=th_std)
 
                     # NB: times gives the beginning of the sample in the raw indices
                     if len(chopped_data) > 0:
@@ -345,7 +365,7 @@ def create_dataset(_cfg: DictConfig) -> None:
                     crop_len = indices_ttv[i_partition + 1] - indices_ttv[i_partition]
                     if crop_len > 0:
                         fulllength_data[(nan_name, partition)].append(new_data[indices_ttv[i_partition]: indices_ttv[i_partition + 1]].reshape(crop_len, -1))
-                        fulllength_time[(nan_name, partition)].append(new_time_vect[indices_ttv[i_partition]: indices_ttv[i_partition + 1]])
+                        fulllength_time[(nan_name, partition)].append(new_time_vect[indices_ttv[i_partition]: indices_ttv[i_partition + 1]] / _cfg.subsampling_freq)
                         fulllength_maxlength[(nan_name, partition)].append(crop_len)
                         fulllength_original_files[(nan_name, partition)].append(os.path.basename(f))
 
@@ -355,13 +375,16 @@ def create_dataset(_cfg: DictConfig) -> None:
                 chopped_data, len_, times = chop_coordinates_in_timeseries(new_time_vect,
                                                                            new_data,
                                                                            length=_cfg.length,
-                                                                           stride=_cfg.stride)
+                                                                           stride=_cfg.stride,
+                                                                           th_std=th_std)
 
 
                 # NB: times gives the beginning of the sample in the raw indices
                 if len(chopped_data) == 0:
                     logging.info(f'[WARNING] file {i_file} has not long enough segments for {nan_name}')
                     continue
+                if nb_allowed_nans == 0:
+                    logging.info(f'From file {i_file}, got {chopped_data.shape} from {new_data.shape}')
                 dataset[(nan_name, partition)].extend(chopped_data)
                 data_lengths[(nan_name, partition)].extend(len_)
 

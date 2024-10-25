@@ -294,7 +294,7 @@ It will save plots and log file in a subfolder in the `results` directory and th
 
 # Cite us
 
-Deep Imputation for Skeleton Data (DISK) for Behavioral Science.
+**Deep Imputation for Skeleton Data (DISK) for Behavioral Science.**
 France Rose, Monika Michaluk, Timon Blindauer, Bogna M. Ignatowska-Jankowska, Liam O’Shaughnessy, Greg J. Stephens, Talmo D. Pereira, Marylka Y. Uusisaari, Katarzyna Bozek.
 
 bioRxiv 2024.05.03.592173; doi: https://doi.org/10.1101/2024.05.03.592173
