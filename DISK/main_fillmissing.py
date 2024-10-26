@@ -184,7 +184,7 @@ def my_app(_cfg: DictConfig) -> None:
                                        (ave_loss_train, ave_rmse_train, ave_loss_eval, ave_rmse_eval,
                                         model_scheduler.get_last_lr()[0]))
 
-                if ave_rmse_eval < past_val_rmse:
+                if np.isnan(ave_rmse_eval) or ave_rmse_eval < past_val_rmse:
                     past_val_rmse = ave_rmse_eval
                     for item in os.listdir(outputdir):
                         if item.startswith('model_epoch') and not item.endswith('txt'):
