@@ -52,8 +52,9 @@ def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputd
     if _cfg.feed_data.transforms.normalizecube:
         transforms.append(NormalizeCube(proba=1, divider=divider, verbose=0, outputdir=outputdir))
 
-    if _cfg.feed_data.transforms.marker_translation:
-        transforms.append(MarkerTranslation(proba=1, divider=divider, verbose=0, outputdir=outputdir))
+    if 'marker_translation' in _cfg.feed_data.transforms.keys() and _cfg.feed_data.transforms.marker_translation > 0:
+        transforms.append(MarkerTranslation(proba=1, divider=divider, p=_cfg.feed_data.transforms.marker_translation,
+                                            verbose=0, outputdir=outputdir))
 
     return transforms, proba_n_missing
 
