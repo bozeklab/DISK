@@ -15,7 +15,7 @@ hydra:
     chdir: True
   run:
     # TOCHANGE: specify the output
-    dir: outputs/26-10-24_FL2_translation_marker/DISK_proba_p0.05 #outputs/2023-10-26_treadmill/${now:%d-%m-%y}_GRU_new
+    dir: outputs/26-10-24_FL2_translation_marker/DISK_proba_p0.2 #outputs/2023-10-26_treadmill/${now:%d-%m-%y}_GRU_new
 
 # TOCHANGE: name of the dataset, should match the folder name in `datasets
 dataset:
@@ -72,5 +72,5 @@ feed_data:
     normalize: false
     normalizecube: true
     swap: 0
-    marker_translation: 0.05
+    marker_translation: 0.2
   verbose: 0
