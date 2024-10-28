@@ -307,7 +307,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 """VISUALIZATION, only first batch"""
                 if n_plots < _cfg.evaluate.n_plots:
                     logging.info(f'Starting sample plots')
-                    potential_indices = np.where(n_missing > 0)[0]
+                    potential_indices = np.where(n_missing > 0)[0] if ('add_missing' not in _cfg.feed_data.transforms.keys()) else np.arange(len(n_missing))
                     np.random.seed(0)
                     for i in np.random.choice(potential_indices,  #full_data_np.shape[0],
                                               min(len(potential_indices), _cfg.evaluate.n_plots),
