@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: models/test_Human
+    dir: outputs/26-10-24_FL2_wo_missing/DISK_proba/test
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -18,33 +18,35 @@ hydra:
 
 
 dataset:
-  name: Mocap_keypoints_60_stride30_new
+  name: INH_FL2_keypoints_1_60_wresiduals_stride0.5
   # TOCHANGE: stride controls the translation between two samples, need to be an integer
   # a smaller stride will produce more segments and with a higher overlap
-  stride: 30
-  skeleton_file: Mocap_keypoints_60_stride30_new/skeleton.py #TM_pulledxp_freq300_300stride25_new/skeleton.py
+  stride: 60
+  skeleton_file: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #TM_pulledxp_freq300_300stride25_new/skeleton.py
 
 feed_data:
   mask: true
   transforms:
-    add_missing:
-      pad:
-        # here the first pad number is for the sequence padding on the left, the second number for the right padding
-        # if set to (0, 0) the artificial hole can start from the first timestep and go to the last one
-        # if set to (1, 1), the artificial hole can start from the second timestep until the previous to last one
-        # to compare with linear interpolation it should be put to (1, 1) because linear interpolation requires at
-        # least 2 anchor point on both sides of the gap
-        - 1
-        - 1
-      files:
-        # TOCHANGE: proba missing files
-        # order matters: first proba_missing, then proba_missing_length
-        # the 3rd is optional and can precise how many simultaneous missing keypoints
-        - Mocap_keypoints_60_stride30_new/proba_missing_uniform.csv
-        - Mocap_keypoints_60_stride30_new/proba_missing_length_uniform.csv
+#    add_missing:
+#      pad:
+#        # here the first pad number is for the sequence padding on the left, the second number for the right padding
+#        # if set to (0, 0) the artificial hole can start from the first timestep and go to the last one
+#        # if set to (1, 1), the artificial hole can start from the second timestep until the previous to last one
+#        # to compare with linear interpolation it should be put to (1, 1) because linear interpolation requires at
+#        # least 2 anchor point on both sides of the gap
+#        - 1
+#        - 1
+#      files:
+#        # TOCHANGE: proba missing files
+#        # order matters: first proba_missing, then proba_missing_length
+#        # the 3rd is optional and can precise how many simultaneous missing keypoints
+#        - Mocap_keypoints_60_stride30_new/proba_missing_uniform.csv
+#        - Mocap_keypoints_60_stride30_new/proba_missing_length_uniform.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
+    swap: 0
+    marker_translation: 0
   verbose: 0
 
 evaluate:
@@ -57,13 +59,12 @@ evaluate:
     # TOCHANGE: folder which contains the saved model(s)
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
-    - models/03-07-06_GRU
-    - models/03-10-24_transformer_NLL
-  n_plots: 2
+    - outputs/26-10-24_FL2_wo_missing/DISK_proba
+  n_plots: 20
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
   size: 2.5
-  only_holes: true
+  only_holes: false
   original_coordinates: false
   suffix: ''
   name_items:
