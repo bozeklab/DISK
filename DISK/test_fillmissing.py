@@ -308,6 +308,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 if n_plots < _cfg.evaluate.n_plots:
                     logging.info(f'Starting sample plots')
                     potential_indices = np.where(n_missing > 0)[0] if ('add_missing' not in _cfg.feed_data.transforms.keys()) else np.arange(len(n_missing))
+                    print(potential_indices)
                     np.random.seed(0)
                     for i in np.random.choice(potential_indices,  #full_data_np.shape[0],
                                               min(len(potential_indices), _cfg.evaluate.n_plots),
@@ -384,11 +385,9 @@ def evaluate(_cfg: DictConfig) -> None:
                                   only_png=False,
                                   outputdir=visualize_val_outputdir)
 
-
-
                         n_plots += 1
 
-                    logging.info('Done with sample plots')
+                    logging.info(f'Saved {n_plots} plots')
 
                 for _ in range(3):
                     torch.cuda.empty_cache()
