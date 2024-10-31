@@ -87,7 +87,7 @@ It can still take hours to train on a middle sized dataset.
 
 # Installation
 
-If using conda/pip, you can first create a new environment:
+If using [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)/pip, you can first create a new environment:
 ```bash
 # if using conda environments
 conda create --name env_impute python=3.9 # requires python>=3.8,<3.10
