@@ -60,7 +60,8 @@ class ParentDataset(data.Dataset):
                  verbose: int = 0,
                  **kwargs
                  ):
-        self.data_dict = np.load(file, allow_pickle=True)
+        with np.load(file, allow_pickle=True) as data:
+            self.data_dict = {key: data[key] for key in data.files}
         self.X = self.data_dict['X']  # shape (batch, max_len, features)
         if 'y' in self.data_dict.keys():
             self.y = self.data_dict['y']
