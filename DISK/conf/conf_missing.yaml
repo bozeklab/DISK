@@ -15,13 +15,13 @@ hydra:
     chdir: True
   run:
     # TOCHANGE: specify the output
-    dir: outputs/2024-11-15_INHCPMOS_CLB_woAnkle/DISK_proba #outputs/2023-10-26_treadmill/${now:%d-%m-%y}_GRU_new
+    dir: outputs/2024-03-18_INHCP_newnewmissing/2024-12-06_transformer_NLL_set_keypoints_marker_translation #outputs/2023-10-26_treadmill/${now:%d-%m-%y}_GRU_new
 
 # TOCHANGE: name of the dataset, should match the folder name in `datasets
 dataset:
-  name: INHCPMOS_CLB_keypoints_60stride30_woAnkle
+  name: INHCP_FL2_keypoints_60stride30_Wankle
   # path from datasets folder, can be left blank if not using st_gcn as network
-  skeleton_file: INHCPMOS_CLB_keypoints_60stride30_woAnkle/skeleton.py #INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
+  skeleton_file: INHCP_FL2_keypoints_60stride30_Wankle/skeleton.py #INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
 
 training: # a priori not to be changed
   epochs: 1500
@@ -66,8 +66,8 @@ feed_data:
        # first proba missing, then missing length. order matters!
        # the 3rd file specifying the number of simultaneous missing keypoints is optional
        # path from datasets folder
-       - INHCPMOS_CLB_keypoints_60stride30_woAnkle/proba_missing.csv
-       - INHCPMOS_CLB_keypoints_60stride30_woAnkle/proba_missing_length.csv
+      - INHCP_FL2_keypoints_60stride30_Wankle/proba_missing_set_keypoints.csv
+      - INHCP_FL2_keypoints_60stride30_Wankle/proba_missing_length_set_keypoints.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
