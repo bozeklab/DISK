@@ -246,7 +246,13 @@ def evaluate(_cfg: DictConfig) -> None:
                         bandexcess[i_model] = be[n_missing > 0] / be[n_missing > 0]
 
 
-                for i_sample_in_batch in range(data_with_holes_np.shape[0]):
+                for i_sample_in_batch in range(data_with_holes_np.shape[0]): # iterate on samples
+
+                    swapped_kp_ids = np.unique(np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[1])
+                    swap_times = np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[0]
+                    swap_length = np.max(swap_times) - np.min(swap_times) + 1
+                    print(swapped_kp_ids, swap_length)
+
                     ## gives the length of a hole, one keypoint at a time, a sample can have multiple holes one after the other:
                     id_hole = 0
                     out = find_holes(mask_holes_np[i_sample_in_batch], dataset_constants.KEYPOINTS, indep=False)
