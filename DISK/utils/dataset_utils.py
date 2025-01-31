@@ -197,6 +197,7 @@ class ParentDataset(data.Dataset):
         if self.label_type is not None and 'y' in sample and sample['y'] is not None:
             output['label'] = torch.from_numpy(sample['y']).type(torch.float)
 
+        logging.info(f'get item dataset {output}')
         return output
 
 
