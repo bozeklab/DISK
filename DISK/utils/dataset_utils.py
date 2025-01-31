@@ -191,7 +191,7 @@ class ParentDataset(data.Dataset):
                 output['swap'] = sample['swap']
                 logging.info(f'swap')
             else:
-                output['x_swap'] = None
+                output['x_swap'] = torch.from_numpy(np.zeros_like(x_supp[0])).type(torch.float)
                 output['swap'] = sample['swap']
                 logging.info(f'No x_swap')
         if 'i_file' in sample.keys():
