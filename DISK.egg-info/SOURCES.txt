@@ -5,6 +5,7 @@ DISK/__init__.py
 DISK/app_module1.py
 DISK/create_dataset.py
 DISK/create_proba_missing_files.py
+DISK/embedding_umap.py
 DISK/impute_dataset.py
 DISK/main_fillmissing.py
 DISK/test_fillmissing.py
