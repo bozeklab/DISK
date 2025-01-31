@@ -189,6 +189,8 @@ class ParentDataset(data.Dataset):
             if len(x_supp) == 2:
                 output['x_swap'] = torch.from_numpy(x_supp[1]).type(torch.float)
                 output['swap'] = sample['swap']
+            else:
+                logging.info(f'No x_swap')
         if 'i_file' in sample.keys():
             output['indices_file'] = sample['i_file']
             output['indices_pos'] = sample['i_pos']
@@ -197,7 +199,6 @@ class ParentDataset(data.Dataset):
         if self.label_type is not None and 'y' in sample and sample['y'] is not None:
             output['label'] = torch.from_numpy(sample['y']).type(torch.float)
 
-        logging.info(f'get item dataset {output}')
         return output
 
 
