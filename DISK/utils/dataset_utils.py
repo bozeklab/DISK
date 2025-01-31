@@ -191,6 +191,8 @@ class ParentDataset(data.Dataset):
                 output['swap'] = sample['swap']
                 logging.info(f'swap')
             else:
+                output['x_swap'] = None
+                output['swap'] = sample['swap']
                 logging.info(f'No x_swap')
         if 'i_file' in sample.keys():
             output['indices_file'] = sample['i_file']
