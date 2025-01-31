@@ -19,9 +19,9 @@ hydra:
 
 # TOCHANGE: name of the dataset, should match the folder name in `datasets
 dataset:
-  name: INH_FL2_keypoints_1_60_wresiduals_w1nan_stride0.5_new
+  name: DANNCE_seq_keypoints_60_stride30_fill10
   # path from datasets folder, can be left blank if not using st_gcn as network
-  skeleton_file: #MABE_task1_60stride60/skeleton.py #INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
+  skeleton_file: DANNCE_seq_keypoints_60_stride30_fill10/skeleton.py #MABE_task1_60stride60/skeleton.py #INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
 
 training: # a priori not to be changed
   epochs: 1500
@@ -66,8 +66,8 @@ feed_data:
        # first proba missing, then missing length. order matters!
        # the 3rd file specifying the number of simultaneous missing keypoints is optional
        # path from datasets folder
-      - INH_FL2_keypoints_1_60_wresiduals_w1nan_stride0.5_new/proba_missing_set_keypoints.csv
-      - INH_FL2_keypoints_1_60_wresiduals_w1nan_stride0.5_new/proba_missing_length_set_keypoints.csv
+      - DANNCE_seq_keypoints_60_stride30_fill10_proba_missing.txt
+      - DANNCE_seq_keypoints_60_stride30_fill10_proba_missing_length.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
