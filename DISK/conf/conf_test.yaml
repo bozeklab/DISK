@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: outputs/${now:%y-%m-%D}_test_compare_MABe_SWAP_debug
+    dir: outputs/${now:%y-%m-%d}_test_compare_MABe_SWAP_debug
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -22,7 +22,7 @@ dataset:
   # TOCHANGE: stride controls the translation between two samples, need to be an integer
   # a smaller stride will produce more segments and with a higher overlap
   stride: 60
-  skeleton_file: MABE_task1_60stride60/skeleton.py #TM_pulledxp_freq300_300stride25_new/skeleton.py
+  skeleton_file: #TM_pulledxp_freq300_300stride25_new/skeleton.py
 
 feed_data:
   mask: true
