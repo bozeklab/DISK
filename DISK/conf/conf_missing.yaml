@@ -15,13 +15,13 @@ hydra:
     chdir: True
   run:
     # TOCHANGE: specify the output
-    dir: outputs/${now:%d-%m-%y}_Fish_swap #outputs/2023-10-26_treadmill/${now:%d-%m-%y}_GRU_new
+    dir: outputs/${now:%d-%m-%y}_Mocap_swap #outputs/2023-10-26_treadmill/${now:%d-%m-%y}_GRU_new
 
 # TOCHANGE: name of the dataset, should match the folder name in `datasets
 dataset:
-  name: Fish_v3_60stride120
+  name: Mocap_keypoints_60_stride30_new
   # path from datasets folder, can be left blank if not using st_gcn as network
-  skeleton_file: #MABE_task1_60stride60/skeleton.py #INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
+  skeleton_file: Mocap_keypoints_60_stride30_new/skeleton.py  #MABE_task1_60stride60/skeleton.py #INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
 
 training: # a priori not to be changed
   epochs: 1500
@@ -66,8 +66,8 @@ feed_data:
        # first proba missing, then missing length. order matters!
        # the 3rd file specifying the number of simultaneous missing keypoints is optional
        # path from datasets folder
-      - Fish_v3_60stride60/proba_missing.csv
-      - Fish_v3_60stride60/proba_missing_length.csv
+      - Mocap_keypoints_60_proba_missing.txt
+      - Mocap_keypoints_60_proba_missing_length.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
