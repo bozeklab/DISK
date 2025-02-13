@@ -8,23 +8,23 @@ defaults:
   # TOCHANGE: this loads the default config for a given backbone
   # can be: gru, ae_tcn, st_gcn, sts_gcn, transformer
   # we advise gru or transformer for better performance
-  - network: gru
+  - network: transformer
 
 hydra:
   job:
     chdir: True
   run:
     # TOCHANGE: specify the output
-    dir: outputs/${now:%d-%m-%y}_gru_test3 #outputs/2023-10-26_treadmill/${now:%d-%m-%y}_GRU_new
+    dir: outputs/${now:%d-%m-%y}_CLB_for_comparison/DISK #outputs/2023-10-26_treadmill/${now:%d-%m-%y}_GRU_new
 
 # TOCHANGE: name of the dataset, should match the folder name in `datasets
 dataset:
-  name: test3
+  name: INH_CLB_keypoints_1_60_stride0.5
   # path from datasets folder, can be left blank if not using st_gcn as network
   skeleton_file: #INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
 
 training: # a priori not to be changed
-  epochs: 10
+  epochs: 1500
   batch_size: 32
   # from experience, learning rate of 0.0001 is better for GRU and 0.001 for transformer
   learning_rate: 0.001
@@ -33,7 +33,7 @@ training: # a priori not to be changed
   # if a valid path is given, then the saved model will be loaded
   # instead of starting from a random initialization of the weights
   load: # example: outputs/2023-09-27_Fishv3_newnewmissing/09-26-47_STGCN_stride60
-  n_cpus: 8 # TOCHANGE: if no multiprocessing, put 0
+  n_cpus: 6 # TOCHANGE: if no multiprocessing, put 0
   loss:
     type: l1
     mask: true
@@ -42,7 +42,7 @@ training: # a priori not to be changed
     type: lambdalr
     steps_epoch: 500
     rate: 0.95
-  print_every: 2
+  print_every: 10
   # print_every modifies the frequency at which the model infers on the validation set and the frequency at which
   # models can be saved (save when validation loss is better than previous one)
 
@@ -66,8 +66,8 @@ feed_data:
        # first proba missing, then missing length. order matters!
        # the 3rd file specifying the number of simultaneous missing keypoints is optional
        # path from datasets folder
-       - test3/proba_missing.csv
-       - test3/proba_missing_length.csv
+        - INH_CLB_keypoints_1_60_wresiduals_proba_missing.csv
+        - INH_CLB_keypoints_1_60_wresiduals_proba_missing_length.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
