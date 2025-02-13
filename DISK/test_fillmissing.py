@@ -162,7 +162,13 @@ def evaluate(_cfg: DictConfig) -> None:
             os.mkdir(optipose_dir)
         writer = csv.writer(open(os.path.join(optipose_dir, f'test{suffix}.csv'), 'w'), delimiter='|')
         writer.writerow(['input', 'label'])
-        keypoint_columns = [[f'{k}_1', f'{k}_2', f'{k}_3'] for k in range(len(dataset_constants.KEYPOINTS))]
+        if dataset_constants.DIVIDER == 3:
+            keypoint_columns = [[f'{k}_1', f'{k}_2', f'{k}_3'] for k in range(len(dataset_constants.KEYPOINTS))]
+        elif dataset_constants.DIVIDER == 2:
+            keypoint_columns = [[f'{k}_1', f'{k}_2'] for k in range(len(dataset_constants.KEYPOINTS))]
+        else:
+            raise ValueError(f'[test_fillmissing/evaluate] Expected DIVIDER to be 2 or 3, got {dataset_constants.DIVIDER}')
+        
         keypoint_columns_flat = []
         for sublist in keypoint_columns:
             keypoint_columns_flat.extend(sublist)
