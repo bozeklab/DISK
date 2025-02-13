@@ -174,7 +174,7 @@ def find_holes(mask, keypoints, target_val=1, indep=True):
         kp_per_time = [''] * mask.shape[0]
         set_kp = []
         for t in np.unique(times):
-            tmp = ' '.join(np.sort([keypoints[v] for v in kp[times == t]]))
+            tmp = ' '.join(np.unique([keypoints[v] for v in kp[times == t]]))
             kp_per_time[t] = tmp
             set_kp.append(tmp)
         sets, counts = np.unique(set_kp, return_counts=True)

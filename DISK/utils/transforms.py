@@ -28,6 +28,7 @@ def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputd
             raise ValueError('[init_transforms] First missing file should be a txt file or a csv file with a valid '
                              'extension')
 
+        logging.info(f'INIT TRANSFORMS, {init_proba_df["keypoint"].unique()} {length_proba_df["keypoint"].unique()}')
         indep_keypoints = False if 'set_keypoint' in _cfg.feed_data.transforms.add_missing.files[1] else True
 
         if len(_cfg.feed_data.transforms.add_missing.files) > 2:

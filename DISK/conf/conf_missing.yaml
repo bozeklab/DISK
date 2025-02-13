@@ -25,7 +25,7 @@ dataset:
 
 training: # a priori not to be changed
   epochs: 1500
-  batch_size: 32
+  batch_size: 16
   # from experience, learning rate of 0.0001 is better for GRU and 0.001 for transformer
   learning_rate: 0.001
   seed: false
