@@ -168,7 +168,7 @@ def evaluate(_cfg: DictConfig) -> None:
             keypoint_columns = [[f'{k}_1', f'{k}_2'] for k in range(len(dataset_constants.KEYPOINTS))]
         else:
             raise ValueError(f'[test_fillmissing/evaluate] Expected DIVIDER to be 2 or 3, got {dataset_constants.DIVIDER}')
-        
+
         keypoint_columns_flat = []
         for sublist in keypoint_columns:
             keypoint_columns_flat.extend(sublist)
@@ -233,7 +233,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                for out in x_outputs_np]
                     for ii, xx in enumerate(x_outputs_np[0]):
                         tmp_df = pd.DataFrame(columns=keypoint_columns_flat, data=xx.reshape(-1, len(keypoint_columns_flat)))
-                        tmp_df.to_csv(os.path.join(optipose_dir, 'DISK', f'test{suffix}_sample{id_sample + ii}_DISK.csv'),
+                        tmp_df.to_csv(os.path.join(optipose_dir, f'test{suffix}_sample{id_sample + ii}_DISK.csv'),
                                       index=False)
 
                 # List(number of models) of tensors of size (batch, time, keypoints, 3D) if mu_sigma GRU or transformer model
