@@ -40,8 +40,8 @@ feed_data:
         # TOCHANGE: proba missing files
         # order matters: first proba_missing, then proba_missing_length
         # the 3rd is optional and can precise how many simultaneous missing keypoints
-      - MABE_task1_60stride60/proba_missing_uniform.csv
-      - MABE_task1_60stride60/proba_missing_length_uniform.csv
+        - MABE_task1_60stride60/proba_missing_uniform.csv
+        - MABE_task1_60stride60/proba_missing_length_uniform.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
@@ -58,7 +58,7 @@ evaluate:
     # TOCHANGE: folder which contains the saved model(s)
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
-      - outputs/2024-02-19_MABe_task1_newnewmissing/18-42-12_transformer/
+    - outputs/2024-02-19_MABe_task1_newnewmissing/18-42-12_transformer/
   n_plots: 10
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
