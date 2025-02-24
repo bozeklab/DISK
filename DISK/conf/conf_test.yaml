@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: outputs/2023-09-27_Fishv3_newnewmissing//DISK_test
+    dir: outputs/2023-09-27_Fishv3_newnewmissing/DISK_test_for_comparison
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -40,8 +40,8 @@ feed_data:
         # TOCHANGE: proba missing files
         # order matters: first proba_missing, then proba_missing_length
         # the 3rd is optional and can precise how many simultaneous missing keypoints
-      - DF3D_keypoints_60_proba_missing_with0.txt
-      - DF3D_keypoints_60_stride5/DF3D_keypoints_60_proba_missing_length.csv
+      - Fish_v3_60stride60/proba_missing.csv
+      - Fish_v3_60stride60/proba_missing_length.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
@@ -58,7 +58,7 @@ evaluate:
     # TOCHANGE: folder which contains the saved model(s)
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
-    - outputs/2025-02-13_DF3D_for_comparison/DISK
+    - outputs/2023-09-27_Fishv3_newnewmissing/60stride120_models_BASELINE/31-10-23_transformer_new2
   n_plots: 10
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
