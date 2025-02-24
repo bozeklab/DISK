@@ -66,8 +66,8 @@ feed_data:
        # first proba missing, then missing length. order matters!
        # the 3rd file specifying the number of simultaneous missing keypoints is optional
        # path from datasets folder
-      - Mocap_keypoints_60_stride30_new/proba_missing_uniform.csv
-      - Mocap_keypoints_60_stride30_new/proba_missing_length_uniform.csv
+      - Mocap_keypoints_60_stride30_new/proba_missing_uniform_kpname.csv
+      - Mocap_keypoints_60_stride30_new/proba_missing_length_uniform_kpname.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
