@@ -58,7 +58,7 @@ evaluate:
     # TOCHANGE: folder which contains the saved model(s)
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
-    - ooutputs/2025-02-24_Mocap_for_comparison/DISK
+    - outputs/2025-02-24_Mocap_for_comparison/DISK
   n_plots: 10
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
