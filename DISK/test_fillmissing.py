@@ -152,7 +152,8 @@ def evaluate(_cfg: DictConfig) -> None:
         suffix = _cfg.evaluate.suffix + f'_repeat-{i_repeat}'
         """RMSE computation"""
         total_rmse = pd.DataFrame(columns=['id_sample', 'id_hole', 'keypoint', 'method', 'method_param',
-                                           'metric_value', 'metric_type', 'length_hole', 'swap_kp_id', 'swap_length'])
+                                           'metric_value', 'metric_type', 'length_hole', 'swap_kp_id', 'swap_length',
+                                           'average_dist_bw_swap_kp'])
         id_sample = 0
         n_plots = 0
         """Visualization 3D, one timepoint each"""
@@ -251,6 +252,10 @@ def evaluate(_cfg: DictConfig) -> None:
                     swapped_kp_ids = np.unique(np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[1])
                     swap_times = np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[0]
                     swap_length = np.max(swap_times) - np.min(swap_times) + 1
+                    # euclidean distance between keypoints that are swapped during the swap
+                    swap_dist = np.mean(np.sqrt(np.sum((data_swapped_np[i_sample_in_batch, swap_times, swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times, swapped_kp_ids])**2, axis=-1)))
+                    logging.info(f'[DEBUG] {data_swapped_np.shape} should be (T, 2, 3) -- '
+                                 f'{np.sum((data_swapped_np[i_sample_in_batch, swap_times, swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times, swapped_kp_ids])**2, axis=-1).shape} should be (T, 2)')
 
                     ## gives the length of a hole, one keypoint at a time, a sample can have multiple holes one after the other:
                     id_hole = 0
@@ -264,34 +269,34 @@ def evaluate(_cfg: DictConfig) -> None:
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
                                                                       model_configs[i_model].network.type, model_name[i_model],
                                                                       mean_rmse, 'RMSE',
-                                                                      o[1], tuple(swapped_kp_ids), swap_length]
+                                                                      o[1], tuple(swapped_kp_ids), swap_length, swap_dist]
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
                                                                       model_configs[i_model].network.type, model_name[i_model],
                                                                       mean_euclidean,  'MPJPE',
-                                                                      o[1], tuple(swapped_kp_ids), swap_length]
+                                                                      o[1], tuple(swapped_kp_ids), swap_length, swap_dist]
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
                                                                       model_configs[i_model].network.type, model_name[i_model],
                                                                       mean_pck, pck_name,
-                                                                      o[1], tuple(swapped_kp_ids), swap_length]
+                                                                      o[1], tuple(swapped_kp_ids), swap_length, swap_dist]
                             if model_configs[i_model].training.mu_sigma:
                                 total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
                                                                           model_name[i_model],
                                                                           np.mean(uncertainty[i_model][slice_]),
                                                                           'mean_uncertainty',
-                                                                          o[1], tuple(swapped_kp_ids), swap_length]
+                                                                          o[1], tuple(swapped_kp_ids), swap_length, swap_dist]
                                 total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
                                                                           model_name[i_model],
                                                                           np.max(uncertainty[i_model][slice_]),
                                                                           'max_uncertainty',
-                                                                          o[1], tuple(swapped_kp_ids), swap_length]
+                                                                          o[1], tuple(swapped_kp_ids), swap_length, swap_dist]
                                 total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
                                                                           model_name[i_model],
                                                                           bandexcess[i_model][i_sample_in_batch], 'bandexcess_2sigma',
-                                                                          o[1], tuple(swapped_kp_ids), swap_length]
+                                                                          o[1], tuple(swapped_kp_ids), swap_length, swap_dist]
                                 total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2], model_configs[i_model].network.type,
                                                                           model_name[i_model],
                                                                           coverage[i_model][i_sample_in_batch], 'coverage_2sigma',
-                                                                          o[1], tuple(swapped_kp_ids), swap_length]
+                                                                          o[1], tuple(swapped_kp_ids), swap_length, swap_dist]
                         if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                             mean_rmse_linear = np.sqrt(np.mean(rmse_linear_interp[slice_]))
                             mean_euclidean_linear = np.mean(euclidean_distance_linear_interp[slice_])
@@ -301,17 +306,17 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                       'linear_interp', 'linear_interp',
                                                                       mean_rmse_linear,
                                                                       'RMSE',
-                                                                      o[1], tuple(swapped_kp_ids), swap_length]
+                                                                      o[1], tuple(swapped_kp_ids), swap_length, swap_dist]
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
                                                                       'linear_interp', 'linear_interp',
                                                                       mean_euclidean_linear, 
                                                                       'MPJPE',
-                                                                      o[1], tuple(swapped_kp_ids), swap_length]
+                                                                      o[1], tuple(swapped_kp_ids), swap_length, swap_dist]
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, id_hole, o[2],
                                                                       'linear_interp', 'linear_interp',
                                                                       mean_pck_linear, 
                                                                       pck_name,
-                                                                      o[1], tuple(swapped_kp_ids), swap_length]
+                                                                      o[1], tuple(swapped_kp_ids), swap_length, swap_dist]
                         id_hole += 1
 
                     ## the sample as a whole, not hole by hole
@@ -320,39 +325,39 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                   'linear_interp', 'linear_interp',
                                                                   np.sum(pck_linear_interpolation[i_sample_in_batch] * mask_holes_np[i_sample_in_batch]) / n_missing[i_sample_in_batch],
                                                                   pck_name,
-                                                                  n_missing[i_sample_in_batch], tuple(swapped_kp_ids), swap_length]
+                                                                  n_missing[i_sample_in_batch], tuple(swapped_kp_ids), swap_length, swap_dist]
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   'linear_interp', 'linear_interp',
                                                                   np.sum(euclidean_distance_linear_interp[i_sample_in_batch]) / n_missing[i_sample_in_batch],
                                                                   'MPJPE',
-                                                                  n_missing[i_sample_in_batch], tuple(swapped_kp_ids), swap_length]
+                                                                  n_missing[i_sample_in_batch], tuple(swapped_kp_ids), swap_length, swap_dist]
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   'linear_interp', 'linear_interp',
                                                                   np.sqrt(np.sum(rmse_linear_interp[i_sample_in_batch]) / n_missing[i_sample_in_batch]),
                                                                   'RMSE',
-                                                                  n_missing[i_sample_in_batch], tuple(swapped_kp_ids), swap_length]
+                                                                  n_missing[i_sample_in_batch], tuple(swapped_kp_ids), swap_length, swap_dist]
                     for i_model in range(n_models):
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   model_configs[i_model].network.type, model_name[i_model],
                                                                   np.sum(pck[i_model][i_sample_in_batch] * mask_holes_np[i_sample_in_batch]) / n_missing[i_sample_in_batch],
                                                                   pck_name,
-                                                                  n_missing[i_sample_in_batch], tuple(swapped_kp_ids), swap_length]
+                                                                  n_missing[i_sample_in_batch], tuple(swapped_kp_ids), swap_length, swap_dist]
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   model_configs[i_model].network.type, model_name[i_model],
                                                                   np.sum(euclidean_distance[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch],
                                                                   'MPJPE',
-                                                                  n_missing[i_sample_in_batch], tuple(swapped_kp_ids), swap_length]
+                                                                  n_missing[i_sample_in_batch], tuple(swapped_kp_ids), swap_length, swap_dist]
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   model_configs[i_model].network.type, model_name[i_model],
                                                                   np.sqrt(np.sum(rmse[i_model][i_sample_in_batch]) / n_missing[i_model]),
                                                                   'RMSE',
-                                                                  n_missing[i_sample_in_batch], tuple(swapped_kp_ids), swap_length]
+                                                                  n_missing[i_sample_in_batch], tuple(swapped_kp_ids), swap_length, swap_dist]
                         if model_configs[i_model].training.mu_sigma:
                             total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all', model_configs[i_model].network.type,
                                                                       model_name[i_model],
                                                                       np.sum(uncertainty[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch],
                                                                       'mean_uncertainty',
-                                                                      o[1], tuple(swapped_kp_ids), swap_length]
+                                                                      o[1], tuple(swapped_kp_ids), swap_length, swap_dist]
 
                     id_sample += 1
 
