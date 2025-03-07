@@ -255,7 +255,7 @@ def evaluate(_cfg: DictConfig) -> None:
                     # euclidean distance between keypoints that are swapped during the swap
                     logging.info(f'[DEBUG] {data_swapped_np.shape} and {full_data_np.shape} should be (N, T, kp, 3) -- ')
                     logging.info(f'[DEBUG] {i_sample_in_batch} {swap_times} {swapped_kp_ids}')
-                    logging.info(f'[DEBUG] {data_swapped_np[i_sample_in_batch, swap_times, swapped_kp_ids].shape} should be (T', 2, 3) -- ')
+                    logging.info(f'[DEBUG] {data_swapped_np[i_sample_in_batch, swap_times, swapped_kp_ids].shape} should be (Tbis, 2, 3) -- ')
                     swap_dist = np.mean(np.sqrt(np.sum((data_swapped_np[i_sample_in_batch, swap_times, swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times, swapped_kp_ids])**2, axis=-1)))
                     logging.info(f'{np.sum((data_swapped_np[i_sample_in_batch, swap_times, swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times, swapped_kp_ids])**2, axis=-1).shape} should be (T, 2)')
 
