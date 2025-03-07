@@ -250,7 +250,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 for i_sample_in_batch in range(data_with_holes_np.shape[0]): # iterate on samples
 
                     swapped_kp_ids = np.unique(np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[1])
-                    swap_times = np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[0]
+                    swap_times = np.unique(np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[0])
                     swap_length = np.max(swap_times) - np.min(swap_times) + 1
                     # euclidean distance between keypoints that are swapped during the swap
                     logging.info(f'[DEBUG] {data_swapped_np.shape} and {full_data_np.shape} should be (N, T, kp, 3) -- ')
