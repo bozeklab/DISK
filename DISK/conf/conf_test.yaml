@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: outputs/${now:%Y-%m-%d}_test_compare_CLB_SWAP
+    dir: outputs/${now:%Y-%m-%d}_test_compare_Mocap_SWAP
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -18,7 +18,7 @@ hydra:
 
 
 dataset:
-  name: INH_CLB_keypoints_1_60_wresiduals_stride0.5
+  name: Mocap_keypoints_60_stride30_new
   # TOCHANGE: stride controls the translation between two samples, need to be an integer
   # a smaller stride will produce more segments and with a higher overlap
   stride: 60
@@ -40,8 +40,8 @@ feed_data:
         # TOCHANGE: proba missing files
         # order matters: first proba_missing, then proba_missing_length
         # the 3rd is optional and can precise how many simultaneous missing keypoints
-      - INH_CLB_keypoints_1_60_wresiduals_proba_missing.csv
-      - INH_CLB_keypoints_1_60_wresiduals_proba_missing_length.csv
+      - Mocap_keypoints_60_proba_missing.txt
+      - Mocap_keypoints_60_proba_missing_length.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
@@ -59,9 +59,9 @@ evaluate:
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
 #    - outputs/19-08-24_MABe_noswap_nolossmask
-    - outputs/2023-12-12_CLB_newnewmissing/02-41-00_transformer_NLL
+    - 2023-12-07_Mocap_newnewmissing/03-10-24_transformer_NLL
 #    - outputs/16-08-24_MABe_swap
-    - outputs/31-01-25_CLB_swap
+    - outputs/31-01-25_Mocap_swap
 #    - outputs/2024-02-19_MABe_task1_newnewmissing/15-32-09_transformer_womaskloss
   n_plots: 50
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
