@@ -40,8 +40,8 @@ feed_data:
         # TOCHANGE: proba missing files
         # order matters: first proba_missing, then proba_missing_length
         # the 3rd is optional and can precise how many simultaneous missing keypoints
-      - Fish_v3_60stride120/proba_missing.csv
-      - Fish_v3_60stride120/proba_missing_length.csv
+      - Fish_v3_60stride60/proba_missing.csv
+      - Fish_v3_60stride60/proba_missing_length.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
