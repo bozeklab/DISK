@@ -21,7 +21,7 @@ hydra:
 dataset:
   name: DF3D_keypoints_60_stride5
   # path from datasets folder, can be left blank if not using st_gcn as network
-  skeleton_file: #MABE_task1_60stride60/skeleton.py #INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
+  skeleton_file: DF3D_keypoints_60_stride5/skeleton.py #MABE_task1_60stride60/skeleton.py #INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
 
 training: # a priori not to be changed
   epochs: 1500
@@ -66,7 +66,7 @@ feed_data:
        # first proba missing, then missing length. order matters!
        # the 3rd file specifying the number of simultaneous missing keypoints is optional
        # path from datasets folder
-      - DF3D_keypoints_60_stride5/DF3D_keypoints_60_proba_missing.txt
+      - DF3D_keypoints_60_proba_missing_with0.txt
       - DF3D_keypoints_60_stride5/DF3D_keypoints_60_proba_missing_length.csv
     viewinvariant: true
     normalize: false
