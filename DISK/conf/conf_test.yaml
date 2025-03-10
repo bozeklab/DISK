@@ -59,7 +59,7 @@ evaluate:
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
 #    - outputs/19-08-24_MABe_noswap_nolossmask
-    - 2023-12-07_Mocap_newnewmissing/03-10-24_transformer_NLL
+    - outputs/2023-12-07_Mocap_newnewmissing/03-10-24_transformer_NLL
 #    - outputs/16-08-24_MABe_swap
     - outputs/31-01-25_Mocap_swap
 #    - outputs/2024-02-19_MABe_task1_newnewmissing/15-32-09_transformer_womaskloss
