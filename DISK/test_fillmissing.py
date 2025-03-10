@@ -253,9 +253,9 @@ def evaluate(_cfg: DictConfig) -> None:
                     swap_times = np.unique(np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[0])
                     swap_length = np.max(swap_times) - np.min(swap_times) + 1
                     # euclidean distance between keypoints that are swapped during the swap
-                    logging.info(f'[DEBUG] {data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids].shape} should be (Tbis, 2, 3) -- ')
+                    logging.debug(f'[DEBUG] {data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids].shape} should be (Tbis, 2, 3) -- ')
                     swap_dist = np.mean(np.sqrt(np.sum((data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times][:, swapped_kp_ids])**2, axis=-1)))
-                    logging.info(f'{np.sum((data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times][:, swapped_kp_ids])**2, axis=-1).shape} should be (T, 2)')
+                    logging.debug(f'{np.sum((data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times][:, swapped_kp_ids])**2, axis=-1).shape} should be (T, 2)')
 
                     ## gives the length of a hole, one keypoint at a time, a sample can have multiple holes one after the other:
                     id_hole = 0
@@ -349,7 +349,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                   n_missing[i_sample_in_batch], tuple(swapped_kp_ids), swap_length, swap_dist]
                         total_rmse.loc[total_rmse.shape[0], :] = [id_sample, -1, 'all',
                                                                   model_configs[i_model].network.type, model_name[i_model],
-                                                                  np.sqrt(np.sum(rmse[i_model][i_sample_in_batch]) / n_missing[i_model]),
+                                                                  np.sqrt(np.sum(rmse[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch]),
                                                                   'RMSE',
                                                                   n_missing[i_sample_in_batch], tuple(swapped_kp_ids), swap_length, swap_dist]
                         if model_configs[i_model].training.mu_sigma:
