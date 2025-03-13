@@ -33,7 +33,7 @@ training: # a priori not to be changed
   # if a valid path is given, then the saved model will be loaded
   # instead of starting from a random initialization of the weights
   load: # example: outputs/2023-09-27_Fishv3_newnewmissing/09-26-47_STGCN_stride60
-  n_cpus: 8 # TOCHANGE: if no multiprocessing, put 0
+  n_cpus: 1 # TOCHANGE: if no multiprocessing, put 0
   loss:
     type: l1
     mask: true
