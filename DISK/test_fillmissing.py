@@ -119,7 +119,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                              dataset_constants=dataset_constants,
                                                              transform=transforms,
                                                              dataset_type='supervised',
-                                                             suffix='_w-0-nans_mini',
+                                                             suffix='_w-0-nans',
                                                              root_path=basedir,
                                                              outputdir=outputdir,
                                                              label_type=None,  # don't care, not using
