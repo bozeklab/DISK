@@ -204,7 +204,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 rmse = [np.sum(((out - full_data_np) ** 2) * reshaped_mask_holes, axis=3)
                                       for out in x_outputs_np]  # sum on the XYZ dimension, output shape (batch, time, keypoint)
 
-                if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
+                if 'add_missing' in _cfg.feed_Data.transforms.keys() and np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                     linear_interp_data = compute_interp(data_with_holes_np, mask_holes_np, dataset_constants.KEYPOINTS,
                                                         dataset_constants.DIVIDER)
                     rmse_linear_interp = np.sum(((linear_interp_data - full_data_np) ** 2) * reshaped_mask_holes,
@@ -256,7 +256,7 @@ def evaluate(_cfg: DictConfig) -> None:
                             total_rmse['mean_uncertainty'].append(np.nan)
                             total_rmse['length_hole'].append(o[1])
 
-                        if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
+                        if 'add_missing' in _cfg.feed_Data.transforms.keys() and np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                             mean_rmse_linear = np.sqrt(np.mean(rmse_linear_interp[slice_]))
                             mean_euclidean_linear = np.mean(euclidean_distance_linear_interp[slice_])
                             mean_pck_linear = np.sum(pck_linear_interpolation[slice_] * mask_holes_np[slice_])\
@@ -274,7 +274,7 @@ def evaluate(_cfg: DictConfig) -> None:
                         id_hole += 1
 
                     ## the sample as a whole, not hole by hole
-                    if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
+                    if 'add_missing' in _cfg.feed_Data.transforms.keys() and np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                         total_rmse['id_sample'].append(id_sample)
                         total_rmse['id_hole'].append(-1)
                         total_rmse['keypoint'].append('all')
@@ -323,7 +323,7 @@ def evaluate(_cfg: DictConfig) -> None:
                         title = f'RMSE & MPJPE'
                         title += ' -  '.join(
                             [f'{i_model}: {np.sqrt(np.mean(rmse[i_model][i])):.3f} & {np.mean(euclidean_distance[i_model][i]):.3f}' for i_model in range(n_models)])
-                        if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
+                        if 'add_missing' in _cfg.feed_Data.transforms.keys() and np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                             title += f'; linear: {np.sqrt(np.mean(rmse_linear_interp[i])):.3f} & {np.mean(euclidean_distance_linear_interp[i]):.3f}'
                         def make_xyz_plot():
                             fig, axes = plt.subplots(dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER,
@@ -357,7 +357,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                             assert not np.any(np.isnan(xo))
 
                                     out = find_holes(np.array(t_mask).reshape(dataset_constants.SEQ_LENGTH - 1, 1).astype(int), ['0'], indep=True)
-                                    if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
+                                    if 'add_missing' in _cfg.feed_Data.transforms.keys() and np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                                         for o in out:
                                             axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[o[0]:o[0]+o[1]],
                                                                                      linear_interp_data[i, 1:, j, i_dim][o[0]:o[0]+o[1]], 'r-',
