@@ -118,8 +118,8 @@ def evaluate(_cfg: DictConfig) -> None:
     train_dataset, val_dataset, test_dataset = load_datasets(dataset_name=_cfg.dataset.name,
                                                              dataset_constants=dataset_constants,
                                                              transform=transforms,
-                                                             dataset_type='full_length',
-                                                             suffix='_w-0-nans',
+                                                             dataset_type='supervised',
+                                                             suffix='_w-0-nans_mini',
                                                              root_path=basedir,
                                                              outputdir=outputdir,
                                                              label_type=None,  # don't care, not using
