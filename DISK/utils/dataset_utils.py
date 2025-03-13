@@ -76,6 +76,10 @@ class ParentDataset(data.Dataset):
             self.X = self.data_dict['X']
             self.X[self.X == optipose_outlier] = np.nan
             self.X_gt[self.X_gt == optipose_outlier] = np.nan
+            logging.info(f'[LOADING DATASET] {self.X.shape} {np.all(np.isnan(self.X[..., :0]), axis=(1, 2)).shape}')
+            self.X = self.X[~np.all(np.isnan(self.X[..., :0]), axis=(1,2))]
+            self.X_gt = self.X_gt[~np.all(np.isnan(self.X_gt[..., :0]))]
+
         else:
             self.X = self.data_dict['X']  # shape (batch, max_len, features)
             self.X_gt = None

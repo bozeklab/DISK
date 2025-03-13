@@ -113,7 +113,7 @@ class ViewInvariant(Transform):
         mask_na_points = np.any(np.isnan(points), axis=1)
         if np.all(mask_na_points):
             idces = np.where(np.sum(np.isnan(x), axis=(1, 2)) == 0)[0]
-            logging.info(f'[DEBUG VIEWINVARIANT] idces {idces} {x}')
+            logging.info(f'[DEBUG VIEWINVARIANT] idces {idces} {np.sum(np.isnan(x[..., 0]))} {x[..., 0].size}')
             idx = idces[np.argmin(np.abs(idces - self.index_frame))]
             points = x[idx, :, :]
             mask_na_points = np.any(np.isnan(points), axis=1)
