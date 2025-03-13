@@ -15,11 +15,11 @@ hydra:
     chdir: True
   run:
     # TOCHANGE: specify the output
-    dir: outputs/${now:%d-%m-%y}_FL2_new_for_comparison/DISK #outputs/2023-10-26_treadmill/${now:%d-%m-%y}_GRU_new
+    dir: outputs/${now:%d-%m-%y}_Rat7M_optipose/DISK #outputs/2023-10-26_treadmill/${now:%d-%m-%y}_GRU_new
 
 # TOCHANGE: name of the dataset, should match the folder name in `datasets
 dataset:
-  name: INH_FL2_keypoints_1_60_wresiduals_w1nan_stride0.5_new
+  name: Rat7M_optipose
   # path from datasets folder, can be left blank if not using st_gcn as network
   skeleton_file: #INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py #example: INH_FL2_keypoints_1_60_wresiduals_stride0.5/skeleton.py
 
@@ -58,16 +58,6 @@ training: # a priori not to be changed
 feed_data:
   mask: true
   transforms:
-    add_missing:
-      pad: [1, 0]
-      indep_keypoints: True
-      files:
-       # TOCHANGE:
-       # first proba missing, then missing length. order matters!
-       # the 3rd file specifying the number of simultaneous missing keypoints is optional
-       # path from datasets folder
-       - INH_FL2_keypoints_1_60_wresiduals_w1nan_stride0.5_new/proba_missing_set_keypoints.csv
-       - INH_FL2_keypoints_1_60_wresiduals_w1nan_stride0.5_new/proba_missing_length_set_keypoints.csv
     viewinvariant: true
     normalize: false
     normalizecube: true

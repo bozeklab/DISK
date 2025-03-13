@@ -62,11 +62,21 @@ class ParentDataset(data.Dataset):
                  ):
         with np.load(file, allow_pickle=True) as data:
             self.data_dict = {key: data[key] for key in data.files}
-        self.X = self.data_dict['X']  # shape (batch, max_len, features)
         if 'y' in self.data_dict.keys():
             self.y = self.data_dict['y']
         else:
             self.y = None
+
+        if 'ground_truth' in self.data_dict.keys():
+            optipose_outlier = -4668
+            self.X_gt = self.data_dict['ground_truth']
+            self.X = self.data_dict['X']
+            self.X[self.X == optipose_outlier] = np.nan
+            self.X_gt[self.X_gt == optipose_outlier] = np.nan
+        else:
+            self.X = self.data_dict['X']  # shape (batch, max_len, features)
+            self.X_gt = None
+
         if 'files' in self.data_dict.keys():
             self.files = self.data_dict['files']
         else:
@@ -128,7 +138,7 @@ class ParentDataset(data.Dataset):
                             'fillvalue_coordinates': 0,
                             'skeleton_graph': self.skeleton_graph})
         ## allowed transforms: rotation, translation, reflection, small gaussian noise on positions
-        x_supp = None
+        x_supp = sample['x_gt'] # x_gt or None
         if self.transform is not None and len(self.transform) > 0:
             # x has nans here
             x_coordinates, x_supp, self.kwargs = transform_x(x_coordinates, self.transform, **self.kwargs)
@@ -231,16 +241,22 @@ class SupervisedDataset(ParentDataset):
         return self.X.shape[0]
 
     def _get_sample(self, index):
-        x = self.X[index]
         m = self.mask[index]
         if self.y is not None:
             y = self.y[index: index + 1, :]
         else:
             y = None
+        if self.X_gt is not None:
+            x = self.X[index]
+            x_gt = self.X_gt[index]
+        else:
+            x = self.X[index]
+            x_gt = None
         z = self.len_seq[index: index + 1]
         sample = {'x': x,
                   'm': m,
                   'y': y,
+                  'gt': x_gt,
                   'z': z}
         return sample
 
