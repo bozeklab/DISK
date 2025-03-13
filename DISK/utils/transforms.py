@@ -105,7 +105,6 @@ class ViewInvariant(Transform):
         """Compute the transform"""
         # indices_for_barycenter = np.arange(0, 6, dtype=int) # back, coord, & hips # changed 2022-07-07
         # x is of shape (timepoints, n_keypoints , 3)
-        logging.info(f'[DEBUG VIEWINVARIANT] {x.shape} should be 3D')
         if x.shape[0] <= self.index_frame:
             idx = x.shape[0] - 1
         else:
@@ -114,7 +113,7 @@ class ViewInvariant(Transform):
         mask_na_points = np.any(np.isnan(points), axis=1)
         if np.all(mask_na_points):
             idces = np.where(np.sum(np.isnan(x), axis=(1, 2)) == 0)[0]
-            logging.info(f'[DEBUG VIEWINVARIANT] idces {idces}')
+            logging.info(f'[DEBUG VIEWINVARIANT] idces {idces} {np.sum(np.isnan(x), axis=(1, 2)) == 0}')
             idx = idces[np.argmin(np.abs(idces - self.index_frame))]
             points = x[idx, :, :]
             mask_na_points = np.any(np.isnan(points), axis=1)
