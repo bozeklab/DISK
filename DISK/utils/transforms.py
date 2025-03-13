@@ -10,6 +10,7 @@ from DISK.utils.coordinates_utils import create_skeleton_plot, compute_svd
 
 def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputdir, add_missing=True):
     transforms = []
+    proba_n_missing = None
 
     if 'add_missing' in _cfg.feed_data.transforms.keys():
         length_proba_df = pd.read_csv(os.path.join(basedir, 'datasets', _cfg.feed_data.transforms.add_missing.files[1]))
@@ -33,8 +34,6 @@ def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputd
         if len(_cfg.feed_data.transforms.add_missing.files) > 2:
             proba_n_missing = np.loadtxt(
                 os.path.join(basedir, 'datasets', _cfg.feed_data.transforms.add_missing.files[2]))
-        else:
-            proba_n_missing = None
 
         if add_missing:
             addmissing_transform = AddMissing_LengthProba(length_proba_df, keypoints, init_proba_df, divider=divider,
