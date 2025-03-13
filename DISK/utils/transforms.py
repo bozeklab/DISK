@@ -556,7 +556,6 @@ def transform_x(x, transformations, x_supp = None, **kwargs):
             x, x_supp, kwargs = t(x, x_supp=x_supp, **kwargs)
     else:
         for t in transformations:
-            logging.info(f'[DEBUG TRANSFORMS] {t} x {np.unique(np.isnan(x), return_counts=True)} x_supp {np.unique(np.isnan(x_supp), return_counts=True)} {x.shape}')
             x, x_supp, kwargs = t(x, x_supp=x_supp, **kwargs)
     return x, x_supp, kwargs
 
