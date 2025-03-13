@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: outputs/2025-03-13_Rat7M_optipose/DISK_test
+    dir: outputs/13-03-25_Rat7M_optipose/DISK_test
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -43,7 +43,7 @@ evaluate:
     # TOCHANGE: folder which contains the saved model(s)
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
-    - outputs/2025-03-13_Rat7M_optipose/DISK
+    - outputs/13-03-25_Rat7M_optipose/DISK
   n_plots: 10
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
