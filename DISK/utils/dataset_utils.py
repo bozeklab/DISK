@@ -260,7 +260,7 @@ class SupervisedDataset(ParentDataset):
         sample = {'x': x,
                   'm': m,
                   'y': y,
-                  'gt': x_gt,
+                  'x_gt': x_gt,
                   'z': z}
         return sample
 
