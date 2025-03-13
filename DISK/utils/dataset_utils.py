@@ -32,7 +32,10 @@ def load_datasets(dataset_name, dataset_constants, suffix='', dataset_type='supe
     data_path = os.path.join(root_path, 'datasets', dataset_name)
     if dataset_type == 'supervised':
         train_dataset = SupervisedDataset(os.path.join(data_path, f'train_dataset{suffix}.npz'), dataset_constants, **kwargs)
-        test_dataset = SupervisedDataset(os.path.join(data_path, f'test_dataset{suffix}.npz'), dataset_constants, **kwargs)
+        try:
+            test_dataset = SupervisedDataset(os.path.join(data_path, f'test_dataset{suffix}.npz'), dataset_constants, **kwargs)
+        except FileNotFoundError:
+            test_dataset = None
         val_dataset = SupervisedDataset(os.path.join(data_path, f'val_dataset{suffix}.npz'),  dataset_constants, **kwargs)
     elif dataset_type == 'full_length':
         train_dataset = FullLengthDataset(os.path.join(data_path, f'train_fulllength_dataset{suffix}.npz'), dataset_constants, **kwargs)
