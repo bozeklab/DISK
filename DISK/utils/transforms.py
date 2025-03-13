@@ -238,7 +238,6 @@ class ViewInvariant(Transform):
 
     def __call__(self, x, *args, x_supp=None, **kwargs):
 
-        logging.info(f'[DEBUG VIEWINVARIANT] {x.shape}')
         barycenter, A, index_vect, angle = self.compute_transform(x)
 
         """ Apply the transform """
@@ -556,9 +555,8 @@ def transform_x(x, transformations, x_supp = None, **kwargs):
             x, x_supp, kwargs = t(x, x_supp=x_supp, **kwargs)
     else:
         for t in transformations:
-            if 'x_supp' in kwargs:
-                print(t)
-            x, x_supp, kwargs = t(x, **kwargs)
+            logging.info(f'[DEBUG TRANSFORMS] {t} {np.unique(np.isnan(x))} {np.unique(np.isnan(x))}')
+            x, x_supp, kwargs = t(x, x_supp=x_supp, **kwargs)
     return x, x_supp, kwargs
 
 

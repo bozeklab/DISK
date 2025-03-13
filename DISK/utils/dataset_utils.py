@@ -144,7 +144,6 @@ class ParentDataset(data.Dataset):
         x_supp = sample['x_gt'] # x_gt or None
         if self.transform is not None and len(self.transform) > 0:
             # x has nans here
-            logging.info(f'[DEBUG PARENT DATASET] {x_coordinates.shape}, {x_supp.shape}')
             x_coordinates, x_supp, self.kwargs = transform_x(x_coordinates, self.transform, x_supp=x_supp, **self.kwargs)
 
         if verbose_sample and self.skeleton_graph is not None:
