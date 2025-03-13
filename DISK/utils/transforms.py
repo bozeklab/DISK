@@ -238,6 +238,7 @@ class ViewInvariant(Transform):
 
     def __call__(self, x, *args, x_supp=None, **kwargs):
 
+        logging.info(f'[DEBUG VIEWINVARIANT] {x.shape}')
         barycenter, A, index_vect, angle = self.compute_transform(x)
 
         """ Apply the transform """
