@@ -537,7 +537,7 @@ class AddMissing_LengthProba(Transform):
         return x_with_holes
 
 
-def transform_x(x, transformations, **kwargs):
+def transform_x(x, transformations, x_supp = None, **kwargs):
     '''
 
     :param x: can have nan in the places where coordinates is missing
@@ -545,7 +545,7 @@ def transform_x(x, transformations, **kwargs):
     :param kwargs:
     :return:
     '''
-    x_supp = None
+
     if isinstance(transformations[0], AddMissing_LengthProba):
         x_supp = np.copy(x)  # the supp sample is the one without holes, but other reflection, normalization, ...
         # will be computed on x and applied both on x_supp and x
