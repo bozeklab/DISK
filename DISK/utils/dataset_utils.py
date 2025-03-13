@@ -77,9 +77,9 @@ class ParentDataset(data.Dataset):
             self.X[self.X == optipose_outlier] = np.nan
             self.X_gt[self.X_gt == optipose_outlier] = np.nan
 
-            logging.info(f'[DATASET LOADER] {np.isnan(self.X[..., 0]).shape} {np.all(np.isnan(self.X[..., 0]), axis=2).shape} {np.any(np.all(np.isnan(self.X[..., 0]), axis=2), axis=1).shape} {np.any(np.all(np.isnan(self.X[..., 0]), axis=2), axis=1)}')
-            import sys
-            sys.exit(1)
+            logging.info(f'[DATASET LOADER] {np.isnan(self.X[..., 0]).shape} {np.all(np.isnan(self.X[..., 0]), axis=2).shape} '
+                         f'{np.any(np.all(np.isnan(self.X[..., 0]), axis=2), axis=1).shape} {np.any(np.all(np.isnan(self.X[..., 0]), axis=2), axis=1)}')
+
             self.X = self.X[~np.any(np.all(np.isnan(self.X[..., 0]), axis=2), axis=1)]
             self.X_gt = self.X_gt[~np.any(np.all(np.isnan(self.X_gt[..., 0]), axis=2), axis=1)]
 
