@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: outputs/2023-08-29_FL2_newmissing/test_for_optipose
+    dir: outputs/2023-10-01_FL2_nmissingblock/eval_nmissing2_orig_coords
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -18,7 +18,7 @@ hydra:
 
 
 dataset:
-  name: INH_FL2_keypoints_1_60_wresiduals_w1nan_stride0.5_new
+  name: INH_FL2_keypoints_1_60_wresiduals_stride0.5
   # TOCHANGE: stride controls the translation between two samples, need to be an integer
   # a smaller stride will produce more segments and with a higher overlap
   stride: 30
@@ -42,6 +42,7 @@ feed_data:
         # the 3rd is optional and can precise how many simultaneous missing keypoints
       - INH_FL2_keypoints_1_60_wresiduals_proba_missing.txt
       - INH_FL2_keypoints_1_60_wresiduals_proba_missing_length.csv
+      - proba_n_missing_2.txt
     viewinvariant: true
     normalize: false
     normalizecube: true
@@ -53,13 +54,14 @@ evaluate:
   n_cpus: 6
   # batch_size can be changed: a higher batch size will speed up the script while using more memory
   # in the case of a memory error, lower the batch_size
-  batch_size: 8
+  batch_size: 64
   checkpoints:
     # TOCHANGE: folder which contains the saved model(s)
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
-    - outputs/2023-08-29_FL2_newmissing/transformer_baseline
-  n_plots: 1
+  - outputs/2023-10-01_FL2_nmissingblock/20-18-20_nmissing2
+  - outputs/2023-10-01_FL2_nmissingblock/20-31-28_transformer_nmissing2
+  n_plots: 5
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
   size: 2.5
