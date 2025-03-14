@@ -236,7 +236,7 @@ class SupervisedDataset(ParentDataset):
 
         # compute an estimation of the average distance between keypoints of one pose, so when adding the gaussian noise
         # we add it proportionally
-        if self.X_gt is not Nont:
+        if self.X_gt is not None:
             subsample = self.X_gt[np.random.choice(self.__len__(), min(1000, self.__len__()), replace=False)].reshape(
                 (-1, self.n_keypoints, self.original_divider))
             max_dist_bw_keypoints = np.max(list(map(pdist, subsample)))
