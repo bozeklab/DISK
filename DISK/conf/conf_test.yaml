@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: outputs/13-03-25_Rat7M_optipose/DISK_subsampled_test
+    dir: outputs/13-03-25_Rat7M_optipose/DISK_subsampled_test_normed_coords
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -49,7 +49,7 @@ evaluate:
   azim: 60
   size: 2.5
   only_holes: true
-  original_coordinates: true
+  original_coordinates: false
   suffix: ''
   name_items:
   - - network
@@ -58,4 +58,4 @@ evaluate:
     - mu_sigma
   merge: true
   merge_sets_file: ''
-  n_repeat: 5
+  n_repeat: 1
