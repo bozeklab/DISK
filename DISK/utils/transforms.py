@@ -526,7 +526,10 @@ class AddMissing_LengthProba(Transform):
                     end_missing = start_missing + lengths
                     buffer = int(end_missing)
 
-                    index_rd_kp = self.list_keypoints.index(rd_kp)
+                    if len(rd_kp) > 1:
+                        index_rd_kp = np.array([self.list_keypoints.index(k) for k in rd_kp])
+                    else:
+                        index_rd_kp = self.list_keypoints.index(rd_kp)
                     x_with_holes[start_missing: end_missing, index_rd_kp, :] = missing_values_placeholder
 
             if self.verbose == 2 or verbose_sample:
