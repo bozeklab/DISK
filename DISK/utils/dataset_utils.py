@@ -236,17 +236,31 @@ class SupervisedDataset(ParentDataset):
 
         # compute an estimation of the average distance between keypoints of one pose, so when adding the gaussian noise
         # we add it proportionally
-        subsample = self.X[np.random.choice(self.__len__(), min(1000, self.__len__()), replace=False)].reshape((-1, self.n_keypoints, self.original_divider))
-        max_dist_bw_keypoints = np.max(list(map(pdist, subsample)))
-        self.max_dataset = np.max(self.X.max(axis=(0, 1)).reshape((-1, self.original_divider)),
-                                  axis=0)  # should be of shape divider (for the x, y, and z axes)
-        self.min_dataset = np.max(self.X.min(axis=(0, 1)).reshape((-1, self.original_divider)), axis=0)  # same
-        self.min_per_sample = np.nanmin(
-            self.X.reshape(self.X.shape[0], self.X.shape[1], self.n_keypoints, self.original_divider), axis=(1, 2))
-        self.max_per_sample = np.nanmax(
-            self.X.reshape(self.X.shape[0], self.X.shape[1], self.n_keypoints, self.original_divider), axis=(1, 2))
+        if self.X_gt is not Nont:
+            subsample = self.X_gt[np.random.choice(self.__len__(), min(1000, self.__len__()), replace=False)].reshape(
+                (-1, self.n_keypoints, self.original_divider))
+            max_dist_bw_keypoints = np.max(list(map(pdist, subsample)))
+            self.max_dataset = np.max(self.X_gt.max(axis=(0, 1)).reshape((-1, self.original_divider)),
+                                      axis=0)  # should be of shape divider (for the x, y, and z axes)
+            self.min_dataset = np.max(self.X_gt.min(axis=(0, 1)).reshape((-1, self.original_divider)), axis=0)  # same
+            self.min_per_sample = np.nanmin(
+                self.X_gt.reshape(self.X_gt.shape[0], self.X_gt.shape[1], self.n_keypoints, self.original_divider), axis=(1, 2))
+            self.max_per_sample = np.nanmax(
+                self.X_gt.reshape(self.X_gt.shape[0], self.X_gt.shape[1], self.n_keypoints, self.original_divider), axis=(1, 2))
+        else:
+            subsample = self.X[np.random.choice(self.__len__(), min(1000, self.__len__()), replace=False)].reshape(
+                (-1, self.n_keypoints, self.original_divider))
+            max_dist_bw_keypoints = np.max(list(map(pdist, subsample)))
+            self.max_dataset = np.max(self.X.max(axis=(0, 1)).reshape((-1, self.original_divider)),
+                                      axis=0)  # should be of shape divider (for the x, y, and z axes)
+            self.min_dataset = np.max(self.X.min(axis=(0, 1)).reshape((-1, self.original_divider)), axis=0)  # same
+            self.min_per_sample = np.nanmin(
+                self.X.reshape(self.X.shape[0], self.X.shape[1], self.n_keypoints, self.original_divider), axis=(1, 2))
+            self.max_per_sample = np.nanmax(
+                self.X.reshape(self.X.shape[0], self.X.shape[1], self.n_keypoints, self.original_divider), axis=(1, 2))
 
-        self.kwargs = dict(min_coordinates_dataset=self.min_dataset, max_coordinates_dataset=self.max_dataset,
+        self.kwargs = dict(min_coordinates_dataset=self.min_dataset,
+                           max_coordinates_dataset=self.max_dataset,
                            max_dist_bw_keypoints=max_dist_bw_keypoints)
         self.kwargs.update(kwargs)
 
