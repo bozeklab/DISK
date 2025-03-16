@@ -161,7 +161,12 @@ def evaluate(_cfg: DictConfig) -> None:
                 data_with_holes = data_dict['X'].to(device)  # shape (timepoints, n_keypoints, 2 or 3 or 4)
                 data_full = data_dict['x_supp'].to(device)
                 mask_holes = data_dict['mask_holes'].to(device)
-                logging.info(f'[MASK_HOLES] {data_with_holes.shape} {np.sum(np.isnan(data_with_holes[:, 0]))} {np.sum(mask_holes[:, 0])}')
+
+                full_data_np = data_full.detach().cpu().clone().numpy()
+                data_with_holes_np = data_with_holes.detach().cpu().numpy()
+                mask_holes_np = mask_holes.detach().cpu().numpy()
+
+                logging.info(f'[MASK_HOLES] {data_with_holes_np.shape} {np.sum(np.isnan(data_with_holes_np[:, 0]))} {np.sum(mask_holes_np[:, 0])}')
                 assert not torch.any(torch.isnan(data_with_holes))
                 assert not torch.any(torch.isnan(data_full))
 
@@ -170,8 +175,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                          model_configs, data_full=data_full,
                                                                          criterion_seq=criterion_seq)
 
-                full_data_np = data_full.detach().cpu().clone().numpy()
-                data_with_holes_np = data_with_holes.detach().cpu().numpy()
+
 
                 if _cfg.evaluate.original_coordinates:
                     full_data_np = reconstruct_before_normalization(full_data_np, data_dict, transforms)
