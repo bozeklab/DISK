@@ -161,6 +161,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 data_with_holes = data_dict['X'].to(device)  # shape (timepoints, n_keypoints, 2 or 3 or 4)
                 data_full = data_dict['x_supp'].to(device)
                 mask_holes = data_dict['mask_holes'].to(device)
+                logging.info(f'[MASK_HOLES] {data_with_holes.shape} {np.sum(np.isnan(data_with_holes[:, 0]))} {np.sum(mask_holes[:, 0])}')
                 assert not torch.any(torch.isnan(data_with_holes))
                 assert not torch.any(torch.isnan(data_full))
 
