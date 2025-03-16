@@ -321,11 +321,9 @@ def evaluate(_cfg: DictConfig) -> None:
                                               normalized_coordinates=(not _cfg.evaluate.original_coordinates))
 
                         title = f'RMSE & MPJPE '
-                        logging.info(f'COMPARE RMSE {rmse[i_model][i]} {np.sqrt(np.mean(rmse[i_model][i]))} '
-                                     f'{np.sqrt(np.sum(rmse[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch])} '
-                                     f'{mean_rmse}')
                         title += ' -  '.join(
-                            [f'{i_model}: {np.sqrt(np.mean(rmse[i_model][i])):.3f} & {np.mean(euclidean_distance[i_model][i]):.3f}' for i_model in range(n_models)])
+                            [f'{i_model}: {np.sqrt(np.sum(rmse[i_model][i]) / n_missing[i]):.3f} & '
+                             f'{np.sum(euclidean_distance[i_model][i]) / n_missing[i]:.3f}' for i_model in range(n_models)])
                         if 'add_missing' in _cfg.feed_data.transforms.keys() and np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                             title += f'; linear: {np.sqrt(np.mean(rmse_linear_interp[i])):.3f} & {np.mean(euclidean_distance_linear_interp[i]):.3f}'
                         def make_xyz_plot():
