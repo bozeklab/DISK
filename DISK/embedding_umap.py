@@ -75,8 +75,15 @@ def statistics_human(input_tensor, dataset_constants, device):
     mean_knees = torch.mean(coordinates[:, :, np.array([13, 17]), :], dim=2)
     dist_knees_shoulders = torch.mean(torch.sqrt(torch.sum((mean_shoulders - mean_knees) ** 2, dim=-1)), dim=1)
 
+    coordinates_fft = torch.fft(coordinates, dim=1)
+    mask_low_fft = torch.all(fft_p < 0.1, dim=(1,2))
+    mask_high_fft = torch.any(fft_p > 5, dim=(1,2))
+
+    periodicity_cat = mask_low_fft.type(float) * -1 + mask_high_fft.type(float) * 1
+
     return (movement, upside_down, speed_xy, speed_z, average_height, back_length, dist_barycenter_shoulders,
-            height_shoulders, angleXY_shoulders, dist_bw_knees, dist_knees_shoulders, angleXY_shoulders_base)
+            height_shoulders, angleXY_shoulders, dist_bw_knees, dist_knees_shoulders, angleXY_shoulders_base,
+            periodicity_cat)
 
 def statistics_MABe(input_tensor, dataset_constants, device):
     """
@@ -116,8 +123,14 @@ def statistics_MABe(input_tensor, dataset_constants, device):
         torch.zeros_like(barycenter[:, :, 0]), torch.ones_like(barycenter[:, :, 0])).to(device),
         dim=1)
 
+    coordinates_fft = torch.fft(coordinates, dim=1)
+    mask_low_fft = torch.all(fft_p < 0.1, dim=(1,2))
+    mask_high_fft = torch.any(fft_p > 5, dim=(1,2))
+
+    periodicity_cat = mask_low_fft.type(float) * -1 + mask_high_fft.type(float) * 1
+
     return (movement, movement_mouse1, movement_mouse2, movement_mouse1_mouse2, speed_xy,
-            dist_bw_mice, angle_base, angle_2mice, angle_mouse1, angle_mouse2)
+            dist_bw_mice, angle_base, angle_2mice, angle_mouse1, angle_mouse2, periodicity_cat)
 
 def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
                    compute_statistics=False, original_coordinates=False):
@@ -135,7 +148,8 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
                       'angle_2mice': [],
                       'angle_base': [],
                       'angle_mouse1': [],
-                      'angle_mouse2': []
+                      'angle_mouse2': [],
+                      'periodicity_cat': []
                      }
     elif len(dataset_constants.KEYPOINTS) == 20:
         statistics = {'movement': [],
@@ -149,7 +163,9 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
                       'angleXY_shoulders': [],
                       'dist_bw_knees': [],
                       'dist_knees_shoulders': [],
-                      'angle_back_base': []}
+                      'angle_back_base': [],
+                      'periodicity_cat': []
+                      }
     else:
         raise NotImplementedError
 
@@ -177,7 +193,8 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
         if compute_statistics:  # TODO: implement with mask
             if len(dataset_constants.KEYPOINTS) == 14:
                 (movement, movement_mouse1, movement_mouse2, movement_mouse1_mouse2, speed_xy,
-                 dist_bw_mice, angle_base, angle_2mice, angle_mouse1, angle_mouse2) = statistics_MABe(input_tensor, dataset_constants, device)
+                 dist_bw_mice, angle_base, angle_2mice, angle_mouse1, angle_mouse2,
+                 periodicity_cat) = statistics_MABe(input_tensor, dataset_constants, device)
 
                 statistics['movement'].extend(movement.detach().cpu().numpy())
                 statistics['movement_mouse1'].extend(movement_mouse1.detach().cpu().numpy())
@@ -189,10 +206,12 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
                 statistics['angle_base'].extend(angle_base.detach().cpu().numpy())
                 statistics['angle_mouse1'].extend(angle_mouse1.detach().cpu().numpy())
                 statistics['angle_mouse2'].extend(angle_mouse2.detach().cpu().numpy())
+                statistics['periodicity_cat'].extend(periodicity_cat.detach().cpu().numpy())
 
             elif len(dataset_constants.KEYPOINTS) == 20:
                 (movement, upside_down, speed_xy, speed_z, average_height, back_length, dist_barycenter_shoulders,
-                 height_shoulders, angleXY_shoulders, dist_bw_knees, dist_knees_shoulders, angleXY_shoulders_base) = statistics_human(input_tensor, dataset_constants, device)
+                 height_shoulders, angleXY_shoulders, dist_bw_knees, dist_knees_shoulders, angleXY_shoulders_base,
+                 periodicity_cat) = statistics_human(input_tensor, dataset_constants, device)
 
                 statistics['movement'].extend(movement.detach().cpu().numpy())
                 statistics['upside_down'].extend(upside_down.detach().cpu().numpy())
@@ -206,6 +225,7 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
                 statistics['dist_bw_knees'].extend(dist_bw_knees.detach().cpu().numpy())
                 statistics['dist_knees_shoulders'].extend(dist_knees_shoulders.detach().cpu().numpy())
                 statistics['angle_back_base'].extend(angleXY_shoulders_base.detach().cpu().numpy())
+                statistics['periodicity_cat'].extend(periodicity_cat.detach().cpu().numpy())
 
         hidden_array_.append(de_out.view(de_out.shape[0], de_out.shape[1] * de_out.shape[2]).detach().cpu().numpy())
 
