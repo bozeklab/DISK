@@ -131,6 +131,7 @@ class ParentDataset(data.Dataset):
         raise NotImplementedError
 
     def get_mask(self):
+        logging.info(f'[GET_MASK] {self.X.shape} {np.sum(np.isnan(self.X[:, 0]))}')
         mask = ~np.isnan(self.X)  # False when no coordinates available
         return mask
 
