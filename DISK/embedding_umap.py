@@ -76,8 +76,8 @@ def statistics_human(input_tensor, dataset_constants, device):
     dist_knees_shoulders = torch.mean(torch.sqrt(torch.sum((mean_shoulders - mean_knees) ** 2, dim=-1)), dim=1)
 
     coordinates_fft = torch.fft.fft(coordinates, dim=1)
-    mask_low_fft = torch.all(fft_p < 0.1, dim=(1,2))
-    mask_high_fft = torch.any(fft_p > 5, dim=(1,2))
+    mask_low_fft = torch.all(coordinates_fft < 0.1, dim=(1,2))
+    mask_high_fft = torch.any(coordinates_fft > 5, dim=(1,2))
 
     periodicity_cat = mask_low_fft.type(float) * -1 + mask_high_fft.type(float) * 1
 
@@ -124,8 +124,8 @@ def statistics_MABe(input_tensor, dataset_constants, device):
         dim=1)
 
     coordinates_fft = torch.fft.fft(coordinates, dim=1)
-    mask_low_fft = torch.all(fft_p < 0.1, dim=(1,2))
-    mask_high_fft = torch.any(fft_p > 5, dim=(1,2))
+    mask_low_fft = torch.all(coordinates_fft < 0.1, dim=(1,2))
+    mask_high_fft = torch.any(coordinates_fft > 5, dim=(1,2))
 
     periodicity_cat = mask_low_fft.type(float) * -1 + mask_high_fft.type(float) * 1
 
