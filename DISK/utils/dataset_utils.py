@@ -86,9 +86,9 @@ class ParentDataset(data.Dataset):
             logging.info(f'[MASKING] {self.X[mask_nan_first_position, 0, ..., 0]}')
             logging.info(f'[MASKING]{np.sum(mask_0_nans)} {np.sum(mask_nan_first_position)} {np.sum(mask_all_nans)}')
 
+            self.X[mask_nan_first_position, 0] = self.X_gt[mask_nan_first_position, 0]
             self.X = self.X[(~mask_all_nans) * (~mask_0_nans)]
             self.X_gt = self.X_gt[(~mask_all_nans) * (~mask_0_nans)]
-            self.X[mask_nan_first_position, 0] = self.X_gt[mask_nan_first_position, 0]
             logging.info(f'[AFTER MASKING] {self.X.shape} {self.X_gt.shape}')
 
         else:
