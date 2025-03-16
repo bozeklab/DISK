@@ -75,7 +75,7 @@ def statistics_human(input_tensor, dataset_constants, device):
     mean_knees = torch.mean(coordinates[:, :, np.array([13, 17]), :], dim=2)
     dist_knees_shoulders = torch.mean(torch.sqrt(torch.sum((mean_shoulders - mean_knees) ** 2, dim=-1)), dim=1)
 
-    coordinates_fft = torch.fft(coordinates, dim=1)
+    coordinates_fft = torch.fft.fft(coordinates, dim=1)
     mask_low_fft = torch.all(fft_p < 0.1, dim=(1,2))
     mask_high_fft = torch.any(fft_p > 5, dim=(1,2))
 
@@ -123,7 +123,7 @@ def statistics_MABe(input_tensor, dataset_constants, device):
         torch.zeros_like(barycenter[:, :, 0]), torch.ones_like(barycenter[:, :, 0])).to(device),
         dim=1)
 
-    coordinates_fft = torch.fft(coordinates, dim=1)
+    coordinates_fft = torch.fft.fft(coordinates, dim=1)
     mask_low_fft = torch.all(fft_p < 0.1, dim=(1,2))
     mask_high_fft = torch.any(fft_p > 5, dim=(1,2))
 
