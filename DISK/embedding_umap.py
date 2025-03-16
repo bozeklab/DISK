@@ -132,7 +132,7 @@ def statistics_MABe(input_tensor, dataset_constants, device):
     mask_low_fft = torch.all(coordinates_fft < 0.1, dim=1)
     mask_high_fft = torch.any(coordinates_fft > 5, dim=1)
 
-    periodicity_cat = mask_low_fft.type(float) * -1 + mask_high_fft.type(float) * 1
+    periodicity_cat = mask_low_fft.type(torch.float) * -1 + mask_high_fft.type(torch.float) * 1
 
     return (movement, movement_mouse1, movement_mouse2, movement_mouse1_mouse2, speed_xy,
             dist_bw_mice, angle_base, angle_2mice, angle_mouse1, angle_mouse2, periodicity_cat)
