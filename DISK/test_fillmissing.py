@@ -338,27 +338,27 @@ def evaluate(_cfg: DictConfig) -> None:
                                                               dataset_constants.NUM_FEATURES),
                                                      sharex='all', sharey='col')
                             axes = axes.flatten()
-                            t_vect = np.arange(1, dataset_constants.SEQ_LENGTH) / dataset_constants.FREQ
+                            t_vect = np.arange(0, dataset_constants.SEQ_LENGTH) / dataset_constants.FREQ
 
                             for j in range(dataset_constants.N_KEYPOINTS):
                                 if _cfg.evaluate.only_holes:
-                                    t_mask = (mask_holes_np[i, 1:, j] == 1)
+                                    t_mask = (mask_holes_np[i, 0:, j] == 1)
                                 else:
-                                    t_mask = np.ones_like(mask_holes_np[i, 1:, j]).astype(bool)
+                                    t_mask = np.ones_like(mask_holes_np[i, 0:, j]).astype(bool)
                                 for i_dim in range(dataset_constants.DIVIDER):
-                                    axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, full_data_np[i, 1:, j, i_dim], 'o-')
+                                    axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, full_data_np[i, 0:, j, i_dim], 'o-')
                                     if np.sum(t_mask) > 0:
                                         for i_model, xo in enumerate(x_outputs_np):
-                                            plot_ = axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[t_mask], xo[i, 1:, j, i_dim][t_mask], 'o',
+                                            plot_ = axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[t_mask], xo[i, 0:, j, i_dim][t_mask], 'o',
                                                              label=model_name[i_model], )
                                             if model_configs[i_model].training.mu_sigma:
                                                 # 3 * std otherwise 1/ we do not see anything,
                                                 # 2/ because the underlying distribution is supposed to be Gaussian
                                                 axes[dataset_constants.DIVIDER * j + i_dim]\
-                                                    .fill_between(t_vect[t_mask], xo[i, 1:, j, i_dim][t_mask]
-                                                                          - 3 * uncertainty_estimates_np[i_model][i, 1:, j, i_dim][t_mask],
-                                                                          xo[i, 1:, j, i_dim][t_mask]
-                                                                          + 3 * uncertainty_estimates_np[i_model][i, 1:, j, i_dim][t_mask],
+                                                    .fill_between(t_vect[t_mask], xo[i, 0:, j, i_dim][t_mask]
+                                                                          - 3 * uncertainty_estimates_np[i_model][i, 0:, j, i_dim][t_mask],
+                                                                          xo[i, 0:, j, i_dim][t_mask]
+                                                                          + 3 * uncertainty_estimates_np[i_model][i, 0:, j, i_dim][t_mask],
                                                                           color=plot_[0].get_color(), alpha=0.2)
                                             assert not np.any(np.isnan(xo))
 
@@ -366,7 +366,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                     if 'add_missing' in _cfg.feed_data.transforms.keys() and np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                                         for o in out:
                                             axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[o[0]:o[0]+o[1]],
-                                                                                     linear_interp_data[i, 1:, j, i_dim][o[0]:o[0]+o[1]], 'r-',
+                                                                                     linear_interp_data[i, 0:, j, i_dim][o[0]:o[0]+o[1]], 'r-',
                                                      label='linear interp 1D')
 
                                     if not _cfg.evaluate.original_coordinates:
