@@ -83,9 +83,11 @@ class ParentDataset(data.Dataset):
             mask_all_nans = np.any(np.all(np.isnan(self.X[..., 0]), axis=2), axis=1)
             mask_0_nans = np.any(np.all(~np.isnan(self.X[..., 0]), axis=2), axis=1)
             mask_nan_first_position = np.all(~np.isnan(self.X[:, 0, ..., 0]), axis=-1)
-            logging.info(f'[MASKING]{np.sum(mask_0_nans)} {np.sum(mask_nan_first_position)} {np.sum(mask_all_nans)}')
+            logging.info(f'[MASKING] {np.sum(mask_nan_first_position)}')
 
             self.X[~mask_nan_first_position, 0] = self.X_gt[~mask_nan_first_position, 0]
+            mask_nan_first_position = np.all(~np.isnan(self.X[:, 0, ..., 0]), axis=-1)
+            logging.info(f'[MASKING] {np.sum(mask_nan_first_position)}')
             logging.info(f'[AFTER MASKING] {self.X.shape} {self.X_gt.shape}')
             self.X = self.X[(~mask_all_nans) * (~mask_0_nans)]
             self.X_gt = self.X_gt[(~mask_all_nans) * (~mask_0_nans)]
