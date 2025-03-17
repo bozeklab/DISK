@@ -298,3 +298,5 @@ It will save plots and log file in a subfolder in the `results` directory and th
 France Rose, Monika Michaluk, Timon Blindauer, Bogna M. Ignatowska-Jankowska, Liam O’Shaughnessy, Greg J. Stephens, Talmo D. Pereira, Marylka Y. Uusisaari, Katarzyna Bozek.
 
 bioRxiv 2024.05.03.592173; doi: https://doi.org/10.1101/2024.05.03.592173
+
+Additional scripts to reproduce plots and analyses (comparison with other published methods) are available at: https://github.com/bozeklab/DISK_paper_code
