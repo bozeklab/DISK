@@ -362,7 +362,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                           color=plot_[0].get_color(), alpha=0.2)
                                             assert not np.any(np.isnan(xo))
 
-                                    out = find_holes(np.array(t_mask).reshape(dataset_constants.SEQ_LENGTH - 1, 1).astype(int), ['0'], indep=True)
+                                    out = find_holes(np.array(t_mask).reshape(dataset_constants.SEQ_LENGTH, 1).astype(int), ['0'], indep=True)
                                     if 'add_missing' in _cfg.feed_data.transforms.keys() and np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                                         for o in out:
                                             axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[o[0]:o[0]+o[1]],
