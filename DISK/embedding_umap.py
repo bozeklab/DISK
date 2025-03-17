@@ -130,6 +130,7 @@ def statistics_MABe(input_tensor, dataset_constants, device):
     N = coordinates.shape[1]
     input_fft = coordinates.reshape(coordinates.shape[0], coordinates.shape[1], -1)
     coordinates_fft, _ = torch.max(torch.abs(2.0/N * torch.fft.fft(input_fft, dim=1)[:, 5:N//2]), dim=1)
+    logging.info(f'[STATISTICS] {torch.max(coordinates_fft).detach().cpu().numpy()} {np.percentile(coordinates_fft.detach().cpu().numpy(), 90)}')
     mask_low_fft = torch.all(coordinates_fft < 0.1, dim=1)
     mask_high_fft = torch.any(coordinates_fft > 0.5, dim=1)
     logging.info(f'[STATISTICS] #low_fft {np.sum(mask_low_fft.detach().cpu().numpy())} #high_fft {np.sum(mask_high_fft.detach().cpu().numpy())}')
