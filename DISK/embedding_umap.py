@@ -132,8 +132,8 @@ def statistics_MABe(input_tensor, dataset_constants, device):
     input_fft = coordinates.reshape(coordinates.shape[0], coordinates.shape[1], -1)
     coordinates_fft, _ = torch.max(torch.abs(2.0/N * torch.fft.fft(input_fft, dim=1)[:, 5:N//2]), dim=1)
     logging.info(f'[STATISTICS] {torch.max(coordinates_fft).detach().cpu().numpy()} {np.percentile(coordinates_fft.detach().cpu().numpy(), 90)}')
-    mask_low_fft = torch.all(coordinates_fft < 0.04, dim=1)
-    mask_high_fft = torch.any(coordinates_fft > 0.12, dim=1)
+    mask_low_fft = torch.all(coordinates_fft < 0.05, dim=1)
+    mask_high_fft = torch.any(coordinates_fft > 0.14, dim=1)
     logging.info(f'[STATISTICS] #low_fft {np.sum(mask_low_fft.detach().cpu().numpy())} #high_fft {np.sum(mask_high_fft.detach().cpu().numpy())}')
 
     periodicity_cat = mask_low_fft.type(torch.float) * -1 + mask_high_fft.type(torch.float) * 1
@@ -160,7 +160,8 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
                       'angle_mouse1': [],
                       'angle_mouse2': [],
                       'periodicity_max': [],
-                      'periodicity_cat': []
+                      'periodicity_cat': [],
+                      'n_missing': []
                       }
     elif len(dataset_constants.KEYPOINTS) == 20:
         statistics = {'movement': [],
@@ -176,7 +177,8 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
                       'dist_knees_shoulders': [],
                       'angle_back_base': [],
                       'periodicity_max': [],
-                      'periodicity_cat': []
+                      'periodicity_cat': [],
+                      'n_missing': []
                       }
     else:
         raise NotImplementedError
@@ -194,10 +196,12 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
             print('stop')
 
         data_with_holes = data_dict['X'].to(device)
-        mask_holes = data_dict['mask_holes'].to(device)
+        mask_holes = data_dict['mask_holes'].to(device) # shape (batch, time, kp)
         input_tensor_with_holes = torch.cat([data_with_holes[..., :dataset_constants.DIVIDER], torch.unsqueeze(mask_holes, dim=-1)], dim=3)
         input_tensor_with_holes[:, 1:, :] = input_tensor_with_holes[:, :-1, :].clone()
         de_out = model.proj_input(input_tensor_with_holes, mask_holes)
+        n_missing = torch.sum(mask_holes, dim=(1,2))
+        logging.info(f'NMISSING {mask_holes.shape} {torch.sum(mask_holes, dim=(1,2))}')
 
         for i in range(model.num_layers):
             de_out = model.encoder_layers[i](de_out)
@@ -220,6 +224,7 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
                 statistics['angle_mouse2'].extend(angle_mouse2.detach().cpu().numpy())
                 statistics['periodicity_cat'].extend(periodicity_cat.detach().cpu().numpy())
                 statistics['periodicity_max'].extend(periodicity_max.detach().cpu().numpy())
+                statistics['n_missing'].extend(n_missing.detach().cpu().numpy())
 
             elif len(dataset_constants.KEYPOINTS) == 20:
                 (movement, upside_down, speed_xy, speed_z, average_height, back_length, dist_barycenter_shoulders,
@@ -240,6 +245,7 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
                 statistics['angle_back_base'].extend(angleXY_shoulders_base.detach().cpu().numpy())
                 statistics['periodicity_max'].extend(periodicity_max.detach().cpu().numpy())
                 statistics['periodicity_cat'].extend(periodicity_cat.detach().cpu().numpy())
+                statistics['n_missing'].extend(n_missing.detach().cpu().numpy())
 
         hidden_array_.append(de_out.view(de_out.shape[0], de_out.shape[1] * de_out.shape[2]).detach().cpu().numpy())
 
