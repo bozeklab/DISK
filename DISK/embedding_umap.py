@@ -76,11 +76,12 @@ def statistics_human(input_tensor, dataset_constants, device):
     dist_knees_shoulders = torch.mean(torch.sqrt(torch.sum((mean_shoulders - mean_knees) ** 2, dim=-1)), dim=1)
 
     N = coordinates.shape[1]
-    coordinates_fft = torch.max(torch.abs(2.0/N * torch.fft.fft(coordinates, dim=1)[5:N//2]))
-    mask_low_fft = torch.all(coordinates_fft < 0.1, dim=(1,2))
-    mask_high_fft = torch.any(coordinates_fft > 5, dim=(1,2))
+    input_fft = coordinates.reshape(coordinates.shape[0], coordinates.shape[1], -1)
+    coordinates_fft, _ = torch.max(torch.abs(2.0/N * torch.fft.fft(input_fft, dim=1)[:, 5:N//2]), dim=1)
+    mask_low_fft = torch.all(coordinates_fft < 0.1, dim=1)
+    mask_high_fft = torch.any(coordinates_fft > 5, dim=1)
 
-    periodicity_cat = mask_low_fft.type(float) * -1 + mask_high_fft.type(float) * 1
+    periodicity_cat = mask_low_fft.type(torch.float) * -1 + mask_high_fft.type(torch.float) * 1
 
     return (movement, upside_down, speed_xy, speed_z, average_height, back_length, dist_barycenter_shoulders,
             height_shoulders, angleXY_shoulders, dist_bw_knees, dist_knees_shoulders, angleXY_shoulders_base,
@@ -128,7 +129,6 @@ def statistics_MABe(input_tensor, dataset_constants, device):
     N = coordinates.shape[1]
     input_fft = coordinates.reshape(coordinates.shape[0], coordinates.shape[1], -1)
     coordinates_fft, _ = torch.max(torch.abs(2.0/N * torch.fft.fft(input_fft, dim=1)[:, 5:N//2]), dim=1)
-    print(coordinates_fft.shape, torch.fft.fft(input_fft, dim=1).shape)
     mask_low_fft = torch.all(coordinates_fft < 0.1, dim=1)
     mask_high_fft = torch.any(coordinates_fft > 5, dim=1)
 
