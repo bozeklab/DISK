@@ -83,7 +83,7 @@ def statistics_human(input_tensor, dataset_constants, device):
     logging.info(f'[STATISTICS] #low_fft {np.sum(mask_low_fft.detach().cpu().numpy())} #high_fft {np.sum(mask_high_fft.detach().cpu().numpy())}')
 
     periodicity_cat = mask_low_fft.type(torch.float) * -1 + mask_high_fft.type(torch.float) * 1
-    periodicity_max = torch.max(coordinates_fft, dim=1)
+    periodicity_max, _ = torch.max(coordinates_fft, dim=1)
 
     return (movement, upside_down, speed_xy, speed_z, average_height, back_length, dist_barycenter_shoulders,
             height_shoulders, angleXY_shoulders, dist_bw_knees, dist_knees_shoulders, angleXY_shoulders_base,
@@ -137,7 +137,7 @@ def statistics_MABe(input_tensor, dataset_constants, device):
     logging.info(f'[STATISTICS] #low_fft {np.sum(mask_low_fft.detach().cpu().numpy())} #high_fft {np.sum(mask_high_fft.detach().cpu().numpy())}')
 
     periodicity_cat = mask_low_fft.type(torch.float) * -1 + mask_high_fft.type(torch.float) * 1
-    periodicity_max = torch.max(coordinates_fft, dim=1)
+    periodicity_max, _ = torch.max(coordinates_fft, dim=1)
 
     return (movement, movement_mouse1, movement_mouse2, movement_mouse1_mouse2, speed_xy,
             dist_bw_mice, angle_base, angle_2mice, angle_mouse1, angle_mouse2, periodicity_max, periodicity_cat)
