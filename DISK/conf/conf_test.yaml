@@ -60,7 +60,7 @@ evaluate:
     # you can also list several folders
     - outputs/2023-09-27_Fishv3_newnewmissing/60stride120_models_BASELINE/transformer_baseline_60stride120
     - outputs/31-01-25_Fish_swap
-  n_plots: 50
+  n_plots: 1
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
   size: 2.5
