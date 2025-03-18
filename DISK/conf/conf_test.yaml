@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: outputs/${now:%Y-%m-%d}_test_compare_DF3D_SWAP
+    dir: outputs/${now:%Y-%m-%d}_test_compare_Fish_SWAP
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -18,10 +18,10 @@ hydra:
 
 
 dataset:
-  name: DF3D_keypoints_60_stride5
+  name: Fish_v3_60stride120
   # TOCHANGE: stride controls the translation between two samples, need to be an integer
   # a smaller stride will produce more segments and with a higher overlap
-  stride: 5
+  stride: 120
   skeleton_file: #TM_pulledxp_freq300_300stride25_new/skeleton.py
 
 feed_data:
@@ -40,8 +40,8 @@ feed_data:
         # TOCHANGE: proba missing files
         # order matters: first proba_missing, then proba_missing_length
         # the 3rd is optional and can precise how many simultaneous missing keypoints
-      - DF3D_keypoints_60_proba_missing_with0.txt
-      - DF3D_keypoints_60_stride5/DF3D_keypoints_60_proba_missing_length.csv
+      - Fish_v3_60stride60/proba_missing.csv
+      - Fish_v3_60stride60/proba_missing_length.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
@@ -58,14 +58,14 @@ evaluate:
     # TOCHANGE: folder which contains the saved model(s)
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
-    - outputs/2023-12-06_DF3D_newnewmissing/01-04-02_transformer_NLL_with0
-    - outputs/10-03-25_DF3D_swap
+    - outputs/2023-09-27_Fishv3_newnewmissing/60stride120_models_BASELINE/transformer_baseline_60stride120
+    - outputs/31-01-25_Fish_swap
   n_plots: 50
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
   size: 2.5
   only_holes: false
-  original_coordinates: false
+  original_coordinates: true
   suffix: ''
   name_items:
   - - training
