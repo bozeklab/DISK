@@ -246,6 +246,7 @@ def evaluate(_cfg: DictConfig) -> None:
                     out = find_holes(mask_holes_np[i_sample_in_batch], dataset_constants.KEYPOINTS, indep=False)
                     for o in out:  # (start, length, keypoint_name)
                         for kp in o[2].split(' '):
+                            logging.info(f'{kp}')
                             slice_ = tuple([i_sample_in_batch, slice(o[0], o[0] + o[1], 1), dataset_constants.KEYPOINTS.index(kp)])
                             for i_model in range(n_models):
                                 mean_euclidean = np.mean(euclidean_distance[i_model][slice_])
