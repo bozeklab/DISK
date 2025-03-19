@@ -45,7 +45,7 @@ evaluate:
     # you can also list several folders
     - outputs/13-03-25_Rat7M_optipose/DISK_subsampled
   n_plots: 10
-  threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
+  threshold_pck: 0.1 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
   size: 2.5
   only_holes: true

@@ -130,7 +130,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                              length_sample=dataset_constants.SEQ_LENGTH,
                                                              freq=dataset_constants.FREQ)
     pck_final_threshold = train_dataset.kwargs['max_dist_bw_keypoints'] * _cfg.evaluate.threshold_pck
-    logging.info(f'PCK@{_cfg.evaluate.threshold_pck} threshold: {pck_final_threshold}')
+    logging.info(f'{train_dataset.kwargs["max_dist_bw_keypoints"]} PCK@{_cfg.evaluate.threshold_pck} threshold: {pck_final_threshold}')
     pck_name = f'PCK@{_cfg.evaluate.threshold_pck}'
     
     test_loader = DataLoader(test_dataset, batch_size=_cfg.evaluate.batch_size, shuffle=False,
@@ -245,21 +245,22 @@ def evaluate(_cfg: DictConfig) -> None:
                     id_hole = 0
                     out = find_holes(mask_holes_np[i_sample_in_batch], dataset_constants.KEYPOINTS, indep=False)
                     for o in out:  # (start, length, keypoint_name)
-                        slice_ = tuple([i_sample_in_batch, slice(o[0], o[0] + o[1], 1), [dataset_constants.KEYPOINTS.index(kp) for kp in o[2].split(' ')]])
-                        for i_model in range(n_models):
-                            mean_euclidean = np.mean(euclidean_distance[i_model][slice_])
-                            mean_rmse = np.sqrt(np.mean(rmse[i_model][slice_]))
-                            mean_pck = np.sum(pck[i_model][slice_] * mask_holes_np[slice_])/ np.sum(mask_holes_np[slice_])
-                            total_rmse['id_sample'].append(id_sample)
-                            total_rmse['id_hole'].append(id_hole)
-                            total_rmse['keypoint'].append(o[2])
-                            total_rmse['method'].append(model_configs[i_model].network.type)
-                            total_rmse['method_param'].append(model_name[i_model])
-                            total_rmse['RMSE'].append(mean_rmse)
-                            total_rmse['MPJPE'].append(mean_euclidean)
-                            total_rmse[pck_name].append(mean_pck)
-                            total_rmse['mean_uncertainty'].append(np.nan)
-                            total_rmse['length_hole'].append(o[1])
+                        for kp in o[2].split(' '):
+                            slice_ = tuple([i_sample_in_batch, slice(o[0], o[0] + o[1], 1), dataset_constants.KEYPOINTS.index(kp)])
+                            for i_model in range(n_models):
+                                mean_euclidean = np.mean(euclidean_distance[i_model][slice_])
+                                mean_rmse = np.sqrt(np.mean(rmse[i_model][slice_]))
+                                mean_pck = np.sum(pck[i_model][slice_] * mask_holes_np[slice_])/ np.sum(mask_holes_np[slice_])
+                                total_rmse['id_sample'].append(id_sample)
+                                total_rmse['id_hole'].append(id_hole)
+                                total_rmse['keypoint'].append(kp)
+                                total_rmse['method'].append(model_configs[i_model].network.type)
+                                total_rmse['method_param'].append(model_name[i_model])
+                                total_rmse['RMSE'].append(mean_rmse)
+                                total_rmse['MPJPE'].append(mean_euclidean)
+                                total_rmse[pck_name].append(mean_pck)
+                                total_rmse['mean_uncertainty'].append(np.nan)
+                                total_rmse['length_hole'].append(o[1])
 
                         if 'add_missing' in _cfg.feed_data.transforms.keys() and np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                             mean_rmse_linear = np.sqrt(np.mean(rmse_linear_interp[slice_]))
