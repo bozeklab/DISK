@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: outputs/${now:%Y-%m-%d}_test_compare_FL2_SWAP0.5
+    dir: outputs/${now:%Y-%m-%d}_test_compare_CLB_SWAP0.5
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -18,7 +18,7 @@ hydra:
 
 
 dataset:
-  name: INH_FL2_keypoints_1_60_wresiduals_stride0.5
+  name: INH_CLB_keypoints_1_60_wresiduals_stride0.5
   # TOCHANGE: stride controls the translation between two samples, need to be an integer
   # a smaller stride will produce more segments and with a higher overlap
   stride: 30
@@ -40,8 +40,8 @@ feed_data:
         # TOCHANGE: proba missing files
         # order matters: first proba_missing, then proba_missing_length
         # the 3rd is optional and can precise how many simultaneous missing keypoints
-      - INH_FL2_keypoints_1_60_wresiduals_proba_missing.txt
-      - INH_FL2_keypoints_1_60_wresiduals_proba_missing_length.csv
+      - INH_CLB_keypoints_1_60_wresiduals_proba_missing.csv
+      - INH_CLB_keypoints_1_60_wresiduals_proba_missing_length.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
@@ -58,8 +58,8 @@ evaluate:
     # TOCHANGE: folder which contains the saved model(s)
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
-    - outputs/2023-10-16_FL2_newnewmissing/16-11-23_transformer_NLL
-    - outputs/31-01-25_FL2_swap
+    - outputs/2023-12-12_CLB_newnewmissing/02-41-00_transformer_NLL
+    - outputs/31-01-25_CLB_swap
   n_plots: 5
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
