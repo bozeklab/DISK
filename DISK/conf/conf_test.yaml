@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: outputs/${now:%Y-%m-%d}_test_compare_MABe_SWAP0.5
+    dir: outputs/${now:%Y-%m-%d}_test_compare_FL2_SWAP0.5
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -18,7 +18,7 @@ hydra:
 
 
 dataset:
-  name: MABE_task1_60stride60
+  name: INH_FL2_keypoints_1_60_wresiduals_stride0.5
   # TOCHANGE: stride controls the translation between two samples, need to be an integer
   # a smaller stride will produce more segments and with a higher overlap
   stride: 30
@@ -40,8 +40,8 @@ feed_data:
         # TOCHANGE: proba missing files
         # order matters: first proba_missing, then proba_missing_length
         # the 3rd is optional and can precise how many simultaneous missing keypoints
-      - MABE_task1_60stride60/proba_missing_uniform.csv
-      - MABE_task1_60stride60/proba_missing_length_uniform.csv
+      - INH_FL2_keypoints_1_60_wresiduals_proba_missing.txt
+      - INH_FL2_keypoints_1_60_wresiduals_proba_missing_length.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
@@ -58,8 +58,8 @@ evaluate:
     # TOCHANGE: folder which contains the saved model(s)
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
-    - outputs/19-08-24_MABe_swap_lossmask
-    - outputs/2024-02-19_MABe_task1_newnewmissing/10-44-22_transformer_NLL
+    - outputs/2023-10-16_FL2_newnewmissing/16-11-23_transformer_NLL
+    - outputs/31-01-25_FL2_swap
   n_plots: 5
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
