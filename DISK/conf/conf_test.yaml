@@ -10,7 +10,7 @@
 hydra:
   run:
     # TOCHANGE: output directory
-    dir: outputs/${now:%Y-%m-%d}_test_compare_Fish_SWAP
+    dir: outputs/${now:%Y-%m-%d}_test_compare_MABe_SWAP0.5
     #outputs/tests/${now:%H-%M-%S}_test_model_timon
 #    dir: ${evaluate.checkpoints[0]}/test_on_full_dataset
   job:
@@ -18,10 +18,10 @@ hydra:
 
 
 dataset:
-  name: Fish_v3_60stride120
+  name: MABE_task1_60stride60
   # TOCHANGE: stride controls the translation between two samples, need to be an integer
   # a smaller stride will produce more segments and with a higher overlap
-  stride: 120
+  stride: 30
   skeleton_file: #TM_pulledxp_freq300_300stride25_new/skeleton.py
 
 feed_data:
@@ -40,12 +40,12 @@ feed_data:
         # TOCHANGE: proba missing files
         # order matters: first proba_missing, then proba_missing_length
         # the 3rd is optional and can precise how many simultaneous missing keypoints
-      - Fish_v3_60stride60/proba_missing.csv
-      - Fish_v3_60stride60/proba_missing_length.csv
+      - MABE_task1_60stride60/proba_missing_uniform.csv
+      - MABE_task1_60stride60/proba_missing_length_uniform.csv
     viewinvariant: true
     normalize: false
     normalizecube: true
-    swap: 1
+    swap: 0.5
   verbose: 2
 
 evaluate:
@@ -58,9 +58,9 @@ evaluate:
     # TOCHANGE: folder which contains the saved model(s)
     # if the given folder contains more than one model folder, then they will all be loaded
     # you can also list several folders
-    - outputs/2023-09-27_Fishv3_newnewmissing/60stride120_models_BASELINE/transformer_baseline_60stride120
-    - outputs/31-01-25_Fish_swap
-  n_plots: 1
+    - outputs/19-08-24_MABe_swap_lossmask
+    - outputs/2024-02-19_MABe_task1_newnewmissing/10-44-22_transformer_NLL
+  n_plots: 5
   threshold_pck: 0.01 # should be between 0 and 1, Probability of Correct Keypoint
   azim: 60
   size: 2.5
