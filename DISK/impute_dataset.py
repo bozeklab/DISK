@@ -279,7 +279,6 @@ def evaluate(_cfg: DictConfig) -> None:
             logging.info(f'Loading data {subset}')
             data_loader = DataLoader(dataset, batch_size=_cfg.feed_data.batch_size, shuffle=False)
             # num_workers = _cfg.evaluate.n_cpus, persistent_workers = True)
-            logging.info('Done.')
 
             with torch.no_grad():
 
@@ -319,10 +318,9 @@ def evaluate(_cfg: DictConfig) -> None:
                         axis=3)  # sum on the keypoint on dimension, shape (batch, time, keypoint)
                     else:
                         uncertainty = None
-                    logging.info(f'Updating dataset')
+
                     dataset.update_dataset(data_dict['index'], x_output_np, uncertainty,
                                                                 threshold=_cfg.evaluate.threshold_error_score)
-                    logging.info(f'Done.')
 
                     """VISUALIZATION, only first batch"""
                     if _cfg.evaluate.n_plots > 0 and n_plots <= _cfg.evaluate.n_plots:
@@ -395,7 +393,6 @@ def evaluate(_cfg: DictConfig) -> None:
             logging.info(f'{subset}, dataset_path = {dataset_path}')
 
             if _cfg.evaluate.save_dataset:
-                logging.info(f'Saving fulllength file')
                 if dataset.y is None:
                     np.savez(os.path.join(dataset_path, f'{subset}_fulllength_dataset_imputed.npz'),
                              X=dataset.X, time=dataset.time)
@@ -403,7 +400,6 @@ def evaluate(_cfg: DictConfig) -> None:
                 else:
                     np.savez(os.path.join(dataset_path, f'{subset}_fulllength_dataset_imputed.npz'),
                              X=dataset.X, y=dataset.y, time=dataset.time)
-                logging.info(f'Done.')
 
                 if dataset.files is not None:
                     for i_f, f in enumerate(dataset.files):
@@ -441,7 +437,6 @@ def evaluate(_cfg: DictConfig) -> None:
                 else:
                     np.savez(os.path.join(dataset_path, f'{subset}_dataset_imputed.npz'), X=np.stack(new_dataset, axis=0),
                              y=np.stack(new_y), lengths=np.stack(new_lengths))
-                logging.info(f'Done.')
 
 
 if __name__ == '__main__':
