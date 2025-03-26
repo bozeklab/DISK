@@ -138,9 +138,21 @@ def compute_interp(data_with_holes_np, mask_holes_np, keypoints, n_dim):
 
 
 def find_holes(mask, keypoints, target_val=1, indep=True):
+    """
+    Find holes defined as equal to target_val in a 2D or 3D numpy array or pytorch tensor.
+
+    Parameters
+    ----------
+    mask : numpy array or pytorch tensor of shape (time, keypoints, 3) or (time, keypoints)
+    keypoints : list of names of keypoints, should have the same shape as mask.shape[1]
+    target_val : when equal to target_val consider a hole
+    indep : bool, considering the keypoints independently or as combination
+
+    Returns out: a list of tuples (start, length_nan, keypoint_name)
+    -------
+
+    """
     # holes are where mask == target_val
-    # data shape (time, keypoints, 3) or (time, keypoints)
-    # runs with torch tensor or numpy array
     if type(mask) == np.ndarray:
         if len(mask.shape) == 2:
             mask = mask.reshape((mask.shape[0], len(keypoints), -1))
@@ -193,4 +205,4 @@ def find_holes(mask, keypoints, target_val=1, indep=True):
                 out.append((start + index_start_nan, length_nan, sets[i_set]))
                 start = start + index_start_nan + length_nan
 
-    return out  # returns a list of tuples (length_nan, keypoint_name)
+    return out  # returns a list of tuples (start, length_nan, keypoint_name)

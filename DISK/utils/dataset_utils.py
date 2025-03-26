@@ -182,16 +182,22 @@ class ParentDataset(data.Dataset):
             output['VI_angle'] = torch_angle
             output['VI_barycenter'] = torch_barycenter
 
-        if not x_supp is None:
-            x_supp = torch.from_numpy(x_supp).type(torch.float)
+        if len(x_supp) > 0:
             # normally sequence without additional holes but after the other transforms
-            output['x_supp'] = x_supp
+            output['x_supp'] = torch.from_numpy(x_supp[0]).type(torch.float)
             # can be none or the original sample without holes
             ## FR: maybe not the best, but haven't found any better yet
+            if len(x_supp) == 2:
+                output['x_swap'] = torch.from_numpy(x_supp[1]).type(torch.float)
+                output['swap'] = sample['swap']
+            else:
+                output['x_swap'] = torch.from_numpy(np.zeros_like(x_supp[0])).type(torch.float)
+                output['swap'] = sample['swap']
 
         if 'i_file' in sample.keys():
             output['indices_file'] = sample['i_file']
             output['indices_pos'] = sample['i_pos']
+
 
         if self.label_type is not None and 'y' in sample and sample['y'] is not None:
             output['label'] = torch.from_numpy(sample['y']).type(torch.float)
@@ -241,7 +247,9 @@ class SupervisedDataset(ParentDataset):
         sample = {'x': x,
                   'm': m,
                   'y': y,
-                  'z': z}
+                  'z': z,
+                  'swap': True if 'swap_length' in self.kwargs else False,
+                  'swap_gt': self.kwargs['swap_gt'] if 'swap_gt' in self.kwargs else np.zeros(x.shape) * np.nan}
         return sample
 
 
@@ -338,7 +346,9 @@ class FullLengthDataset(ParentDataset):
                   'z': z,
                   'y': y,
                   'i_file': i_file,
-                  'i_pos': i_pos}
+                  'i_pos': i_pos,
+                  'swap': True if 'swap_length' in self.kwargs else False,
+                  'swap_gt': self.kwargs['swap_gt'] if 'swap_gt' in self.kwargs else np.zeros((x.shape[0], self.n_keypoints, self.original_divider)) * np.nan}
         return sample
 
 

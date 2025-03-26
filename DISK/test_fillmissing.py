@@ -129,8 +129,13 @@ def evaluate(_cfg: DictConfig) -> None:
                                                              stride=_cfg.dataset.stride,
                                                              length_sample=dataset_constants.SEQ_LENGTH,
                                                              freq=dataset_constants.FREQ)
-    pck_final_threshold = train_dataset.kwargs['max_dist_bw_keypoints'] * _cfg.evaluate.threshold_pck
-    logging.info(f'PCK@{_cfg.evaluate.threshold_pck} threshold: {pck_final_threshold}')
+    if _cfg.evaluate.original_coordinates:
+        pck_final_threshold = train_dataset.kwargs['max_dist_bw_keypoints'] * _cfg.evaluate.threshold_pck
+    else:
+        # when normalized coordinates, approximation of the PCK score from the furthest away points could be (1, 1, 1) and (-1, -1, -1)
+        # divider should be 2 in 2D and 3 in 3D
+        pck_final_threshold = 2 * np.sqrt(dataset_constants.DIVIDER) * _cfg.evaluate.threshold_pck
+
     pck_name = f'PCK@{_cfg.evaluate.threshold_pck}'
     
     test_loader = DataLoader(test_dataset, batch_size=_cfg.evaluate.batch_size, shuffle=False,
@@ -147,7 +152,9 @@ def evaluate(_cfg: DictConfig) -> None:
         suffix = _cfg.evaluate.suffix + f'_repeat-{i_repeat}'
         """RMSE computation"""
         total_rmse = {'id_sample': [], 'id_hole':[], 'keypoint':[], 'method':[], 'method_param':[],
-                                           'RMSE':[], 'MPJPE':[], pck_name:[], 'mean_uncertainty':[], 'length_hole':[]}
+                      'RMSE':[], 'MPJPE':[], pck_name:[], 'mean_uncertainty':[], 'length_hole':[],
+                      'swap_kp_id': [], 'swap_length': [], 'average_dist_bw_swap_kp': []
+                      }
         id_sample = 0
         n_plots = 0
         """Visualization 3D, one timepoint each"""
@@ -161,6 +168,9 @@ def evaluate(_cfg: DictConfig) -> None:
                 data_with_holes = data_dict['X'].to(device)  # shape (timepoints, n_keypoints, 2 or 3 or 4)
                 data_full = data_dict['x_supp'].to(device)
                 mask_holes = data_dict['mask_holes'].to(device)
+                data_swapped_np = data_dict['x_swap'].detach().cpu().numpy() if 'x_swap' in data_dict \
+                                  else np.zeros((_cfg.evaluate.batch_size, data_dict['X'].shape[1], dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER)) * np.nan
+                swap_bool = True if 'x_swap' in data_dict else False
                 assert not torch.any(torch.isnan(data_with_holes))
                 assert not torch.any(torch.isnan(data_full))
 
@@ -175,6 +185,8 @@ def evaluate(_cfg: DictConfig) -> None:
                 if _cfg.evaluate.original_coordinates:
                     full_data_np = reconstruct_before_normalization(full_data_np, data_dict, transforms)
                     data_with_holes_np = reconstruct_before_normalization(data_with_holes_np, data_dict, transforms)
+                    if swap_bool:
+                        data_swapped_np = reconstruct_before_normalization(data_swapped_np, data_dict, transforms)
 
                 """Linear interpolation"""
                 mask_holes_np = mask_holes.detach().cpu().numpy()
@@ -234,8 +246,23 @@ def evaluate(_cfg: DictConfig) -> None:
                             axis=(1, 2, 3))
                         bandexcess[i_model] = be[n_missing > 0] / be[n_missing > 0]
 
-
                 for i_sample_in_batch in range(data_with_holes_np.shape[0]):
+                    swapped_kp_ids = np.unique(
+                        np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[
+                            1])
+                    swap_times = np.unique(
+                        np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[
+                            0])
+                    swap_length = np.max(swap_times) - np.min(swap_times) + 1
+                    # euclidean distance between keypoints that are swapped during the swap
+                    logging.debug(
+                        f'[DEBUG] {data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids].shape} should be (Tbis, 2, 3) -- ')
+                    swap_dist = np.mean(np.sqrt(np.sum((data_swapped_np[i_sample_in_batch, swap_times][:,
+                                                        swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times][:,
+                                                                          swapped_kp_ids]) ** 2, axis=-1)))
+                    logging.debug(
+                        f'{np.sum((data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times][:, swapped_kp_ids])**2, axis=-1).shape} should be (T, 2)')
+
                     ## gives the length of a hole, one keypoint at a time, a sample can have multiple holes one after the other:
                     id_hole = 0
                     out = find_holes(mask_holes_np[i_sample_in_batch], dataset_constants.KEYPOINTS, indep=False)
@@ -255,6 +282,9 @@ def evaluate(_cfg: DictConfig) -> None:
                             total_rmse[pck_name].append(mean_pck)
                             total_rmse['mean_uncertainty'].append(np.nan)
                             total_rmse['length_hole'].append(o[1])
+                            total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
+                            total_rmse['swap_length'].append(swap_length)
+                            total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
 
                         if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                             mean_rmse_linear = np.sqrt(np.mean(rmse_linear_interp[slice_]))
@@ -271,6 +301,9 @@ def evaluate(_cfg: DictConfig) -> None:
                             total_rmse[pck_name].append(mean_pck_linear)
                             total_rmse['mean_uncertainty'].append(np.nan)
                             total_rmse['length_hole'].append(o[1])
+                            total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
+                            total_rmse['swap_length'].append(swap_length)
+                            total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
                         id_hole += 1
 
                     ## the sample as a whole, not hole by hole
@@ -282,10 +315,14 @@ def evaluate(_cfg: DictConfig) -> None:
                         total_rmse['method_param'].append('linear_interp')
                         total_rmse['RMSE'].append(np.sqrt(np.sum(rmse_linear_interp[i_sample_in_batch]) / n_missing[i_sample_in_batch]))
                         total_rmse['MPJPE'].append(np.sum(euclidean_distance_linear_interp[i_sample_in_batch]) / n_missing[i_sample_in_batch])
-                        total_rmse[pck_name].append(np.sum(pck_linear_interpolation[i_sample_in_batch] * mask_holes_np[i_sample_in_batch]) / n_missing[i_sample_in_batch])
+                        total_rmse[pck_name].append(
+                            np.sum(pck_linear_interpolation[i_sample_in_batch] * mask_holes_np[i_sample_in_batch]) /
+                            n_missing[i_sample_in_batch])
                         total_rmse['mean_uncertainty'].append(np.nan)
                         total_rmse['length_hole'].append(n_missing[i_sample_in_batch])
-
+                        total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
+                        total_rmse['swap_length'].append(swap_length)
+                        total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
                     for i_model in range(n_models):
                         if model_configs[i_model].training.mu_sigma:
                             mean_uncertainty_model = np.sum(uncertainty[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch]
@@ -298,15 +335,19 @@ def evaluate(_cfg: DictConfig) -> None:
                         total_rmse['method_param'].append(model_name[i_model])
                         total_rmse['RMSE'].append(np.sqrt(np.sum(rmse[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch]))
                         total_rmse['MPJPE'].append(np.sum(euclidean_distance[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch])
-                        total_rmse[pck_name].append(np.sum(pck[i_model][i_sample_in_batch] * mask_holes_np[i_sample_in_batch]) / n_missing[i_sample_in_batch])
+                        total_rmse[pck_name].append(
+                            np.sum(pck[i_model][i_sample_in_batch] * mask_holes_np[i_sample_in_batch]) / n_missing[
+                                i_sample_in_batch])
                         total_rmse['mean_uncertainty'].append(mean_uncertainty_model)
                         total_rmse['length_hole'].append(n_missing[i_sample_in_batch])
-
+                        total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
+                        total_rmse['swap_length'].append(swap_length)
+                        total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
                     id_sample += 1
 
                 """VISUALIZATION, only first batch"""
                 if n_plots < _cfg.evaluate.n_plots:
-                    logging.info(f'Starting sample plots')
+                    logging.info(f'Plotting sample: {n_plots} / {_cfg.evaluate.n_plots}')
                     potential_indices = np.where(n_missing > 0)[0]
                     np.random.seed(0)
                     for i in np.random.choice(potential_indices,  #full_data_np.shape[0],
@@ -320,7 +361,8 @@ def evaluate(_cfg: DictConfig) -> None:
                                               size=_cfg.evaluate.size, azim=_cfg.evaluate.azim,
                                               normalized_coordinates=(not _cfg.evaluate.original_coordinates))
 
-                        title = f'RMSE & MPJPE'
+                        title = '(swap) ' if swap_bool else ''
+                        title += f'RMSE & MPJPE'
                         title += ' -  '.join(
                             [f'{i_model}: {np.sqrt(np.mean(rmse[i_model][i])):.3f} & {np.mean(euclidean_distance[i_model][i]):.3f}' for i_model in range(n_models)])
                         if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
@@ -337,9 +379,12 @@ def evaluate(_cfg: DictConfig) -> None:
                             for j in range(dataset_constants.N_KEYPOINTS):
                                 if _cfg.evaluate.only_holes:
                                     t_mask = (mask_holes_np[i, 1:, j] == 1)
+                                    t_mask_holes = (mask_holes_np[i, 1:, j] == 1)
                                 else:
                                     t_mask = np.ones_like(mask_holes_np[i, 1:, j]).astype(bool)
+                                    t_mask_holes = (mask_holes_np[i, 1:, j] == 1)
                                 for i_dim in range(dataset_constants.DIVIDER):
+                                    axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, data_swapped_np[i, 1:, j, i_dim], 'o-', color='grey', ms=1, label='swap')
                                     axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, full_data_np[i, 1:, j, i_dim], 'o-')
                                     if np.sum(t_mask) > 0:
                                         for i_model, xo in enumerate(x_outputs_np):
@@ -356,7 +401,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                                                           color=plot_[0].get_color(), alpha=0.2)
                                             assert not np.any(np.isnan(xo))
 
-                                    out = find_holes(np.array(t_mask).reshape(dataset_constants.SEQ_LENGTH - 1, 1).astype(int), ['0'], indep=True)
+                                    out = find_holes(np.array(t_mask_holes).reshape(dataset_constants.SEQ_LENGTH - 1, 1).astype(int), ['0'], indep=True)
                                     if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                                         for o in out:
                                             axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[o[0]:o[0]+o[1]],
@@ -366,7 +411,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                     if not _cfg.evaluate.original_coordinates:
                                         axes[dataset_constants.DIVIDER * j + i_dim].set_ylim(-1.2, 1.2)
 
-                                if np.any(t_mask):
+                                if np.any(t_mask_holes):
                                     axes[dataset_constants.DIVIDER * j].legend()
                                     axes[dataset_constants.DIVIDER * j + 1].set_title(title)
 
@@ -387,7 +432,7 @@ def evaluate(_cfg: DictConfig) -> None:
 
                         n_plots += 1
 
-                    logging.info('Done with sample plots')
+                    logging.info(f'Done with sample plot {n_plots}')
 
                 for _ in range(3):
                     torch.cuda.empty_cache()
@@ -398,8 +443,8 @@ def evaluate(_cfg: DictConfig) -> None:
         total_rmse = total_rmse.reset_index().convert_dtypes()
         logging.info(f'n lines in result df: {total_rmse.shape[0]}')
         logging.info(f"RMSE per sample averaged: \n"
-                     f"{total_rmse[total_rmse['keypoint'] == 'all'].groupby('method_param')[[pck_name, 'RMSE', 'MPJPE']].agg('mean')}")
-        tmp = total_rmse[total_rmse['keypoint'] == 'all'].groupby(['method_param'])[[pck_name, 'RMSE', 'MPJPE']].agg('mean').reset_index()
+                     f"{total_rmse[(total_rmse['metric_type'].isin([pck_name, 'RMSE', 'MPJPE'])) * (total_rmse['keypoint'] == 'all')].groupby(['metric_type', 'method_param'])['metric_value'].agg('mean')}")
+        tmp = total_rmse[(total_rmse['metric_type'].isin([pck_name, 'RMSE', 'MPJPE'])) * (total_rmse['keypoint'] == 'all')].groupby(['metric_type', 'method', 'method_param'])['metric_value'].agg('mean').reset_index()
         tmp['repeat'] = i_repeat
         tmp['dataset'] = _cfg.dataset.name
         mean_RMSE.append(tmp)
@@ -407,7 +452,7 @@ def evaluate(_cfg: DictConfig) -> None:
         plt.close('all')
 
         def barplot_RMSE_keypoint():
-            mask = (total_rmse['keypoint'] != 'all')
+            mask = (total_rmse['keypoint'] != 'all') * (total_rmse['metric_type'] == metric)
             if len(_cfg.evaluate.merge_sets_file) > 0:
                 with open(os.path.join(basedir, _cfg.evaluate.merge_sets_file)) as f:
                     sets2merge = json.load(f)
@@ -494,6 +539,8 @@ def evaluate(_cfg: DictConfig) -> None:
                                       (total_rmse['id_sample'].isin(filtered_id_samples))][metric].agg(['mean', 'std', 'count'])
                     ## add values in thresholding_df which holds the results for all uncertainty methods
                     thresholding_df.loc[thresholding_df.shape[0], :] = [th, vals_RMSE['mean'], vals_RMSE['std'],
+                                                                        vals_MPJPE['mean'], vals_MPJPE['std'],
+                                                                        vals_pck['mean'], vals_pck['std'],
                                                                         vals_RMSE['count'], model_name[i_model]]
 
         if np.any([unc is not None for unc in uncertainty_estimates]):
@@ -512,11 +559,11 @@ def evaluate(_cfg: DictConfig) -> None:
                 ax1.set_ylabel(f'Mean {metric}')
                 ax1.set_xlabel('Remaining samples')
 
-            metric = 'RMSE'
-            plot_save(plot_thresholding,
-                      title=f'thresholding_curve_{metric}{suffix}', only_png=False,
-                      outputdir=outputdir)
-            plt.close('all')
+            for metric in [pck_name, 'RMSE', 'MPJPE']:
+                plot_save(plot_thresholding,
+                          title=f'thresholding_curve_{metric}{suffix}', only_png=False,
+                          outputdir=outputdir)
+                plt.close('all')
 
     pd.concat(mean_RMSE).to_csv(os.path.join(outputdir, f'mean_metrics{_cfg.evaluate.suffix}.csv'), index=False)
 
