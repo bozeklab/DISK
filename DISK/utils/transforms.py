@@ -51,7 +51,7 @@ def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputd
         transforms.append(Normalize(proba=1, divider=divider, verbose=0, outputdir=outputdir))
     if _cfg.feed_data.transforms.normalizecube:
         transforms.append(NormalizeCube(proba=1, divider=divider, verbose=0, outputdir=outputdir))
-    if _cfg.feed_data.transforms.swap > 0:
+    if 'swap' in _cfg.feed_data.transforms.keys() and _cfg.feed_data.transforms.swap > 0:
         transforms.append(Swap2Kp(proba=_cfg.feed_data.transforms.swap, divider=divider, verbose=0, outputdir=outputdir))
 
     return transforms, proba_n_missing
