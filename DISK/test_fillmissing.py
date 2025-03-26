@@ -536,7 +536,15 @@ def evaluate(_cfg: DictConfig) -> None:
                         continue
                     vals_RMSE = total_rmse[(total_rmse['keypoint'] == 'all') *
                                       (total_rmse['method_param'] == model_name[i_model]) *
-                                      (total_rmse['id_sample'].isin(filtered_id_samples))][metric].agg(['mean', 'std', 'count'])
+                                      (total_rmse['id_sample'].isin(filtered_id_samples))]['RMSE'].agg(['mean', 'std', 'count'])
+                    vals_MPJPE = total_rmse[(total_rmse['keypoint'] == 'all') *
+                                           (total_rmse['method_param'] == model_name[i_model]) *
+                                           (total_rmse['id_sample'].isin(filtered_id_samples))]['MPJPE'].agg(
+                        ['mean', 'std', 'count'])
+                    vals_pck = total_rmse[(total_rmse['keypoint'] == 'all') *
+                                           (total_rmse['method_param'] == model_name[i_model]) *
+                                           (total_rmse['id_sample'].isin(filtered_id_samples))][pck_name].agg(
+                        ['mean', 'std', 'count'])
                     ## add values in thresholding_df which holds the results for all uncertainty methods
                     thresholding_df.loc[thresholding_df.shape[0], :] = [th, vals_RMSE['mean'], vals_RMSE['std'],
                                                                         vals_MPJPE['mean'], vals_MPJPE['std'],
