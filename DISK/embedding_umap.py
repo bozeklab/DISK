@@ -80,7 +80,7 @@ def statistics_human(input_tensor, dataset_constants, device):
     coordinates_fft, _ = torch.max(torch.abs(2.0/N * torch.fft.fft(input_fft, dim=1)[:, 5:N//2]), dim=1)
     mask_low_fft = torch.all(coordinates_fft < 0.04, dim=1)
     mask_high_fft = torch.any(coordinates_fft > 0.12, dim=1)
-    logging.info(f'[STATISTICS] #low_fft {np.sum(mask_low_fft.detach().cpu().numpy())} #high_fft {np.sum(mask_high_fft.detach().cpu().numpy())}')
+    logging.debug(f'[STATISTICS] #low_fft {np.sum(mask_low_fft.detach().cpu().numpy())} #high_fft {np.sum(mask_high_fft.detach().cpu().numpy())}')
 
     periodicity_cat = mask_low_fft.type(torch.float) * -1 + mask_high_fft.type(torch.float) * 1
     periodicity_max, _ = torch.max(coordinates_fft, dim=1)
@@ -131,10 +131,10 @@ def statistics_MABe(input_tensor, dataset_constants, device):
     N = coordinates.shape[1]
     input_fft = coordinates.reshape(coordinates.shape[0], coordinates.shape[1], -1)
     coordinates_fft, _ = torch.max(torch.abs(2.0/N * torch.fft.fft(input_fft, dim=1)[:, 5:N//2]), dim=1)
-    logging.info(f'[STATISTICS] {torch.max(coordinates_fft).detach().cpu().numpy()} {np.percentile(coordinates_fft.detach().cpu().numpy(), 90)}')
+    logging.debug(f'[STATISTICS] {torch.max(coordinates_fft).detach().cpu().numpy()} {np.percentile(coordinates_fft.detach().cpu().numpy(), 90)}')
     mask_low_fft = torch.all(coordinates_fft < 0.05, dim=1)
     mask_high_fft = torch.any(coordinates_fft > 0.14, dim=1)
-    logging.info(f'[STATISTICS] #low_fft {np.sum(mask_low_fft.detach().cpu().numpy())} #high_fft {np.sum(mask_high_fft.detach().cpu().numpy())}')
+    logging.debug(f'[STATISTICS] #low_fft {np.sum(mask_low_fft.detach().cpu().numpy())} #high_fft {np.sum(mask_high_fft.detach().cpu().numpy())}')
 
     periodicity_cat = mask_low_fft.type(torch.float) * -1 + mask_high_fft.type(torch.float) * 1
     periodicity_max, _ = torch.max(coordinates_fft, dim=1)
