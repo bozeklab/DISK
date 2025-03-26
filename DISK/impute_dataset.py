@@ -276,9 +276,11 @@ def evaluate(_cfg: DictConfig) -> None:
     """LOOPING ON DATA"""
     with torch.no_grad():
         for subset, dataset in {'test': test_dataset, 'val': val_dataset, 'train': train_dataset}.items():
+            logging.info(f'Loading data {subset}')
             data_loader = DataLoader(dataset, batch_size=_cfg.feed_data.batch_size, shuffle=False,
                                      num_workers=_cfg.evaluate.n_cpus, persistent_workers=True)
-
+            logging.info('Done.')
+            
             with torch.no_grad():
 
                 for ind, data_dict in tqdm(enumerate(data_loader), desc='Iterating on batch',
@@ -435,7 +437,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 else:
                     np.savez(os.path.join(dataset_path, f'{subset}_dataset_imputed.npz'), X=np.stack(new_dataset, axis=0),
                              y=np.stack(new_y), lengths=np.stack(new_lengths))
-
+                logging.info(f'Done.')
 
 
 if __name__ == '__main__':
