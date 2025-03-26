@@ -401,7 +401,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 else:
                     np.savez(os.path.join(dataset_path, f'{subset}_fulllength_dataset_imputed.npz'),
                              X=dataset.X, y=dataset.y, time=dataset.time)
-                loging.info(f'Done.')
+                logging.info(f'Done.')
 
                 if dataset.files is not None:
                     for i_f, f in enumerate(dataset.files):
