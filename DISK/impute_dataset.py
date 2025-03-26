@@ -280,7 +280,7 @@ def evaluate(_cfg: DictConfig) -> None:
             data_loader = DataLoader(dataset, batch_size=_cfg.feed_data.batch_size, shuffle=False,
                                      num_workers=_cfg.evaluate.n_cpus, persistent_workers=True)
             logging.info('Done.')
-            
+
             with torch.no_grad():
 
                 for ind, data_dict in tqdm(enumerate(data_loader), desc='Iterating on batch',
@@ -393,6 +393,7 @@ def evaluate(_cfg: DictConfig) -> None:
             logging.info(f'{subset}, dataset_path = {dataset_path}')
 
             if _cfg.evaluate.save_dataset:
+                logging.info(f'Saving fulllength file')
                 if dataset.y is None:
                     np.savez(os.path.join(dataset_path, f'{subset}_fulllength_dataset_imputed.npz'),
                              X=dataset.X, time=dataset.time)
@@ -400,6 +401,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 else:
                     np.savez(os.path.join(dataset_path, f'{subset}_fulllength_dataset_imputed.npz'),
                              X=dataset.X, y=dataset.y, time=dataset.time)
+                loging.info(f'Done.')
 
                 if dataset.files is not None:
                     for i_f, f in enumerate(dataset.files):
