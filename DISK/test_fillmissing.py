@@ -504,7 +504,7 @@ def evaluate(_cfg: DictConfig) -> None:
 
         total_rmse.to_csv(os.path.join(outputdir, f'total_metrics{suffix}.csv'), index=False)
 
-        thresholding_df = pd.DataFrame(columns=['th', 'RMSE', 'RMSE_std', 'count', 'method'])
+        thresholding_df = pd.DataFrame(columns=['th', 'RMSE', 'RMSE_std', 'MPJPE', 'MPJPE_std', pck_name, f'{pck_name}_std', 'count', 'method'])
         for i_model in range(n_models):
             if uncertainty_estimates[i_model] is not None:
                 # pivot_df only for one method
