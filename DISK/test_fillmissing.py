@@ -443,8 +443,8 @@ def evaluate(_cfg: DictConfig) -> None:
         total_rmse = total_rmse.reset_index().convert_dtypes()
         logging.info(f'n lines in result df: {total_rmse.shape[0]}')
         logging.info(f"RMSE per sample averaged: \n"
-                     f"{total_rmse[(total_rmse['metric_type'].isin([pck_name, 'RMSE', 'MPJPE'])) * (total_rmse['keypoint'] == 'all')].groupby(['metric_type', 'method_param'])['metric_value'].agg('mean')}")
-        tmp = total_rmse[(total_rmse['metric_type'].isin([pck_name, 'RMSE', 'MPJPE'])) * (total_rmse['keypoint'] == 'all')].groupby(['metric_type', 'method', 'method_param'])['metric_value'].agg('mean').reset_index()
+                     f"{total_rmse[(total_rmse['keypoint'] == 'all')].groupby(['method_param'])[[pck_name, 'RMSE', 'MPJPE']].agg('mean')}")
+        tmp = total_rmse[(total_rmse['keypoint'] == 'all')].groupby(['method', 'method_param'])[[pck_name, 'RMSE', 'MPJPE']].agg('mean').reset_index()
         tmp['repeat'] = i_repeat
         tmp['dataset'] = _cfg.dataset.name
         mean_RMSE.append(tmp)
@@ -452,7 +452,7 @@ def evaluate(_cfg: DictConfig) -> None:
         plt.close('all')
 
         def barplot_RMSE_keypoint():
-            mask = (total_rmse['keypoint'] != 'all') * (total_rmse['metric_type'] == metric)
+            mask = (total_rmse['keypoint'] != 'all')
             if len(_cfg.evaluate.merge_sets_file) > 0:
                 with open(os.path.join(basedir, _cfg.evaluate.merge_sets_file)) as f:
                     sets2merge = json.load(f)
