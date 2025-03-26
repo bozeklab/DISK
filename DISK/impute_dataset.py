@@ -277,8 +277,7 @@ def evaluate(_cfg: DictConfig) -> None:
     with torch.no_grad():
         for subset, dataset in {'test': test_dataset, 'val': val_dataset, 'train': train_dataset}.items():
             logging.info(f'Loading data {subset}')
-            data_loader = DataLoader(dataset, batch_size=_cfg.feed_data.batch_size, shuffle=False,
-                                     persistent_workers=True)
+            data_loader = DataLoader(dataset, batch_size=_cfg.feed_data.batch_size, shuffle=False)
             # num_workers = _cfg.evaluate.n_cpus, persistent_workers = True)
             logging.info('Done.')
 
