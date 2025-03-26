@@ -319,9 +319,11 @@ def evaluate(_cfg: DictConfig) -> None:
                         axis=3)  # sum on the keypoint on dimension, shape (batch, time, keypoint)
                     else:
                         uncertainty = None
+                    logging.info(f'Updating dataset')
                     dataset.update_dataset(data_dict['index'], x_output_np, uncertainty,
                                                                 threshold=_cfg.evaluate.threshold_error_score)
-
+                    logging.info(f'Done.')
+                    
                     """VISUALIZATION, only first batch"""
                     if _cfg.evaluate.n_plots > 0 and n_plots <= _cfg.evaluate.n_plots:
 
