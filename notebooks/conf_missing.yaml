@@ -71,4 +71,5 @@ feed_data:
     viewinvariant: true
     normalize: false
     normalizecube: true
+    swap: 0.1
   verbose: 0
