@@ -278,7 +278,8 @@ def evaluate(_cfg: DictConfig) -> None:
         for subset, dataset in {'test': test_dataset, 'val': val_dataset, 'train': train_dataset}.items():
             logging.info(f'Loading data {subset}')
             data_loader = DataLoader(dataset, batch_size=_cfg.feed_data.batch_size, shuffle=False,
-                                     num_workers=_cfg.evaluate.n_cpus, persistent_workers=True)
+                                     persistent_workers=True)
+            # num_workers = _cfg.evaluate.n_cpus, persistent_workers = True)
             logging.info('Done.')
 
             with torch.no_grad():
@@ -323,7 +324,7 @@ def evaluate(_cfg: DictConfig) -> None:
                     dataset.update_dataset(data_dict['index'], x_output_np, uncertainty,
                                                                 threshold=_cfg.evaluate.threshold_error_score)
                     logging.info(f'Done.')
-                    
+
                     """VISUALIZATION, only first batch"""
                     if _cfg.evaluate.n_plots > 0 and n_plots <= _cfg.evaluate.n_plots:
 
