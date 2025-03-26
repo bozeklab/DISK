@@ -201,7 +201,7 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
         input_tensor_with_holes[:, 1:, :] = input_tensor_with_holes[:, :-1, :].clone()
         de_out = model.proj_input(input_tensor_with_holes, mask_holes)
         n_missing = torch.sum(mask_holes, dim=(1,2))
-        logging.info(f'NMISSING {mask_holes.shape} {torch.sum(mask_holes, dim=(1,2))}')
+        logging.debug(f'NMISSING {mask_holes.shape} {torch.sum(mask_holes, dim=(1,2))}')
 
         for i in range(model.num_layers):
             de_out = model.encoder_layers[i](de_out)
