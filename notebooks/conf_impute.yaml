@@ -23,7 +23,7 @@ feed_data:
 evaluate:
   ## TOCHANGE
   ## path to checkpoint folder, relative to working directory
-  checkpoint: models/05-12-23_transformer_NLL
+  checkpoint: models/03-10-24_transformer_NLL
   ## threshold used to reject bad imputed samples when the model is of type transformer_proba or GRU_proba
   ## to have an idea about the value to put, look at plots output of the test script
   threshold_error_score: 0.1
