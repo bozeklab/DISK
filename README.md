@@ -12,7 +12,7 @@ DISK allows to use a bigger proportion of experimental data for downstream behav
     - [Configuration files and script launching](#configuration-files-and-script-launching)
     - [Neural network training](#neural-network-training)
 - [Installation](#installation)
-- [First steps tutorial (google colab notebook)](https://drive.google.com/file/d/1ycrxt3r9BP6b8N9LYGQ-4y3mdS5ebRGD/view?usp=sharing)
+- [First steps tutorial](#first-steps-tutorial)
 - [Detailed usage](#detailed-usage)
   - [Step 0. File organization](#step-0-file-organization)
   - [Step 1. Use an already created dataset or create your training dataset from your own data](#step-1-use-an-already-created-dataset-or-create-your-training-dataset-from-your-own-data)
@@ -128,6 +128,14 @@ import DISK
 If you have trouble installing Pytorch, check [this page](https://pytorch.org/get-started/previous-versions/) for pytorch version `1.9.1` and your system.
 You can install separately pytorch as a first step using for example `conda install pytorch==1.9.1 cudatoolkit=11.1 -c pytorch -c conda-forge` or `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 cpuonly -c pytorch` for the CPU-only version.
 For OSX, `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 -c pytorch` or `pip install torch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1`. 
+
+# First steps tutorial
+
+The tutorial is available as a Jupyter Notebook and compatible with Google colab: in this github repo in [`notebooks/DISK_tutorial_2025-05.ipynb`](https://github.com/bozeklab/DISK/blob/main/notebooks/DISK_tutorial_2024-05.ipynb)
+with processed datasets and saved checkpoint modles available on [zenodo](https://doi.org/10.5281/zenodo.15828939).
+
+Alternatively, the same steps (without the explanations and images) are available as a simple bash script in [`tests/test_tutorial_zenodo.sh`](https://github.com/bozeklab/DISK/blob/main/tests/test_tutorial_zenodo.sh).
+
 
 # Detailed usage
 
