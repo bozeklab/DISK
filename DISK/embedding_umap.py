@@ -368,7 +368,7 @@ def plot_umaps(df, all_columns, outputdir, dataset_name, suffix):
             cmap = 'dark'
         else:
             cmap = "magma"
-        sns.scatterplot(df.sample(n), x='umap_x', y='umap_y', hue=label_name, s=5, palette=cmap)
+        sns.scatterplot(df.sample(n), x='umap_x', y='umap_y', hue=label_name, s=8, palette=cmap)
         plt.savefig(os.path.join(outputdir, f'{dataset_name}_normed_umap_colors-{label_name}_latent{suffix}.svg'))
 
 
