@@ -363,7 +363,7 @@ def plot_umaps(df, all_columns, outputdir, dataset_name, suffix):
         fig.write_html(os.path.join(outputdir, f'{dataset_name}_normed_umap_colors-{label_name}_latent{suffix}.html'))
 
         plt.figure()
-        sns.scatterplot(df, x='umap_x', y='umap_y', color=label_name)
+        sns.scatterplot(df, x='umap_x', y='umap_y', c=label_name)
         plt.savefig(os.path.join(outputdir, f'{dataset_name}_normed_umap_colors-{label_name}_latent{suffix}.svg'))
 
 
