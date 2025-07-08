@@ -363,12 +363,12 @@ def plot_umaps(df, all_columns, outputdir, dataset_name, suffix):
         fig.write_html(os.path.join(outputdir, f'{dataset_name}_normed_umap_colors-{label_name}_latent{suffix}.html'))
 
         plt.figure()
-        n = 5000
+        n = 8000
         if label_name == 'action_str':
             cmap = 'dark'
         else:
             cmap = "magma"
-        sns.scatterplot(df.sample(n), x='umap_x', y='umap_y', hue=label_name, s=8, palette=cmap)
+        sns.scatterplot(df.sample(n), x='umap_x', y='umap_y', hue=label_name, s=10, palette=cmap)
         plt.savefig(os.path.join(outputdir, f'{dataset_name}_normed_umap_colors-{label_name}_latent{suffix}.svg'))
 
 
