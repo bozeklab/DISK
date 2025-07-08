@@ -361,10 +361,11 @@ def plot_umaps(df, all_columns, outputdir, dataset_name, suffix):
                          hover_data=all_columns + ['train_or_test'])
 
         fig.write_html(os.path.join(outputdir, f'{dataset_name}_normed_umap_colors-{label_name}_latent{suffix}.html'))
-        fig.write_image(os.path.join(outputdir, f'{dataset_name}_normed_umap_colors-{label_name}_latent{suffix}.svg'))
-        json_fig = fig.to_json()
-        with open(os.path.join(outputdir, f'{dataset_name}_normed_umap_colors-{label_name}_latent{suffix}.json'), 'w') as f:
-            json.dump(json_fig, f)
+
+        plt.figure()
+        sns.scatterplot(df, x='umap_x', y='umap_y', color=label_name)
+        plt.savefig(os.path.join(outputdir, f'{dataset_name}_normed_umap_colors-{label_name}_latent{suffix}.svg'))
+
 
     logging.info(f'drawing umap overview')
     ncols = int(np.sqrt(len(all_columns)))
