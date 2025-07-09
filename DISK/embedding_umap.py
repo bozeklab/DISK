@@ -363,7 +363,7 @@ def plot_umaps(df, all_columns, outputdir, dataset_name, suffix):
         fig.write_html(os.path.join(outputdir, f'{dataset_name}_normed_umap_colors-{label_name}_latent{suffix}.html'))
 
         plt.figure()
-        n = 5000
+        n = min(5000, df.shape[0])
         if label_name == 'action_str':
             cmap = 'dark'
         else:
