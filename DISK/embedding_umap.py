@@ -365,7 +365,7 @@ def plot_umaps(df, all_columns, outputdir, dataset_name, suffix):
         plt.figure()
         n = min(5000, df.shape[0])
         if label_name == 'action_str':
-            cmap = 'dark'
+            cmap = 'bright'
         else:
             cmap = "magma"
         sns.scatterplot(df.sample(n), x='umap_x', y='umap_y', hue=label_name, s=10, palette=cmap)
