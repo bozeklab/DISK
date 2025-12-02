@@ -117,11 +117,17 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
     elif file_type == 'simple_csv':
         ## for fish data from Liam
         df = pd.read_csv(f)  # columns time, keypoint_x, kp_y, kp_z
-        # sort the keypoints with np.unique
-        keypoints = list(np.unique([c.rstrip('_xyz') for c in df.columns if c.endswith('_x') or c.endswith('_y') or c.endswith('_z')]))
-        columns = []
-        for k in keypoints:
-            columns.extend([k + '_x', k + '_y', k + '_z'])
+        if np.any([c.endswith('_z') for c in df.columns]):
+            # sort the keypoints with np.unique
+            keypoints = list(np.unique([c.rstrip('_xyz') for c in df.columns if c.endswith('_x') or c.endswith('_y') or c.endswith('_z')]))
+            columns = []
+            for k in keypoints:
+                columns.extend([k + '_x', k + '_y', k + '_z'])
+        else: ## hypothesis = 2D
+            keypoints = list(np.unique([c.rstrip('_xy') for c in df.columns if c.endswith('_x') or c.endswith('_y')]))
+            columns = []
+            for k in keypoints:
+                columns.extend([k + '_x', k + '_y'])
         # get the columns corresponding to sorted keypoints so the data can be stacked
         data = df.loc[:, columns].values.reshape((df.shape[0], len(keypoints), -1))
 
