@@ -346,31 +346,3 @@ class rst_gcn(nn.Module):
         x = self.tcn(x) + res
 
         return x, A
-
-
-if __name__ == '__main__':
-    import os
-    import numpy as np
-
-    in_channels = 3  # ??
-    num_class = 6
-    graph_args = {'layout': 'mouse',
-                  'strategy': 'uniform',
-                  'max_hop': 1,
-                  'dilation': 1}
-    edge_importance_weighting = True
-
-    basedir = '/home/france/Mounted_dir/MLSTM-FCN-Pytorch/'
-    dataset_name = 'INH2B_FL2_keypoints'
-    train_dataset = np.load(os.path.join(basedir, 'datasets', dataset_name, 'train_dataset.npz'))
-    X = train_dataset['X']
-    X = X.reshape((X.shape[0], X.shape[1], X.shape[2]//3, 3))
-    X = np.moveaxis(X, -1, 1)
-    X = np.expand_dims(X, -1)
-    print(X.shape)
-
-    mymodel = Model(in_channels, num_class, graph_args,
-                    edge_importance_weighting).to('cuda')
-    x = torch.from_numpy(X[:10]).type(torch.float32).to('cuda')
-    out = mymodel.forward(x)
-    pred = torch.argmax(out, dim=1)
