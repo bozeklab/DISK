@@ -59,8 +59,6 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
         if not initial:
             length_proba_df = pd.read_csv(os.path.join(outputdir, f'proba_missing_length{suffix}.csv'))
             init_proba = pd.read_csv(os.path.join(outputdir, f'proba_missing{suffix}.csv'))
-            # n_proba = pd.read_csv('/home/france/Mounted_dir/results_behavior/datasets/proba_n_missing_1_6.txt',
-            #                       header=None)
 
             addmissing_transform = AddMissing_LengthProba(length_proba_df, dataset_constants.KEYPOINTS, init_proba,
                                                           proba_n_missing=None,
