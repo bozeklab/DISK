@@ -332,7 +332,7 @@ class NormalizeCube(Transform):
         return 'Normalize_Cube'
 
     def __call__(self, x, *args, x_supp=(), **kwargs):
-        print(type(x), len(x))
+        print(type(x), len(x), len(x[0]))
         print(x[0].shape, x[1].shape)
         if np.all(np.isnan(x)):
             x_prime = np.array(x)
