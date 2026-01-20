@@ -1,5 +1,14 @@
 # DISK (Deep Imputation of SKeleton data)
-Neural network method to impute missing values for 3D skeleton data.
+
+----------------------------
+This is the official code repository for:
+
+Rose et al. Deep Imputation for Skeleton data (DISK) for behavioral science. Nat Methods (2025). https://doi.org/10.1038/s41592-025-02893-y
+
+-------------------------------------------
+
+**Neural network method to impute missing values for 3D skeleton data.**
+
 ![Examples of imputations](images/reconstructions_whitebg-1.png)
 Example of imputations: blue lines are the original signal, red dots represent the imputation done by a transformer model, and the gray line the linear interpolation.
 DISK is able to learn correlations between keypoints and dynamics from the training data to fill gaps on a much longer horizon than linear interpolation.
