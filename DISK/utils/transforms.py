@@ -648,6 +648,7 @@ def transform_x(x, transformations, **kwargs):
         # in the case, where no hole is added, x is original x, and x_gt is None
     else:
         x_supp = ()
+        print(transformations[0])
         x = transformations[0](x, **kwargs)
         print(type(x), type(x_supp))
         print(len(x), len(x_supp))
