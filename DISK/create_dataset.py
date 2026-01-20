@@ -168,13 +168,19 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
             columns = []
             for i in individuals:
                 for k in keypoints:
+                    # put to nan if likelihood is below threshold
+                    mask1 = df.loc[:, (i, k, 'likelihood')] <= dlc_likelihood_threshold
+                    # put to nan is likelihood is nan
+                    mask2 = np.isnan(df.loc[:, (i, k, 'likelihood')])
+                    # sometimes the y or the x coordinates is nan -> put both of them to nan
+                    mask3 = np.any([np.isnan(df.loc[:, (i, k, c)]) for c in coordinates], axis=0)
                     for c in coordinates:
-                        df.loc[df.loc[:, (i, k, 'likelihood')] <= dlc_likelihood_threshold, (i, k, c)] = np.nan
+                        df.loc[mask1 | mask2 | mask3, (i, k, c)] = np.nan
                         columns.append((i, k, c))
 
             # len(new_keypoints) = keypoints x animals
             new_keypoints = []
-            for animal_id in range(len(individuals)):
+            for animal_id in individuals:
                 new_keypoints.extend([f'animal{animal_id}_{k}' for k in keypoints])
             keypoints = new_keypoints
         else:
@@ -186,8 +192,11 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
 
             columns = []
             for k in keypoints:
+                mask1 = df.loc[:, (k, 'likelihood')] <= dlc_likelihood_threshold
+                mask2 = np.isnan(df.loc[:, (k, 'likelihood')])
+                mask3 = np.any([np.isnan(df.loc[:, (k, c)]) for c in coordinates], axis=0)
                 for c in coordinates:
-                    df.loc[df.loc[:, (k, 'likelihood')] <= dlc_likelihood_threshold, (k, c)] = np.nan
+                    df.loc[mask1 | mask2 | mask3, (k, c)] = np.nan
                     columns.append((k, c))
 
         data = df.loc[:, columns].values.reshape((df.shape[0], len(keypoints), -1))
@@ -281,8 +290,8 @@ def create_dataset(_cfg: DictConfig) -> None:
     if not os.path.isdir(outputdir):
         os.mkdir(outputdir)
 
-    th_std = 0.2 if 'DF3D' in _cfg.dataset_name else 0
-    logging.info(f'THRESHOLD TO REMOVE FLAT SAMPLES: {th_std}')
+    # th_std = 0.2 if 'DF3D' in _cfg.dataset_name else 0
+    # logging.info(f'THRESHOLD TO REMOVE FLAT SAMPLES: {th_std}')
 
     #################################################################################################
     ### OPEN FILES AND PROCESS DATA
@@ -408,7 +417,7 @@ def create_dataset(_cfg: DictConfig) -> None:
                                                                                new_data[indices_ttv[i_partition]: indices_ttv[i_partition + 1]],
                                                                                length=_cfg.length,
                                                                                stride=_cfg.stride,
-                                                                               th_std=th_std)
+                                                                               th_std=0)
 
                     # NB: times gives the beginning of the sample in the raw indices
                     if len(chopped_data) > 0:
