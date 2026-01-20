@@ -240,6 +240,11 @@ class ViewInvariant(Transform):
 
 
     def __call__(self, x, *args, x_supp=(), **kwargs):
+        if np.all(np.isnan(x)):
+            x_prime = np.array(x)
+            logging.debug(f'[ViewInvariant] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
+            x_supp_prime = [np.array(xs) for xs in x_supp]
+            return x_prime, tuple(x_supp_prime), kwargs
 
         barycenter, A, index_vect, angle = self.compute_transform(x)
 
@@ -264,7 +269,7 @@ class ViewInvariant(Transform):
         kwargs['max_sample'] = max_
 
         if np.all(np.isnan(x_prime)):
-            print('[ViewInvariant] all nan in x_prime')
+            logging.debug('[ViewInvariant] all nan in x_prime')
 
         return x_prime, tuple(x_supp_prime), kwargs
 
@@ -327,6 +332,12 @@ class NormalizeCube(Transform):
         return 'Normalize_Cube'
 
     def __call__(self, x, *args, x_supp=(), **kwargs):
+        if np.all(np.isnan(x)):
+            x_prime = np.array(x)
+            logging.debug(f'[NormalizeCube] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
+            x_supp_prime = [np.array(xs) for xs in x_supp]
+            return x_prime, tuple(x_supp_prime), kwargs
+
         """Compute the transform"""
         # x of shape (time points, keypoints,  3)
         max_ = np.nanmax(x, axis=(0, 1))  # should be of shape 3 (for the x, y, and z axes)
@@ -335,7 +346,7 @@ class NormalizeCube(Transform):
         kwargs['min_sample'] = min_
         kwargs['max_sample'] = max_
         if np.any(np.isnan(min_)) or np.any(np.isnan(max_)):
-            print(f'[Problem in NormalizeCube] {min_}, {max_}, {x}')
+            logging.debug(f'[Problem in NormalizeCube] {min_}, {max_}, {x}')
 
         """Apply the transform"""
         x_prime = 2 * (x - ((max_ + min_) / 2)) / amplitude  # normalizes between -1 and 1
