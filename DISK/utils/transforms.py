@@ -644,12 +644,12 @@ def transform_x(x, transformations, **kwargs):
     if isinstance(transformations[0], AddMissing_LengthProba):
         x_supp = (np.copy(x),)  # the supp sample is the one without holes, but other reflection, normalization, ...
         # will be computed on x and applied both on x_gt and x
-        x = transformations[0](x, **kwargs)  # the main sample is the one with holes
+        x, _, _ = transformations[0](x, **kwargs)  # the main sample is the one with holes
         # in the case, where no hole is added, x is original x, and x_gt is None
     else:
         x_supp = ()
         print(transformations[0])
-        x = transformations[0](x, **kwargs)
+        x, x_supp, kwargs = transformations[0](x, x_supp=x_supp, **kwargs)
         print(type(x), type(x_supp))
         print(len(x), len(x_supp))
 
