@@ -156,25 +156,46 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
 
     elif file_type == 'dlc_csv':
         ## for csv from DeepLabCut
-        df = pd.read_csv(f, header=[1, 2])
-        keypoints = [bp for bp in df.columns.levels[0] if bp != 'bodyparts']
-        keypoints.sort()
-        coordinates = [c for c in df.columns.levels[1] if c != 'likelihood' and c != 'coords']
-        likelihood_columns = []
-        for k in keypoints:
-            likelihood_columns.append((k, 'likelihood'))
+        df = pd.read_csv(f, header=[1, 2, 3])
 
-        columns = []
-        for k in keypoints:
-            for c in coordinates:
-                df.loc[df.loc[:, (k, 'likelihood')] <= dlc_likelihood_threshold, (k, c)] = np.nan
-                columns.append((k, c))
+        # Multi-animal scenario - includes an additional "individuals" column header
+        if 'individuals' in df.columns.levels[0]:
+            individuals = [ind for ind in df.columns.levels[0] if ind != 'individuals']
+            keypoints = [bp for bp in df.columns.levels[1] if bp != 'bodyparts']
+            keypoints.sort()
+            coordinates = [c for c in df.columns.levels[2] if c != 'likelihood' and c != 'coords']
+
+            columns = []
+            for i in individuals:
+                for k in keypoints:
+                    for c in coordinates:
+                        df.loc[df.loc[:, (i, k, 'likelihood')] <= dlc_likelihood_threshold, (i, k, c)] = np.nan
+                        columns.append((i, k, c))
+
+            # len(new_keypoints) = keypoints x animals
+            new_keypoints = []
+            for animal_id in range(len(individuals)):
+                new_keypoints.extend([f'animal{animal_id}_{k}' for k in keypoints])
+            keypoints = new_keypoints
+        else:
+            # One individual scenario
+            df = pd.read_csv(f, header=[1, 2])
+            keypoints = [bp for bp in df.columns.levels[0] if bp != 'bodyparts']
+            keypoints.sort()
+            coordinates = [c for c in df.columns.levels[1] if c != 'likelihood' and c != 'coords']
+
+            columns = []
+            for k in keypoints:
+                for c in coordinates:
+                    df.loc[df.loc[:, (k, 'likelihood')] <= dlc_likelihood_threshold, (k, c)] = np.nan
+                    columns.append((k, c))
+
         data = df.loc[:, columns].values.reshape((df.shape[0], len(keypoints), -1))
 
     elif file_type == 'dlc_h5':
         content = h5py.File(f)
         extracted_content = np.vstack([c[1] for c in content['df_with_missing']['table'][:]])
-        mask_columns_likelihood = np.all((extracted_content <= 1) * (extracted_content >= 0), axis=0)
+        mask_columns_likelihood = np.all((extracted_content <= 1) * (extracted_content >= 0) | (np.isnan(extracted_content) == True), axis=0)
         likelihood_columns = extracted_content[:, mask_columns_likelihood] <= dlc_likelihood_threshold
         coordinates_columns = extracted_content[:, ~mask_columns_likelihood]
         n_dim = coordinates_columns.shape[1] / likelihood_columns.shape[1]
@@ -183,7 +204,27 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
         for i_dim in range(n_dim):
             coordinates_columns[:, i_dim::n_dim][likelihood_columns] = np.nan
         data = coordinates_columns.reshape((coordinates_columns.shape[0], -1, n_dim))
-        keypoints = [f'{i:02d}' for i in range(data.shape[1])]
+
+        # EDIT: Extract keypoint names
+        values_block = content['df_with_missing']['table'].attrs['values_block_0_kind']
+        multi_index = pickle.loads(values_block)
+
+        # EDIT: Multi-animal scenario
+        if len(multi_index[0]) > 3:
+            individuals = list(dict.fromkeys([item[1] for item in multi_index]))
+            keypoints = list(dict.fromkeys([item[2] for item in multi_index]))
+
+            new_keypoints = []
+            for animal_id in range(len(individuals)):
+                new_keypoints.extend([f'animal{animal_id}_{k}' for k in keypoints])
+            keypoints = new_keypoints
+        else:
+            keypoints = [item[1] for item in multi_index]
+
+        # EDIT: Make sure that the keypoints are in the same order
+        new_order = np.argsort(keypoints)
+        keypoints = [keypoints[n] for n in new_order]
+        data = data[:, new_order]
 
     elif file_type == 'sleap_h5':
         ## compatibility with SLEAP analysis h5 files
