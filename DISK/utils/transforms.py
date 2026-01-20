@@ -242,7 +242,7 @@ class ViewInvariant(Transform):
     def __call__(self, x, *args, x_supp=(), **kwargs):
         if np.all(np.isnan(x)):
             x_prime = np.array(x)
-            logging.info(f'[ViewInvariant] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
+            logging.debug(f'[ViewInvariant] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
             x_supp_prime = [np.array(xs) for xs in x_supp]
             return x_prime, tuple(x_supp_prime), kwargs
 
@@ -303,7 +303,6 @@ class ViewInvariant(Transform):
 
             angle_tiled = np.tile(np.tile(angle,  x.shape[2]), x.shape[1]).reshape(x.shape[:-1])
             barycenter = np.tile(np.tile(kwargs['VI_barycenter'], x.shape[2]), x.shape[1]).reshape(x.shape)
-            #print(barycenter[0, 0, 0, :], barycenter[0, 0, :2, 0], barycenter[0, :2, 0, 0])
 
             x_prime[:, :, :, 0] = np.cos(angle_tiled) * x_norm[:, :, :, 0] + np.sin(angle_tiled) * x_norm[:, :, :, 1]
             x_prime[:, :, :, 1] = - np.sin(angle_tiled) * x_norm[:, :, :, 0] + np.cos(angle_tiled) * x_norm[:, :, :, 1]
@@ -332,8 +331,6 @@ class NormalizeCube(Transform):
         return 'Normalize_Cube'
 
     def __call__(self, x, *args, x_supp=(), **kwargs):
-        print(type(x), len(x), len(x[0]))
-        print(x[0].shape, x[1].shape)
         if np.all(np.isnan(x)):
             x_prime = np.array(x)
             logging.debug(f'[NormalizeCube] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
@@ -381,10 +378,8 @@ class NormalizeCube(Transform):
             min_tiled = np.array([np.tile(np.tile(m,  x.shape[2]), x.shape[1]) for m in min_sample]).reshape(x.shape)
             max_tiled = np.array([np.tile(np.tile(m,  x.shape[2]), x.shape[1]) for m in max_sample]).reshape(x.shape)
             # max_tiled = np.tile(np.tile(max_sample,  x.shape[2]), x.shape[1]).reshape(x.shape)
-            #print('min_Tiled', min_tiled[0, 0, :2, 0], min_tiled[0, 0, 0, :])
 
             amplitude = np.repeat(np.repeat(np.repeat(np.max(max_sample - min_sample, axis=1), x.shape[3]),  x.shape[2]), x.shape[1]).reshape(x.shape)
-            #print('amplitude', amplitude[0, 0, 0, :], amplitude[0, 0, :2, 0])
         else:
             raise ValueError
 
@@ -415,7 +410,7 @@ class Normalize(Transform):
         kwargs['min_sample'] = min_
         kwargs['max_sample'] = max_
         if np.any(np.isnan(min_)) or np.any(np.isnan(max_)):
-            print(f'[Problem in Normalize] {min_}, {max_}, {x}')
+            logging.info(f'[Problem in Normalize] {min_}, {max_}, {x}')
 
         """Apply the transform"""
         x_prime = 2 * (x - min_) / (max_ - min_) - 1  # normalizes between -1 and 1
@@ -488,7 +483,6 @@ class Swap2Kp(Transform):
         kwargs['swap_kp'] = rd_kps
         kwargs['swap_length'] = length
         kwargs['swap_start_index'] = start_index
-        # print(f'[Problem in Swap2Kp] {rd_kps}, {start_index}, {length}')
 
         """Apply the transform"""
         x_prime = np.array(x)
@@ -551,7 +545,7 @@ class AddMissing_LengthProba(Transform):
 
         if np.max(np.sum(np.any(np.isnan(x), axis=2), axis=1)) > 0:
             if self.verbose == 2 or verbose_sample:
-                print('[AddMissing Transform] There is already a missing keypoint in the sequence. Not adding more')
+                logging.info('[AddMissing Transform] There is already a missing keypoint in the sequence. Not adding more')
         else:
             # missing value place holder
             missing_values_placeholder = np.nan
@@ -625,10 +619,10 @@ class AddMissing_LengthProba(Transform):
                     x_with_holes[start_missing: end_missing, index_rd_kp, :] = missing_values_placeholder
 
             if self.verbose == 2 or verbose_sample:
-                print("nb of missing kp:", np.sum(np.sum(np.any(np.isnan(x_with_holes), axis=2), axis=0) > 0))
+                logging.info("nb of missing kp:", np.sum(np.sum(np.any(np.isnan(x_with_holes), axis=2), axis=0) > 0))
             v = np.sum(np.isnan(x_with_holes[..., 0]))
             if v == 0:
-                print("nb of missing values:", v)
+                logging.info("nb of missing values:", v)
 
         return x_with_holes, x_supp, kwargs
 
@@ -648,10 +642,7 @@ def transform_x(x, transformations, **kwargs):
         # in the case, where no hole is added, x is original x, and x_gt is None
     else:
         x_supp = ()
-        print(transformations[0])
         x, x_supp, kwargs = transformations[0](x, x_supp=x_supp, **kwargs)
-        print(type(x), type(x_supp))
-        print(len(x), len(x_supp))
 
     for t in transformations[1:]:
         if isinstance(t, Swap2Kp):
