@@ -242,7 +242,7 @@ class ViewInvariant(Transform):
     def __call__(self, x, *args, x_supp=(), **kwargs):
         if np.all(np.isnan(x)):
             x_prime = np.array(x)
-            logging.debug(f'[ViewInvariant] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
+            logging.info(f'[ViewInvariant] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
             x_supp_prime = [np.array(xs) for xs in x_supp]
             return x_prime, tuple(x_supp_prime), kwargs
 
@@ -545,7 +545,7 @@ class AddMissing_LengthProba(Transform):
 
         super().__init__(**kwargs)
 
-    def __call__(self, x, *args, verbose_sample=False, **kwargs):
+    def __call__(self, x, *args, x_supp=(), verbose_sample=False, **kwargs):
         # x of shape (time points, keypoints, 3 or 4)
         x_with_holes = np.array(x)
 
@@ -630,7 +630,7 @@ class AddMissing_LengthProba(Transform):
             if v == 0:
                 print("nb of missing values:", v)
 
-        return x_with_holes
+        return x_with_holes, x_supp, kwargs
 
 
 def transform_x(x, transformations, **kwargs):
