@@ -332,6 +332,8 @@ class NormalizeCube(Transform):
         return 'Normalize_Cube'
 
     def __call__(self, x, *args, x_supp=(), **kwargs):
+        print(type(x))
+        print(x.shape)
         if np.all(np.isnan(x)):
             x_prime = np.array(x)
             logging.debug(f'[NormalizeCube] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
