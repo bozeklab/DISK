@@ -302,9 +302,6 @@ It will save plots and log file in a subfolder in the `results` directory and th
 
 # Cite us
 
-**Deep Imputation for Skeleton Data (DISK) for Behavioral Science.**
-France Rose, Monika Michaluk, Timon Blindauer, Bogna M. Ignatowska-Jankowska, Liam O’Shaughnessy, Greg J. Stephens, Talmo D. Pereira, Marylka Y. Uusisaari, Katarzyna Bozek.
-
-bioRxiv 2024.05.03.592173; doi: https://doi.org/10.1101/2024.05.03.592173
+Rose, F., Michaluk, M., Blindauer, T. et al. Deep Imputation for Skeleton data (DISK) for behavioral science. Nat Methods (2025). https://doi.org/10.1038/s41592-025-02893-y
 
 Additional scripts to reproduce plots and analyses (comparison with other published methods) are available at: https://github.com/bozeklab/DISK_paper_code
