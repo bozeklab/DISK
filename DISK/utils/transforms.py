@@ -649,6 +649,8 @@ def transform_x(x, transformations, **kwargs):
     else:
         x_supp = ()
         x = transformations[0](x, **kwargs)
+        print(type(x), type(x_supp))
+        print(len(x), len(x_supp))
 
     for t in transformations[1:]:
         if isinstance(t, Swap2Kp):
