@@ -291,6 +291,8 @@ def evaluate(_cfg: DictConfig) -> None:
                     lengths = data_dict['length_seq'].to(device)
                     assert not torch.any(torch.isnan(transformed_data))
 
+                    print(transformed_data.shape)
+
                     de_out = feed_forward(transformed_data, mask_holes,  # 1 for missing, 0 for non-missing
                                           dataset_constants.DIVIDER, model, cfg_model,
                                           key_padding_mask=lengths)

@@ -83,7 +83,7 @@ class ParentDataset(data.Dataset):
             self.skeleton_graph = None
 
         if transform is None:
-            print('[WARNING] NO TRANSFORM will be applied to the data. Is it really the behavior you are expecting??? '
+            logging.debug('[WARNING] NO TRANSFORM will be applied to the data. Is it really the behavior you are expecting??? '
                   'If not, check that you are passing a transform (without an s) list to the constructor.')
         if 'transforms' in kwargs:
             raise Warning('You are giving transforms (with an s) keyword argument. Expected: transform')
