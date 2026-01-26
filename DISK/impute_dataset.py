@@ -297,7 +297,8 @@ def evaluate(_cfg: DictConfig) -> None:
     """RMSE computation"""
     """Visualization 3D, one timepoint each"""
     data_subpath = os.path.join(dataset_path, 'original_data_format')
-    rmtree(data_subpath)
+    if os.path.exists(data_subpath):
+        rmtree(data_subpath)
     os.mkdir(data_subpath)
 
     n_plots = 0
