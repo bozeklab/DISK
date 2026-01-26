@@ -116,11 +116,11 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
 
             if not np.sum(df[('scorer', 'individuals', 'bodyparts', 'coords')].isin(time_int)) == data.shape[0]:
                 print('stop')
-            logging.info(f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum()}')
+            logging.info(f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
             df.loc[df[('scorer', 'individuals', 'bodyparts', 'coords')].isin(time_int), columns] = pd.DataFrame(columns=columns,
                                                                                              data=data.reshape((data.shape[0], -1)))
             # for now replace likelihood with -1 to mark the positions where we modified the coordinate values
-            logging.info(f'AFTER -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum()}')
+            logging.info(f'AFTER -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
             logging.info(f'modifying {data.shape[0]} values between indices {np.min(time_int)} and {np.max(time_int)}')
         else:
             # single animal
