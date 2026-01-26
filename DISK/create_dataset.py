@@ -161,6 +161,7 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
         # Multi-animal scenario - includes an additional "individuals" column header
         if 'individuals' in df.columns.levels[0]:
             individuals = [ind for ind in df.columns.levels[0] if ind != 'individuals']
+            individuals.sort()
             keypoints = [bp for bp in df.columns.levels[1] if bp != 'bodyparts']
             keypoints.sort()
             coordinates = [c for c in df.columns.levels[2] if c != 'likelihood' and c != 'coords']
@@ -319,18 +320,12 @@ def create_dataset(_cfg: DictConfig) -> None:
             fulllength_time[(n, t)] = []
             fulllength_maxlength[(n, t)] = []
 
+    if (not _cfg.sequential) and len(_cfg.input_files) < 3:
+        raise ValueError('[ERROR][create_dataset] If not choosing the "sequential" option, '
+                         'you need to supply at least 3 input files.')
 
     # and we want to count the number of effective files
     for i_file, f in tqdm.tqdm(enumerate(_cfg.input_files)):
-
-        # one partition for one file, even if some will be missing because of too many nans
-        # TODO: test it with low number of files plot
-        if i_file % 10 == 1:
-            partition = 'val'
-        elif i_file % 10 == 2:
-            partition = 'test'
-        else:
-            partition = 'train'
 
         data, keypoints = open_and_extract_data(f, _cfg.file_type, _cfg.dlc_likelihood_threshold)
 
@@ -432,12 +427,21 @@ def create_dataset(_cfg: DictConfig) -> None:
 
                     i_file += 1
             else:
+
+                # one partition for one file, even if some will be missing because of too many nans
+                if i_file % 10 == 1:
+                    partition = 'val'
+                elif i_file % 10 == 2:
+                    partition = 'test'
+                else:
+                    partition = 'train'
+
                 # chopped_data has shape (n_samples, times, keypoints * 3D)
                 chopped_data, len_, times = chop_coordinates_in_timeseries(new_time_vect,
                                                                            new_data,
                                                                            length=_cfg.length,
                                                                            stride=_cfg.stride,
-                                                                           th_std=th_std)
+                                                                           th_std=0)
 
 
                 # NB: times gives the beginning of the sample in the raw indices

@@ -11,6 +11,7 @@ from omegaconf import DictConfig, OmegaConf
 import pandas as pd
 import pickle
 import h5py
+from shutil import rmtree
 
 from DISK.utils.dataset_utils import load_datasets
 from DISK.utils.utils import read_constant_file, load_checkpoint
@@ -25,15 +26,25 @@ import torch
 from torch.utils.data import DataLoader
 
 
-def save_data_original_format(data, time, file, dataset_constants, new_folder):
+def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, new_folder):
     """
     :args data: numpy array of 2 dimensions (timepoints, keypoints * 2D or 3D)
     :args time: numpy array with timepoints
+    :args file: path to original file (Str)
+    :args dataset_constants: dataset constants (dict)
+    :args new_folder: path to new folder to save the imputed data in original format (str)
+
+    :return: None
     """
     new_file = os.path.join(new_folder, os.path.basename(file))
 
+    if cfg_dataset['sequential']:
+        if os.path.exists(new_file):
+            # reopen the new_file because it is to be complete multiple times
+            file = new_file
+
     data = data[time != -1]
-    time = time[time != -1]
+    time = time[time != -1] # time is original time / subsampling_freq
     if dataset_constants.ORIG_FREQ > dataset_constants.FREQ:
         time_orig = np.unique(np.linspace(time[0] * dataset_constants.ORIG_FREQ / dataset_constants.FREQ,
                                 time[-1] * dataset_constants.ORIG_FREQ / dataset_constants.FREQ,
@@ -78,22 +89,58 @@ def save_data_original_format(data, time, file, dataset_constants, new_folder):
     elif dataset_constants.FILE_TYPE == 'dlc_csv':
         ## for csv from DeepLabCut
         df = pd.read_csv(file, header=[0, 1, 2])
-        header = [c for c in df.columns.levels[0] if c != 'scorer'][0]
-        keypoints = [bp for bp in df.columns.levels[1] if bp != 'bodyparts']
-        keypoints.sort()
-        coordinates = [c for c in df.columns.levels[2] if c != 'likelihood' and c != 'coords']
-        likelihood_columns = []
-        for k in keypoints:
-            likelihood_columns.append((k, 'likelihood'))
-        # how to replace the likelihood where we have changed the values
-        columns = []
-        for k in keypoints:
-            for c in coordinates:
-                columns.append((header, k, c))
-                df.loc[df.loc[:, (header, k, 'likelihood')] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD, (header, k, c)] = np.nan
-            df.loc[df.loc[:, (header, k, 'likelihood')] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD, (header, k, 'likelihood')] = np.nan
-        df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time), columns] = pd.DataFrame(columns=columns,
-                                                                                         data=data.reshape((data.shape[0], -1)))
+        time_int = np.array(np.round(time * dataset_constants.FREQ, 0), dtype=np.uint64)
+
+        if 'individuals' in df.columns.levels[1]:
+            df = pd.read_csv(file, header=[0, 1, 2, 3])
+            header = [c for c in df.columns.levels[0] if c != 'scorer'][0]
+
+            # multianimal
+            individuals = [ind for ind in df.columns.levels[1] if ind != 'individuals']
+            individuals.sort()
+            keypoints = [bp for bp in df.columns.levels[2] if bp != 'bodyparts']
+            keypoints.sort()
+            coordinates = [c for c in df.columns.levels[3] if c != 'likelihood' and c != 'coords']
+
+            # how to replace the likelihood where we have changed the values
+            columns = []
+            likelihood_columns = []
+            for ind in individuals:
+                for k in keypoints:
+                    likelihood_columns.append((header, ind, k, 'likelihood'))
+                    for c in coordinates:
+                        columns.append((header, ind, k, c))
+                        # df.loc[df.loc[:, (header, ind, k, 'likelihood')] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD, (header, ind, k, c)] = np.nan
+                    # df.loc[df.loc[:, (header, ind, k, 'likelihood')] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD, (header, ind, k, 'likelihood')] = np.nan
+            # make sure the time mask and the number of values we want to modify are the same
+
+            if not np.sum(df[('scorer', 'individuals', 'bodyparts', 'coords')].isin(time_int)) == data.shape[0]:
+                print('stop')
+            df.loc[df[('scorer', 'individuals', 'bodyparts', 'coords')].isin(time_int), columns] = pd.DataFrame(columns=columns,
+                                                                                             data=data.reshape((data.shape[0], -1)))
+            # for now replace likelihood with -1 to mark the positions where we modified the coordinate values
+            logging.info(f'modifying {data.shape[0]} values between indices {np.min(time_int)} and {np.max(time_int)}')
+        else:
+            # single animal
+            header = [c for c in df.columns.levels[0] if c != 'scorer'][0]
+            keypoints = [bp for bp in df.columns.levels[1] if bp != 'bodyparts']
+            keypoints.sort()
+            coordinates = [c for c in df.columns.levels[2] if c != 'likelihood' and c != 'coords']
+
+            # how to replace the likelihood where we have changed the values
+            columns = []
+            likelihood_columns = []
+            for k in keypoints:
+                likelihood_columns.append((header, k, 'likelihood'))
+                for c in coordinates:
+                    columns.append((header, k, c))
+                    # df.loc[df.loc[:, (header, k, 'likelihood')] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD, (header, k, c)] = np.nan
+                # df.loc[df.loc[:, (header, k, 'likelihood')] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD, (header, k, 'likelihood')] = np.nan
+            assert np.sum(df[('scorer', 'bodyparts', 'coords')].isin(time_int)) == data.shape[0]
+            df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time_int), columns] = pd.DataFrame(columns=columns,
+                                                                                             data=data.reshape((data.shape[0], -1)))
+
+        # save to csv
         df.to_csv(new_file, index=False)
 
     elif dataset_constants.FILE_TYPE == 'dlc_h5':
@@ -168,7 +215,7 @@ def save_data_original_format(data, time, file, dataset_constants, new_folder):
     else:
         raise ValueError(f'File format not understood {file}')
 
-    logging.info(f'-- Saved data of shape {data.shape} in file {new_file}')
+    logging.info(f'-- Modified data of shape {data.shape} saved in file {new_file}')
     return
 
 
@@ -242,8 +289,8 @@ def evaluate(_cfg: DictConfig) -> None:
     """RMSE computation"""
     """Visualization 3D, one timepoint each"""
     data_subpath = os.path.join(dataset_path, 'original_data_format')
-    if not os.path.exists(data_subpath):
-        os.mkdir(data_subpath)
+    rmtree(data_subpath)
+    os.mkdir(data_subpath)
 
     n_plots = 0
 
@@ -406,7 +453,7 @@ def evaluate(_cfg: DictConfig) -> None:
                         print(f)
                         save_data_original_format(dataset.X[i_f], dataset.time[i_f],
                                                   os.path.join(basedir, _cfg.evaluate.path_to_original_files, f),
-                                                  dataset_constants, data_subpath)
+                                                  dataset_constants, cfg_dataset, data_subpath)
 
                 # saving new chunked dataset
                 new_dataset = []

@@ -177,8 +177,8 @@ def my_app(_cfg: DictConfig) -> None:
 
                 logging.info(f'Epoch {ith_epoch:>3}: TrainLoss {ave_loss_train:.6f} EvalLoss {ave_loss_eval:.6f} ')
                 logging.info(f'{"":>11}TrainRMSE {ave_rmse_train:.6f} EvalRMSE {ave_rmse_eval:.6f} ')
-                logging.info(f'{"":>11}Time since beginning: {timeSince(start, (ith_epoch - start_epoch) / _cfg.training.epochs)} '
-                             f'-- Completed: {(ith_epoch - start_epoch) / _cfg.training.epochs * 100:.1f}% \n')
+                logging.info(f'{"":>11}Time since beginning: {timeSince(start, (ith_epoch - start_epoch + 1) / _cfg.training.epochs)} '
+                             f'-- Completed: {(ith_epoch - start_epoch + 1) / _cfg.training.epochs * 100:.1f}% \n')
 
                 file_output.writelines('%.6f %.6f %.6f %.6f %.4f \n' %
                                        (ave_loss_train, ave_rmse_train, ave_loss_eval, ave_rmse_eval,
