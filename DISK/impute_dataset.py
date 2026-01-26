@@ -117,7 +117,11 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
             if not np.sum(df[('scorer', 'individuals', 'bodyparts', 'coords')].isin(time_int)) == data.shape[0]:
                 print('stop')
             logging.debug(f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
-            df.loc[df[('scorer', 'individuals', 'bodyparts', 'coords')].isin(time_int), columns] = data.reshape((data.shape[0], -1))
+
+            to_replace = np.array(data.reshape((data.shape[0], -1)))
+            to_replace[np.isnan(to_replace)] = df.loc[df[('scorer', 'individuals', 'bodyparts', 'coords')].isin(time_int), columns].values[np.isnan(to_replace)]
+            df.loc[df[('scorer', 'individuals', 'bodyparts', 'coords')].isin(time_int), columns] = to_replace
+
             # for now replace likelihood with -1 to mark the positions where we modified the coordinate values
             logging.debug(f'AFTER -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
             logging.info(f'modifying {data.shape[0]} values between indices {np.min(time_int)} and {np.max(time_int)}')
