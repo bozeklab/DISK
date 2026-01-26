@@ -143,7 +143,7 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
             to_replace[np.isnan(to_replace)] = df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time_int), columns].values[np.isnan(to_replace)]
             df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time_int), columns] = to_replace
             logging.info(f'AFTER -- nb of nans in data: {np.sum(np.isnan(to_replace))}; nb of nans in df: {df[columns].isna().sum().sum()}')
-            logging.info(f'modifying {data.size - np.sum(np.isnan(to_replace))} values between indices {np.min(time_int)} and {np.max(time_int)}')
+            logging.info(f'modifying {data.size - np.sum(np.isnan(data))} values between indices {np.min(time_int)} and {np.max(time_int)}')
         # save to csv
         df.to_csv(new_file, index=False)
 
