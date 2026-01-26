@@ -102,7 +102,7 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
             keypoints.sort()
             coordinates = [c for c in df.columns.levels[3] if c != 'likelihood' and c != 'coords']
 
-            # how to replace the likelihood where we have changed the values
+            # WIP: how to replace the likelihood where we have changed the values
             columns = []
             likelihood_columns = []
             for ind in individuals:
@@ -115,7 +115,7 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
             # make sure the time mask and the number of values we want to modify are the same
 
             if not np.sum(df[('scorer', 'individuals', 'bodyparts', 'coords')].isin(time_int)) == data.shape[0]:
-                print('stop')
+                raise ValueError('[save_data_original_format][dlc_csv] shape incompatibility')
             logging.info(f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
 
             to_replace = np.array(data.reshape((data.shape[0], -1)))

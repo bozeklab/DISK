@@ -206,13 +206,15 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
         content = h5py.File(f)
         extracted_content = np.vstack([c[1] for c in content['df_with_missing']['table'][:]])
         mask_columns_likelihood = np.all((extracted_content <= 1) * (extracted_content >= 0) | (np.isnan(extracted_content) == True), axis=0)
-        likelihood_columns = extracted_content[:, mask_columns_likelihood] <= dlc_likelihood_threshold
+        likelihood_columns = np.logical_or(extracted_content[:, mask_columns_likelihood] <= dlc_likelihood_threshold, np.isnan(extracted_content[:, mask_columns_likelihood]))
         coordinates_columns = extracted_content[:, ~mask_columns_likelihood]
         n_dim = coordinates_columns.shape[1] / likelihood_columns.shape[1]
         assert int(n_dim) == n_dim
         n_dim = int(n_dim)
+        mask3 = np.any(np.isnan(coordinates_columns.reshape(-1, likelihood_columns.shape[1], n_dim)), axis=-1)
         for i_dim in range(n_dim):
             coordinates_columns[:, i_dim::n_dim][likelihood_columns] = np.nan
+            coordinates_columns[:, i_dim::n_dim][mask3] = np.nan
         data = coordinates_columns.reshape((coordinates_columns.shape[0], -1, n_dim))
 
         # EDIT: Extract keypoint names
