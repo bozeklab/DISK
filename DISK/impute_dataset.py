@@ -140,7 +140,7 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
             assert np.sum(df[('scorer', 'bodyparts', 'coords')].isin(time_int)) == data.shape[0]
             logging.info(f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
             to_replace = np.array(data.reshape((data.shape[0], -1)))
-            to_replace[np.isnan(to_replace)] = df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time_int), columns].values
+            to_replace[np.isnan(to_replace)] = df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time_int), columns].values[np.isnan(to_replace)]
             df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time_int), columns] = to_replace
             logging.info(f'AFTER -- nb of nans in data: {np.sum(np.isnan(to_replace))}; nb of nans in df: {df[columns].isna().sum().sum()}')
             logging.info(f'modifying {data.shape[0]} values between indices {np.min(time_int)} and {np.max(time_int)}')
