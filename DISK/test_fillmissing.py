@@ -147,19 +147,24 @@ def evaluate(_cfg: DictConfig) -> None:
     if not os.path.isdir(visualize_val_outputdir):
         os.mkdir(visualize_val_outputdir)
 
+    swap_bool = bool(_cfg['feed_data']['transforms']['swap'])
     mean_RMSE = []
     for i_repeat in range(_cfg.evaluate.n_repeat):
         suffix = _cfg.evaluate.suffix + f'_repeat-{i_repeat}'
         """RMSE computation"""
         total_rmse = {'id_sample': [], 'id_hole':[], 'keypoint':[], 'method':[], 'method_param':[],
                       'RMSE':[], 'MPJPE':[], pck_name:[], 'mean_uncertainty':[], 'length_hole':[],
-                      'swap_kp_id': [], 'swap_length': [], 'average_dist_bw_swap_kp': []
                       }
+        if swap_bool:
+            total_rmse['swap_kp_id'] = []
+            total_rmse['swap_length'] = []
+            total_rmse['average_dist_bw_swap_kp'] = []
+
         id_sample = 0
         n_plots = 0
         """Visualization 3D, one timepoint each"""
 
-        with torch.no_grad():
+        with (torch.no_grad()):
             logging.info(f'Starting evaluation...')
 
             for ind, data_dict in tqdm.tqdm(enumerate(test_loader), desc='Iterating on batch', total=len(test_loader)):
@@ -168,9 +173,10 @@ def evaluate(_cfg: DictConfig) -> None:
                 data_with_holes = data_dict['X'].to(device)  # shape (timepoints, n_keypoints, 2 or 3 or 4)
                 data_full = data_dict['x_supp'].to(device)
                 mask_holes = data_dict['mask_holes'].to(device)
-                data_swapped_np = data_dict['x_swap'].detach().cpu().numpy() if 'x_swap' in data_dict \
-                                  else np.zeros((_cfg.evaluate.batch_size, data_dict['X'].shape[1], dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER)) * np.nan
-                swap_bool = True if 'x_swap' in data_dict else False
+                if swap_bool:
+                    data_swapped_np = data_dict['x_swap'].detach().cpu().numpy()
+                    #if 'x_swap' in data_dict \
+                    #                  else np.zeros((_cfg.evaluate.batch_size, data_dict['X'].shape[1], dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER)) * np.nan
                 assert not torch.any(torch.isnan(data_with_holes))
                 assert not torch.any(torch.isnan(data_full))
 
@@ -247,20 +253,21 @@ def evaluate(_cfg: DictConfig) -> None:
                         bandexcess[i_model] = be[n_missing > 0] / be[n_missing > 0]
 
                 for i_sample_in_batch in range(data_with_holes_np.shape[0]):
-                    swapped_kp_ids = np.unique(
-                        np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[
-                            1])
-                    swap_times = np.unique(
-                        np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[
-                            0])
-                    swap_length = np.max(swap_times) - np.min(swap_times) + 1
-                    # euclidean distance between keypoints that are swapped during the swap
-                    logging.debug(
-                        f'[DEBUG] {data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids].shape} should be (Tbis, 2, 3) -- ')
-                    swap_dist = np.mean(np.sqrt(np.sum((data_swapped_np[i_sample_in_batch, swap_times][:,
-                                                        swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times][:,
-                                                                          swapped_kp_ids]) ** 2, axis=-1)))
-                    logging.debug(
+                    if swap_bool:
+                        swapped_kp_ids = np.unique(
+                            np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[
+                                1])
+                        swap_times = np.unique(
+                            np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[
+                                0])
+                        swap_length = np.max(swap_times) - np.min(swap_times) + 1
+                        # Euclidean distance between keypoints that are swapped during the swap
+                        logging.debug(
+                            f'[DEBUG] {data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids].shape} should be (Tbis, 2, 3) -- ')
+                        swap_dist = np.mean(np.sqrt(np.sum((data_swapped_np[i_sample_in_batch, swap_times][:,
+                                                            swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times][:,
+                                                                              swapped_kp_ids]) ** 2, axis=-1)))
+                        logging.debug(
                         f'{np.sum((data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times][:, swapped_kp_ids])**2, axis=-1).shape} should be (T, 2)')
 
                     ## gives the length of a hole, one keypoint at a time, a sample can have multiple holes one after the other:
@@ -282,9 +289,10 @@ def evaluate(_cfg: DictConfig) -> None:
                             total_rmse[pck_name].append(mean_pck)
                             total_rmse['mean_uncertainty'].append(np.nan)
                             total_rmse['length_hole'].append(o[1])
-                            total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
-                            total_rmse['swap_length'].append(swap_length)
-                            total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
+                            if swap_bool:
+                                total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
+                                total_rmse['swap_length'].append(swap_length)
+                                total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
 
                         if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                             mean_rmse_linear = np.sqrt(np.mean(rmse_linear_interp[slice_]))
@@ -301,9 +309,10 @@ def evaluate(_cfg: DictConfig) -> None:
                             total_rmse[pck_name].append(mean_pck_linear)
                             total_rmse['mean_uncertainty'].append(np.nan)
                             total_rmse['length_hole'].append(o[1])
-                            total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
-                            total_rmse['swap_length'].append(swap_length)
-                            total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
+                            if swap_bool:
+                                total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
+                                total_rmse['swap_length'].append(swap_length)
+                                total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
                         id_hole += 1
 
                     ## the sample as a whole, not hole by hole
@@ -320,9 +329,10 @@ def evaluate(_cfg: DictConfig) -> None:
                             n_missing[i_sample_in_batch])
                         total_rmse['mean_uncertainty'].append(np.nan)
                         total_rmse['length_hole'].append(n_missing[i_sample_in_batch])
-                        total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
-                        total_rmse['swap_length'].append(swap_length)
-                        total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
+                        if swap_bool:
+                            total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
+                            total_rmse['swap_length'].append(swap_length)
+                            total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
                     for i_model in range(n_models):
                         if model_configs[i_model].training.mu_sigma:
                             mean_uncertainty_model = np.sum(uncertainty[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch]
@@ -340,9 +350,10 @@ def evaluate(_cfg: DictConfig) -> None:
                                 i_sample_in_batch])
                         total_rmse['mean_uncertainty'].append(mean_uncertainty_model)
                         total_rmse['length_hole'].append(n_missing[i_sample_in_batch])
-                        total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
-                        total_rmse['swap_length'].append(swap_length)
-                        total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
+                        if swap_bool:
+                            total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
+                            total_rmse['swap_length'].append(swap_length)
+                            total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
                     id_sample += 1
 
                 """VISUALIZATION, only first batch"""
