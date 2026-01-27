@@ -483,7 +483,7 @@ def create_dataset(_cfg: DictConfig) -> None:
             for i_length, length in enumerate(fulllength_maxlength[(nan_name, partition)]):
                 sub_fulllength_time[i_length, :length] = fulllength_time[(nan_name, partition)][i_length]
 
-            logging.info(f'In {partition} with {nan_name} NaNs, Shape: {subdata.shape}')
+            logging.info(f'In {partition} with {nan_name} NaNs, Shape: {subdata.shape}. Fulllength: {sub_fulllength_data.shape}')
             outputfile = os.path.join(outputdir, f'{partition}_dataset_w-{nan_name}-nans')
             print(f'saving in {outputfile}...')
             np.savez(outputfile, X=subdata, lengths=sublengths)
