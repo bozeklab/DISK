@@ -186,7 +186,7 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
 
             # for now replace likelihood with -1 to mark the positions where we modified the coordinate values
             logging.info(f'AFTER -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
-            logging.info(f'modifying {np.sum(~np.isnan(data))} values between indices {np.min(time_int)} and {np.max(time_int)}')
+            logging.info(f'modifying values between indices {np.min(time_int)} and {np.max(time_int)}')
         else:
             # single animal
             header = [c for c in df.columns.levels[0] if c != 'scorer'][0]
@@ -212,11 +212,12 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
             df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time_int), columns] = to_replace
 
             logging.info(f'AFTER -- nb of nans in data: {np.sum(np.isnan(to_replace))}; nb of nans in df: {df[columns].isna().sum().sum()}')
-            logging.info(f'modifying {np.sum(~np.isnan(data))} values between indices {np.min(time_int)} and {np.max(time_int)}')
+            logging.info(f'modifying values between indices {np.min(time_int)} and {np.max(time_int)}')
 
         if dataset_constants.FILE_TYPE == 'dlc_csv':
             # save to csv
             df.to_csv(new_file, index=False)
+
         elif dataset_constants.FILE_TYPE == 'dlc_h5':
             attrs_dict = dict(content['df_with_missing']['table'].attrs)
             i_table = content['df_with_missing']['_i_table']
@@ -231,8 +232,14 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
 
     elif dataset_constants.FILE_TYPE == 'npy':
         ## for human MoCap files
-        np.save(new_file, np.array(data, dtype=[(k, np.float64) for k in dataset_constants.KEYPOINTS]))
-        print('saved in ', new_file)
+        time_int = np.array(np.round(time * dataset_constants.FREQ, 0), dtype=np.uint64)
+        orig_data = np.load(file)
+        to_replace = np.array(data)
+        to_replace[np.isnan(to_replace)] = orig_data[time_int][np.isnan(to_replace)]
+        np.save(new_file, data)
+        logging.info(
+            f'modifying {np.sum(~np.isclose(to_replace, orig_data))} values between indices {np.min(time_int)} '
+            f'and {np.max(time_int)}, file: {os.path.basename(new_file)}')
 
     elif dataset_constants.FILE_TYPE == 'df3d_pkl':
         ## for DeepFly data
@@ -281,7 +288,6 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
     else:
         raise ValueError(f'File format not understood {file}')
 
-    logging.info(f'-- Modified data of shape {data.shape} saved in file {new_file}')
     return
 
 
@@ -517,7 +523,6 @@ def evaluate(_cfg: DictConfig) -> None:
 
                 if dataset.files is not None:
                     for i_f, f in enumerate(dataset.files):
-                        print(f)
                         save_data_original_format(dataset.X[i_f], dataset.time[i_f],
                                                   os.path.join(basedir, _cfg.evaluate.path_to_original_files, f),
                                                   dataset_constants, cfg_dataset, data_subpath)
