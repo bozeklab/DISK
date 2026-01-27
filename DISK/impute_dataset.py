@@ -1,4 +1,5 @@
 import os
+import shutil
 from glob import glob
 from pathlib import Path
 import logging
@@ -86,13 +87,74 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
         df.loc[:, 'time'] = time
         df.to_csv(new_file, index=False)
 
-    elif dataset_constants.FILE_TYPE == 'dlc_csv':
-        ## for csv from DeepLabCut
-        df = pd.read_csv(file, header=[0, 1, 2])
+    elif 'dlc' in dataset_constants.FILE_TYPE:
+
+        if dataset_constants.FILE_TYPE == 'dlc_h5':
+            content = h5py.File(file)
+            extracted_content = np.vstack([c[1] for c in content['df_with_missing']['table'][:]])
+            values_block = content['df_with_missing']['table'].attrs['values_block_0_kind']
+            multi_index = pickle.loads(values_block)
+
+            index = pd.MultiIndex.from_tuples(multi_index)
+            df = pd.DataFrame(columns=index, data=extracted_content)
+
+            if len(multi_index[0]) > 3:
+                # multianimal
+                df.loc[:, ('scorer', 'individuals', 'bodyparts', 'coords')] = np.arange(len(df))
+
+            else:
+                # 1 animal
+                df.loc[:, ('scorer', 'bodyparts', 'coords')] = np.arange(len(df))
+
+        elif dataset_constants.FILE_TYPE == 'dlc_csv':
+            ## for csv from DeepLabCut
+            df = pd.read_csv(file, header=[0, 1, 2])
+            #
+            # mask_columns_likelihood = np.all(
+            #     (extracted_content <= 1) * (extracted_content >= 0) | (np.isnan(extracted_content) == True), axis=0)
+            # likelihood_columns = np.logical_or(
+            #     extracted_content[:, mask_columns_likelihood] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD,
+            #     np.isnan(extracted_content[:, mask_columns_likelihood]))
+            # coordinates_columns = extracted_content[:, ~mask_columns_likelihood]
+            #
+            # n_dim = coordinates_columns.shape[1] / likelihood_columns.shape[1]
+            # assert int(n_dim) == n_dim
+            # n_dim = int(n_dim)
+            # # mask3 = np.any(np.isnan(coordinates_columns.reshape(-1, likelihood_columns.shape[1], n_dim)), axis=-1)
+            # # extracted_content[:, n_dim::(n_dim + 1)][likelihood_columns] = np.nan
+            #
+            # # EDIT: Extract keypoint names
+            #
+            # # EDIT: Multi-animal scenario
+            # if len(multi_index[0]) > 3:
+            #     individuals = list(dict.fromkeys([item[1] for item in multi_index]))
+            #     keypoints = list(dict.fromkeys([item[2] for item in multi_index]))
+            #
+            #     new_keypoints = []
+            #     for animal_id in range(len(individuals)):
+            #         new_keypoints.extend([f'animal{animal_id}_{k}' for k in keypoints])
+            #     keypoints = new_keypoints
+            # else:
+            #     keypoints = [item[1] for item in multi_index]
+            #
+            # # all_keypoints = [f'{i:02d}' for i in range(int(extracted_content.shape[1] / (n_dim + 1)))]
+            # time_int = np.array(np.round(time * dataset_constants.FREQ, 0), dtype=np.uint64)
+            # mask_data_nan = np.isnan(data)
+            # for i_dim in range(n_dim):
+            #     for data_index_kp, k in enumerate(dataset_constants.KEYPOINTS):
+            #         orig_index_kp = keypoints.index(k)
+            #         to_replace = np.array(data[:, data_index_kp, i_dim])
+            #         to_replace[mask_data_nan[:, data_index_kp, i_dim]] = \
+            #         extracted_content[time.astype(int), orig_index_kp * (n_dim + 1)][
+            #             mask_data_nan[:, data_index_kp, i_dim]]
+            #         extracted_content[time.astype(int), orig_index_kp * (n_dim + 1)] = to_replace
+
+
         time_int = np.array(np.round(time * dataset_constants.FREQ, 0), dtype=np.uint64)
 
         if 'individuals' in df.columns.levels[1]:
-            df = pd.read_csv(file, header=[0, 1, 2, 3])
+            if dataset_constants.FILE_TYPE == 'dlc_csv':
+                df = pd.read_csv(file, header=[0, 1, 2, 3])
             header = [c for c in df.columns.levels[0] if c != 'scorer'][0]
 
             # multianimal
@@ -142,34 +204,30 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
                     # df.loc[df.loc[:, (header, k, 'likelihood')] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD, (header, k, c)] = np.nan
                 # df.loc[df.loc[:, (header, k, 'likelihood')] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD, (header, k, 'likelihood')] = np.nan
             assert np.sum(df[('scorer', 'bodyparts', 'coords')].isin(time_int)) == data.shape[0]
+
             logging.info(f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
+
             to_replace = np.array(data.reshape((data.shape[0], -1)))
             to_replace[np.isnan(to_replace)] = df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time_int), columns].values[np.isnan(to_replace)]
             df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time_int), columns] = to_replace
+
             logging.info(f'AFTER -- nb of nans in data: {np.sum(np.isnan(to_replace))}; nb of nans in df: {df[columns].isna().sum().sum()}')
             logging.info(f'modifying {np.sum(~np.isnan(data))} values between indices {np.min(time_int)} and {np.max(time_int)}')
-        # save to csv
-        df.to_csv(new_file, index=False)
 
-    elif dataset_constants.FILE_TYPE == 'dlc_h5':
-        content = h5py.File(file)
-        extracted_content = np.vstack([c[1] for c in content['df_with_missing']['table'][:]])
-        mask_columns_likelihood = np.all((extracted_content <= 1) * (extracted_content >= 0), axis=0)
-        likelihood_columns = extracted_content[:, mask_columns_likelihood] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD
-        coordinates_columns = extracted_content[:, ~mask_columns_likelihood]
-        n_dim = coordinates_columns.shape[1] / likelihood_columns.shape[1]
-        assert int(n_dim) == n_dim
-        n_dim = int(n_dim)
-        extracted_content[:, n_dim::(n_dim + 1)][likelihood_columns] = np.nan
-        all_keypoints = [f'{i:02d}' for i in range(int(extracted_content.shape[1] / (n_dim + 1)))]
-        for i_dim in range(n_dim):
-            for data_index_kp, k in enumerate(dataset_constants.KEYPOINTS):
-                orig_index_kp = all_keypoints.index(k)
-                extracted_content[time.astype(int), orig_index_kp * (n_dim + 1)] = data[:, data_index_kp, i_dim]
-
-        with h5py.File(new_file, 'w') as openedf:
-            openedf.create_dataset('df_with_missing/table', data=extracted_content)
-            openedf.create_group('df_with_missing/_i_table', content['df_with_missing']['_i_table'])
+        if dataset_constants.FILE_TYPE == 'dlc_csv':
+            # save to csv
+            df.to_csv(new_file, index=False)
+        elif dataset_constants.FILE_TYPE == 'dlc_h5':
+            attrs_dict = dict(content['df_with_missing']['table'].attrs)
+            i_table = content['df_with_missing']['_i_table']
+            content.close()
+            with h5py.File(new_file, 'w') as openedf:
+                dataset = openedf.create_dataset('df_with_missing/table',
+                                                 data=np.array([(int(i_), c) for i_, c in zip(df.values[:, -1], df.values[:, :-1])],
+                                                               dtype=[('index', '<i8'), ('values_block_0', '<f8', (df.shape[1] -1,))]))
+                for k, v in attrs_dict.items():
+                    dataset.attrs[k] = v
+                openedf.create_group('df_with_missing/_i_table', i_table)
 
     elif dataset_constants.FILE_TYPE == 'npy':
         ## for human MoCap files
