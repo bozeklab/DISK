@@ -9,6 +9,7 @@ discard_end: -1
 fill_gap: 0
 drop_keypoints: null
 sequential: false
+dlc_likelihood_threshold: 0
 input_files:
 - /projects/ag-bozek/france/behavior_data/mocap_dataset/mocap_3djoints/01_01.npy
 - /projects/ag-bozek/france/behavior_data/mocap_dataset/mocap_3djoints/01_02.npy
