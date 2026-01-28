@@ -46,6 +46,8 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
 
     data = data[time != -1]
     time = time[time != -1] # time is original time / subsampling_freq
+    time_int = np.array(np.round(time * dataset_constants.FREQ, 0), dtype=np.uint64)
+
     if dataset_constants.ORIG_FREQ > dataset_constants.FREQ:
         time_orig = np.unique(np.linspace(time[0] * dataset_constants.ORIG_FREQ / dataset_constants.FREQ,
                                 time[-1] * dataset_constants.ORIG_FREQ / dataset_constants.FREQ,
@@ -54,6 +56,7 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
         data_orig = np.vstack([np.interp(time_orig, time, d) for d in data.T]).T
         time = time_orig
         data = data_orig
+
     data = data[:len(time)].reshape((time.shape[0], len(dataset_constants.KEYPOINTS), -1))
 
     if dataset_constants.FILE_TYPE == 'mat_dannce':
@@ -77,17 +80,25 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
 
     elif dataset_constants.FILE_TYPE == 'simple_csv':
         ## for fish data from Liam
-        # columns time, keypoint_x, kp_y, kp_z
-        # sort the keypoints with np.unique
+        # columns frame_index, keypoint_x, kp_y, kp_z
+
         columns = []
         for k in dataset_constants.KEYPOINTS:
-            columns.extend([k + '_x', k + '_y', k + '_z'])
-        # get the columns corresponding to sorted keypoints so the data can be stacked
-        df = pd.DataFrame(columns=columns, data=data.reshape((data.shape[0], -1)))
-        df.loc[:, 'time'] = time
+            for ii in range(dataset_constants.DIVIDER):
+                columns.append(k + ['_x', '_y', '_z'][ii])
+
+        df = pd.read_csv(file)
+        to_replace = data.reshape((data.shape[0], -1))
+        if np.any(np.isnan(to_replace)):
+            to_replace[np.isnan(to_replace)] = df.loc[time_int, columns][np.isnan(to_replace)].values
+        df.loc[time_int, columns] = to_replace
+
         df.to_csv(new_file, index=False)
 
     elif 'dlc' in dataset_constants.FILE_TYPE:
+        # the dlc_h5 format is quite similar as dlc csv, the "table" is corresponding to the values of the csv
+        # the idea is to do the manipulation on a pandas df format
+        # the df is a multi-index df with 3 levels when 1 animal, and 4 levels when multianimal
 
         if dataset_constants.FILE_TYPE == 'dlc_h5':
             content = h5py.File(file)
@@ -101,7 +112,6 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
             if len(multi_index[0]) > 3:
                 # multianimal
                 df.loc[:, ('scorer', 'individuals', 'bodyparts', 'coords')] = np.arange(len(df))
-
             else:
                 # 1 animal
                 df.loc[:, ('scorer', 'bodyparts', 'coords')] = np.arange(len(df))
@@ -109,48 +119,6 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
         elif dataset_constants.FILE_TYPE == 'dlc_csv':
             ## for csv from DeepLabCut
             df = pd.read_csv(file, header=[0, 1, 2])
-            #
-            # mask_columns_likelihood = np.all(
-            #     (extracted_content <= 1) * (extracted_content >= 0) | (np.isnan(extracted_content) == True), axis=0)
-            # likelihood_columns = np.logical_or(
-            #     extracted_content[:, mask_columns_likelihood] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD,
-            #     np.isnan(extracted_content[:, mask_columns_likelihood]))
-            # coordinates_columns = extracted_content[:, ~mask_columns_likelihood]
-            #
-            # n_dim = coordinates_columns.shape[1] / likelihood_columns.shape[1]
-            # assert int(n_dim) == n_dim
-            # n_dim = int(n_dim)
-            # # mask3 = np.any(np.isnan(coordinates_columns.reshape(-1, likelihood_columns.shape[1], n_dim)), axis=-1)
-            # # extracted_content[:, n_dim::(n_dim + 1)][likelihood_columns] = np.nan
-            #
-            # # EDIT: Extract keypoint names
-            #
-            # # EDIT: Multi-animal scenario
-            # if len(multi_index[0]) > 3:
-            #     individuals = list(dict.fromkeys([item[1] for item in multi_index]))
-            #     keypoints = list(dict.fromkeys([item[2] for item in multi_index]))
-            #
-            #     new_keypoints = []
-            #     for animal_id in range(len(individuals)):
-            #         new_keypoints.extend([f'animal{animal_id}_{k}' for k in keypoints])
-            #     keypoints = new_keypoints
-            # else:
-            #     keypoints = [item[1] for item in multi_index]
-            #
-            # # all_keypoints = [f'{i:02d}' for i in range(int(extracted_content.shape[1] / (n_dim + 1)))]
-            # time_int = np.array(np.round(time * dataset_constants.FREQ, 0), dtype=np.uint64)
-            # mask_data_nan = np.isnan(data)
-            # for i_dim in range(n_dim):
-            #     for data_index_kp, k in enumerate(dataset_constants.KEYPOINTS):
-            #         orig_index_kp = keypoints.index(k)
-            #         to_replace = np.array(data[:, data_index_kp, i_dim])
-            #         to_replace[mask_data_nan[:, data_index_kp, i_dim]] = \
-            #         extracted_content[time.astype(int), orig_index_kp * (n_dim + 1)][
-            #             mask_data_nan[:, data_index_kp, i_dim]]
-            #         extracted_content[time.astype(int), orig_index_kp * (n_dim + 1)] = to_replace
-
-
-        time_int = np.array(np.round(time * dataset_constants.FREQ, 0), dtype=np.uint64)
 
         if 'individuals' in df.columns.levels[1]:
             if dataset_constants.FILE_TYPE == 'dlc_csv':
@@ -232,13 +200,15 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
 
     elif dataset_constants.FILE_TYPE == 'npy':
         ## for human MoCap files
-        time_int = np.array(np.round(time * dataset_constants.FREQ, 0), dtype=np.uint64)
+        # plain npy, no keypoints name, expected shape (n_samples, n_keypoints, n_dim)
+
         orig_data = np.load(file)
-        to_replace = np.array(data)
-        to_replace[np.isnan(to_replace)] = orig_data[time_int][np.isnan(to_replace)]
-        np.save(new_file, data)
+        to_save = np.array(orig_data)
+        to_save[time_int][~np.isnan(data)] = data[~np.isnan(data)]
+        np.save(new_file, to_save)
+
         logging.info(
-            f'modifying {np.sum(~np.isclose(to_replace, orig_data))} values between indices {np.min(time_int)} '
+            f'modifying {np.sum(~np.isclose(to_save, orig_data))} values between indices {np.min(time_int)} '
             f'and {np.max(time_int)}, file: {os.path.basename(new_file)}')
 
     elif dataset_constants.FILE_TYPE == 'df3d_pkl':
@@ -267,23 +237,6 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
         with h5py.File(new_file, 'w') as openedf:
             openedf['tracks'] = data.T
             openedf["node_names"] = keypoints_per_animal
-        #
-        # if data.shape[3] > 1:
-        #     # multi-animal scenario
-        #     new_keypoints = []
-        #     for animal_id in range(data.shape[3]):
-        #         new_keypoints.extend([f'animal{animal_id}_{k}' for k in keypoints])
-        #     keypoints = new_keypoints
-        #     data = np.moveaxis(data, 3, 1).reshape(data.shape[0], -1, data.shape[2])
-        # else:
-        #     # one animal, remove the last axis
-        #     data = data[..., 0]
-        #
-        # # very important
-        # # make sure the keypoints are always in the same order even if not saved so in the original files
-        # new_order = np.argsort(keypoints)
-        # keypoints = [keypoints[n] for n in new_order]
-        # data = data[:, new_order]
 
     else:
         raise ValueError(f'File format not understood {file}')
