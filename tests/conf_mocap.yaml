@@ -3,6 +3,7 @@ original_freq: 12
 subsampling_freq: 12
 length: 60
 stride: 30
+file_type: npy
 discard_beginning: 0
 discard_end: -1
 fill_gap: 0
