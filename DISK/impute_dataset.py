@@ -204,7 +204,9 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
 
         orig_data = np.load(file)
         to_save = np.array(orig_data)
-        to_save[time_int][~np.isnan(data)] = data[~np.isnan(data)]
+        to_data = np.array(data)
+        to_data[~np.isnan(orig_data[time_int])] = to_save[time_int][~np.isnan(orig_data[time_int])]
+        to_save[time_int] = to_data
         np.save(new_file, to_save)
 
         logging.info(
