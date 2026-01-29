@@ -10,9 +10,11 @@ from DISK.models.transformer import TransformerModel
 
 
 def _rmse(data, de_out, mask_holes_tensor, n_missing_per_sample):
-    rmse = torch.sum(torch.sqrt(((de_out - data) ** 2) * mask_holes_tensor)[:, 1:, :], dim=(1, 2, 3))
-    rmse = torch.masked_select(rmse, n_missing_per_sample > 0) / \
-           torch.masked_select(n_missing_per_sample, n_missing_per_sample > 0)
+    rmse = torch.sum(torch.sum(((de_out - data) ** 2) * mask_holes_tensor, dim=3)[:, 1:, :], dim=(1, 2))
+    rmse = torch.sqrt(torch.masked_select(rmse, n_missing_per_sample > 0) / \
+                      torch.masked_select(n_missing_per_sample, n_missing_per_sample > 0))
+    # np.sum(((out - full_data_np) ** 2) * reshaped_mask_holes, axis=3)
+    # mean_rmse = np.sqrt(np.mean(rmse[i_model][slice_]))
 
     if torch.any(torch.isnan(rmse)):
         raise ValueError('[ERROR][TRAIN_FILMISSING][_rmse function] !!!! nan in RMSE !!!!')
