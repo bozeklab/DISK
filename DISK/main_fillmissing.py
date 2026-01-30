@@ -8,11 +8,11 @@ basedir = '.'
 import matplotlib.pyplot as plt
 import time
 import random
-import logging
 import pandas as pd
 import hydra
 from omegaconf import DictConfig
 
+from DISK.utils.logger_setup import logger
 from DISK.utils.dataset_utils import load_datasets
 from DISK.utils.utils import read_constant_file, plot_training, timeSince, load_checkpoint, \
     save_checkpoint
@@ -36,12 +36,12 @@ def my_app(_cfg: DictConfig) -> None:
 
     outputdir = os.getcwd()
     basedir = hydra.utils.get_original_cwd()
-    logging.info(f'basedir: {basedir}')
+    logger.info(f'basedir: {basedir}')
 
     torch.autograd.set_detect_anomaly(True)
     """ LOGGING AND PATHS """
 
-    logging.info(f'{_cfg}')
+    logger.info(f'{_cfg}')
 
     constant_file_path = os.path.join(basedir, 'datasets', _cfg.dataset.name, f'constants.py')
     if not os.path.exists(constant_file_path):
@@ -49,7 +49,7 @@ def my_app(_cfg: DictConfig) -> None:
     dataset_constants = read_constant_file(constant_file_path)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    logging.info("Device: {}".format(device))
+    logger.info("Device: {}".format(device))
 
     print_every = _cfg.training.get('print_every', 1)
 
@@ -57,7 +57,7 @@ def my_app(_cfg: DictConfig) -> None:
     transforms, _ = init_transforms(_cfg, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
                                  dataset_constants.SEQ_LENGTH, basedir, outputdir)
 
-    logging.info('Loading datasets...')
+    logger.info('Loading datasets...')
     if _cfg.dataset.skeleton_file is not None:
         skeleton_file_path = os.path.join(basedir, 'datasets', _cfg.dataset.skeleton_file)
         if not os.path.exists(skeleton_file_path):
@@ -82,12 +82,12 @@ def my_app(_cfg: DictConfig) -> None:
                             num_workers=_cfg.training.n_cpus)
 
     """ MODEL INITIALIZATION """
-    logging.info('Initializing prediction model...')
+    logger.info('Initializing prediction model...')
     # load model
     model = construct_NN_model(_cfg, dataset_constants, skeleton_file_path, device)
 
-    logging.info(f'{model}')
-    logging.info(f'Nb of NN parameters: {np.sum([p.numel() for p in model.parameters() if p.requires_grad])}')
+    logger.info(f'{model}')
+    logger.info(f'Nb of NN parameters: {np.sum([p.numel() for p in model.parameters() if p.requires_grad])}')
 
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
                                  lr=_cfg.training.learning_rate)
@@ -175,9 +175,10 @@ def my_app(_cfg: DictConfig) -> None:
                 ave_loss_eval, ave_rmse_eval, _ = compute_loss(model, val_loader, dataset_constants.DIVIDER,
                                                                criterion_seq, _cfg, device)
 
-                logging.info(f'Epoch {ith_epoch:>3}: TrainLoss {ave_loss_train:.6f} EvalLoss {ave_loss_eval:.6f} ')
-                logging.info(f'{"":>11}TrainRMSE {ave_rmse_train:.6f} EvalRMSE {ave_rmse_eval:.6f} ')
-                logging.info(f'{"":>11}Time since beginning: {timeSince(start, (ith_epoch - start_epoch + 1) / _cfg.training.epochs)} '
+                logger.info(f'Epoch {ith_epoch:>3}: TrainLoss {ave_loss_train:.6f} EvalLoss {ave_loss_eval:.6f} ')
+                logger.info(f'{"":>11}TrainRMSE {ave_rmse_train:.6f} EvalRMSE {ave_rmse_eval:.6f} ')
+                logger.info(f'{"":>11}Time since beginning: '
+                            f'{timeSince(start, (ith_epoch - start_epoch + 1) / _cfg.training.epochs)} '
                              f'-- Completed: {(ith_epoch - start_epoch + 1) / _cfg.training.epochs * 100:.1f}% \n')
 
                 file_output.writelines('%.6f %.6f %.6f %.6f %.4f \n' %
@@ -191,7 +192,7 @@ def my_app(_cfg: DictConfig) -> None:
                             # overwrite and make the file blank instead - ref: https://stackoverflow.com/a/4914288/3553367
                             open(os.path.join(outputdir, item), 'w').close()
                             os.remove(os.path.join(outputdir, item))
-                    logging.info('saving model...')
+                    logger.info('saving model...')
                     path_model = os.path.join(os.path.join(outputdir, f'model_epoch{ith_epoch}'))
                     value_dict = {'ave_loss_train': ave_loss_train,
                                   'ave_rmse_train': ave_rmse_train,
@@ -233,10 +234,5 @@ def my_app(_cfg: DictConfig) -> None:
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO,
-                        format=f'[%(levelname)s][%(asctime)s] %(message)s',
-                        datefmt='%d-%b-%y %H:%M:%S',
-                        )
-    logger = logging.getLogger(__name__)
 
     my_app()

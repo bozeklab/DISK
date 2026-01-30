@@ -2,7 +2,6 @@ import os
 import shutil
 from glob import glob
 from pathlib import Path
-import logging
 from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,6 +14,7 @@ import h5py
 from shutil import rmtree
 
 from DISK.utils.dataset_utils import load_datasets
+from DISK.utils.logger_setup import logger
 from DISK.utils.utils import read_constant_file, load_checkpoint
 from DISK.utils.transforms import init_transforms, reconstruct_before_normalization
 from DISK.utils.train_fillmissing import construct_NN_model, feed_forward
@@ -60,14 +60,16 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
     data = data[:len(time)].reshape((time.shape[0], len(dataset_constants.KEYPOINTS), -1))
 
     if dataset_constants.FILE_TYPE == 'mat_dannce':
-        mat = loadmat(file)
         # for Rat7M dataset
         # mat['mocap'][0][0].dtype.fields.keys = keypoints
-        logging.info(f'Changing file {os.path.basename(file)} from {int(time[0])} to {int(time[-1])}')
+        mat = loadmat(file)
+
+        logger.debug(f'Changing file {os.path.basename(file)} from {int(time[0])} to {int(time[-1])}')
+
         orig_data = np.array(list(mat['mocap'][0][0]))
         orig_data[:, time.astype(int)] = np.moveaxis(data, 0, 1)
         mat['mocap'] = ((orig_data,),)
-        # print(np.array(list(mat['mocap'][0][0])).shape)
+
         savemat(new_file, mat)
 
     elif dataset_constants.FILE_TYPE == 'mat_qualisys':
@@ -88,10 +90,23 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
                 columns.append(k + ['_x', '_y', '_z'][ii])
 
         df = pd.read_csv(file)
+
+        logger.debug(
+            f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; '
+            f'nb of nans in df: {df.loc[time_int, columns].isna().sum().sum()}')
+
         to_replace = data.reshape((data.shape[0], -1))
         if np.any(np.isnan(to_replace)):
-            to_replace[np.isnan(to_replace)] = df.loc[time_int, columns][np.isnan(to_replace)].values
+            to_replace[np.isnan(to_replace)] = df.loc[time_int, columns].values[np.isnan(to_replace)]
+
+        logger.debug(f'modifying {np.sum(~np.isclose(to_replace,  df.loc[time_int, columns].values))} values between '
+                  f'indices {np.min(time_int)} and {np.max(time_int)}')
+
         df.loc[time_int, columns] = to_replace
+
+        logger.debug(
+            f'AFTER -- nb of nans in data: {np.sum(np.isnan(data))}; '
+            f'nb of nans in df: {df.loc[time_int, columns].isna().sum().sum()}')
 
         df.to_csv(new_file, index=False)
 
@@ -146,15 +161,16 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
 
             if not np.sum(df[('scorer', 'individuals', 'bodyparts', 'coords')].isin(time_int)) == data.shape[0]:
                 raise ValueError('[save_data_original_format][dlc_csv] shape incompatibility')
-            logging.info(f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
+
+            logger.debug(f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
 
             to_replace = np.array(data.reshape((data.shape[0], -1)))
             to_replace[np.isnan(to_replace)] = df.loc[df[('scorer', 'individuals', 'bodyparts', 'coords')].isin(time_int), columns].values[np.isnan(to_replace)]
             df.loc[df[('scorer', 'individuals', 'bodyparts', 'coords')].isin(time_int), columns] = to_replace
 
             # for now replace likelihood with -1 to mark the positions where we modified the coordinate values
-            logging.info(f'AFTER -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
-            logging.info(f'modifying values between indices {np.min(time_int)} and {np.max(time_int)}')
+            logger.debug(f'AFTER -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
+            logger.debug(f'modifying values between indices {np.min(time_int)} and {np.max(time_int)}')
         else:
             # single animal
             header = [c for c in df.columns.levels[0] if c != 'scorer'][0]
@@ -173,14 +189,14 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
                 # df.loc[df.loc[:, (header, k, 'likelihood')] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD, (header, k, 'likelihood')] = np.nan
             assert np.sum(df[('scorer', 'bodyparts', 'coords')].isin(time_int)) == data.shape[0]
 
-            logging.info(f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
+            logger.debug(f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
 
             to_replace = np.array(data.reshape((data.shape[0], -1)))
             to_replace[np.isnan(to_replace)] = df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time_int), columns].values[np.isnan(to_replace)]
             df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time_int), columns] = to_replace
 
-            logging.info(f'AFTER -- nb of nans in data: {np.sum(np.isnan(to_replace))}; nb of nans in df: {df[columns].isna().sum().sum()}')
-            logging.info(f'modifying values between indices {np.min(time_int)} and {np.max(time_int)}')
+            logger.debug(f'AFTER -- nb of nans in data: {np.sum(np.isnan(to_replace))}; nb of nans in df: {df[columns].isna().sum().sum()}')
+            logger.debug(f'modifying values between indices {np.min(time_int)} and {np.max(time_int)}')
 
         if dataset_constants.FILE_TYPE == 'dlc_csv':
             # save to csv
@@ -209,7 +225,7 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
         to_save[time_int] = to_data
         np.save(new_file, to_save)
 
-        logging.info(
+        logger.debug(
             f'modifying {np.sum(~np.isclose(to_save, orig_data))} values between indices {np.min(time_int)} '
             f'and {np.max(time_int)}, file: {os.path.basename(new_file)}')
 
@@ -250,11 +266,11 @@ def save_data_original_format(data, time, file, dataset_constants, cfg_dataset, 
 def evaluate(_cfg: DictConfig) -> None:
     outputdir = os.getcwd()
     basedir = hydra.utils.get_original_cwd()
-    logging.info(f'[BASEDIR] {basedir}')
-    logging.info(f'[OUTPUT DIR] {outputdir}')
+    logger.info(f'[BASEDIR] {basedir}')
+    logger.info(f'[OUTPUT DIR] {outputdir}')
     """ LOGGING AND PATHS """
 
-    logging.info(f'{_cfg}')
+    logger.info(f'{_cfg}')
 
     dataset_path = os.path.join(basedir, 'datasets', _cfg.dataset.name)
     constant_file_path = os.path.join(dataset_path, f'constants.py')
@@ -280,20 +296,20 @@ def evaluate(_cfg: DictConfig) -> None:
     cfg_model = None
     if os.path.exists(config_file):
         cfg_model = OmegaConf.load(config_file)
-        logging.info(f'Found model at path {_cfg.evaluate.checkpoint}')
+        logger.info(f'Found model at path {_cfg.evaluate.checkpoint}')
         model_path = glob(os.path.join(_cfg.evaluate.checkpoint, 'model_epoch*'))[0]
     else:
         for path in Path(os.path.join(basedir, _cfg.evaluate.checkpoint)).rglob('model_epoch*'):
-            logging.info(f'Found model at path {str(path)}')
+            logger.info(f'Found model at path {str(path)}')
             config_file = os.path.join(os.path.dirname(path), '.hydra', 'config.yaml')
             cfg_model = OmegaConf.load(config_file)
             model_path = path
     if cfg_model is None:
         raise ValueError(f'no model found at path {_cfg.evaluate.checkpoint}')
-    logging.debug(f'Full path to model: {model_path}')
+    logger.debug(f'Full path to model: {model_path}')
 
     """ DATA """
-    logging.info('Loading prediction model...')
+    logger.info('Loading prediction model...')
     # load model
     model_name = ''
     model = construct_NN_model(cfg_model, dataset_constants, _cfg.dataset.skeleton_file, device)
@@ -351,13 +367,12 @@ def evaluate(_cfg: DictConfig) -> None:
     """LOOPING ON DATA"""
     with torch.no_grad():
         for subset, dataset in {'test': test_dataset, 'val': val_dataset, 'train': train_dataset}.items():
-            logging.info(f'Loading data {subset}')
             data_loader = DataLoader(dataset, batch_size=_cfg.feed_data.batch_size, shuffle=False)
             # num_workers = _cfg.evaluate.n_cpus, persistent_workers = True)
 
             with torch.no_grad():
 
-                for ind, data_dict in tqdm(enumerate(data_loader), desc='Iterating on batch',
+                for ind, data_dict in tqdm(enumerate(data_loader), desc=f'Running DISK on the {subset} dataset',
                                                 total=len(data_loader)):
                     """Compute the prediction from networks"""
 
@@ -465,7 +480,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                 plt.show()
                             n_plots += 1
 
-            logging.info(f'{subset}, dataset_path = {dataset_path}')
+            logger.info(f'{subset}, dataset_path = {dataset_path}')
 
             if _cfg.evaluate.save_dataset:
                 if dataset.y is None:
@@ -488,7 +503,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 new_y = []
                 for i_recording in range(dataset.X.shape[0]):
                     mask_t = dataset.time[i_recording] > -1
-                    logging.debug(f'LINE 412 in IMPUTE_DATASET - shape: {mask_t.shape} {dataset.X[i_recording].shape} {dataset.X[i_recording][mask_t].shape}')
+                    logger.debug(f'LINE 412 in IMPUTE_DATASET - shape: {mask_t.shape} {dataset.X[i_recording].shape} {dataset.X[i_recording][mask_t].shape}')
                     x = dataset.X[i_recording]
                     x = x.reshape(mask_t.shape[0], len(dataset_constants.KEYPOINTS), -1) # should be of shape (timepoints, keypoints, 2 or 3)
                     data, len_, t_ = chop_coordinates_in_timeseries(dataset.time[i_recording][mask_t],
@@ -504,7 +519,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                 np.hstack([np.tile(dataset.y[i_recording], len(len_)).reshape(
                                     (len(len_), dataset.y.shape[-1])), np.expand_dims(t_ / dataset_constants.FREQ, 1)]))
 
-                logging.info(f'New dataset {subset} has shape {np.stack(new_dataset, axis=0).shape}.')
+                logger.debug(f'New dataset {subset} has shape {np.stack(new_dataset, axis=0).shape}.')
                 if dataset.y is None:
                     np.savez(os.path.join(dataset_path, f'{subset}_dataset_imputed.npz'), X=np.stack(new_dataset, axis=0),
                              lengths=np.stack(new_lengths))
@@ -514,11 +529,5 @@ def evaluate(_cfg: DictConfig) -> None:
 
 
 if __name__ == '__main__':
-
-    logging.basicConfig(level=logging.DEBUG,
-                        format=f'[%(levelname)s][%(asctime)s] %(message)s',
-                        datefmt='%d-%b-%y %H:%M:%S',
-                        )
-    logger = logging.getLogger(__name__)
 
     evaluate()

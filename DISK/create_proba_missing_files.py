@@ -4,13 +4,13 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from tqdm import tqdm
 from glob import glob
-import logging
 import seaborn as sns
 import torch
 from torch.utils.data import DataLoader
 import hydra
 from omegaconf import DictConfig
 
+from DISK.utils.logger_setup import logger
 from DISK.utils.dataset_utils import load_datasets
 from DISK.utils.utils import read_constant_file, plot_save, find_holes
 from DISK.utils.transforms import AddMissing_LengthProba
@@ -33,10 +33,10 @@ def create_uniform_proba(min_len, max_len, keypoints):
 def create_proba_missing_files(_cfg: DictConfig) -> None:
     """Check if the artificial missing coordinates match the original coordinates"""
     basedir = hydra.utils.get_original_cwd()
-    logging.info(f'[BASEDIR] {basedir}')
+    logger.info(f'[BASEDIR] {basedir}')
     """ LOGGING AND PATHS """
 
-    logging.info(f'{_cfg}')
+    logger.info(f'{_cfg}')
     outputdir = os.path.join(basedir, 'datasets', _cfg.dataset_name,)
     if not os.path.exists(outputdir):
         os.mkdir(outputdir)
@@ -49,7 +49,7 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
     suffix = f'_set_keypoints' if not _cfg.indep_keypoints else ''
     if _cfg.indep_keypoints:
         if _cfg.merge_keypoints:
-            logging.info(f'merge_keypoints = True is not a valid option when indep_keypoints = True. '
+            logger.info(f'merge_keypoints = True is not a valid option when indep_keypoints = True. '
                          f'merge_keypoints would be considered False')
             suffix += f'_merged'
     no_original_missing = False
@@ -85,7 +85,7 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
         i_data = 0
 
         for data_dict in tqdm(train_loader):
-            logging.debug(f'{df.shape}')
+            logger.debug(f'{df.shape}')
             mask_holes = data_dict['mask_holes']
             mask_original = data_dict['original_mask']
             if torch.any(mask_original == 0):
@@ -111,14 +111,14 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
                     df.loc[df.shape[0], :] = [i_data, int(length_nan), name, original]
                 i_data += 1
 
-        logging.info(f'Done with the loop(s)')
+        logger.info(f'Done with the loop(s)')
         df = df.convert_dtypes()
 
         if initial:
             if len(df[df['original']]) == 0:
                 no_original_missing = True
                 ## no missing datapoints in the original files
-                logging.info(f'No Missing keypoints in the original files. Create uniform missing proba.')
+                logger.info(f'No Missing keypoints in the original files. Create uniform missing proba.')
                 proba_df, df_init_proba = create_uniform_proba(1, dataset_constants.SEQ_LENGTH - 1,
                                                                dataset_constants.KEYPOINTS)
                 suffix = f'_uniform{suffix}'
@@ -173,7 +173,7 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
         elif (not _cfg.merge_keypoints) and initial:
             # the counts here are the counts of starting points
             if not no_original_missing:
-                logging.info('Computing the output proba files')
+                logger.info('Computing the output proba files')
                 total_count_keypoint = df.loc[df['original'], :].groupby(['keypoint'])['index_sample'].agg('count').reset_index().rename({'index_sample': 'total'}, axis=1)
                 count_per_length_keypoint = df.loc[df['original'], :].groupby(['length', 'keypoint'])['index_sample'].agg('count').reset_index().rename({'index_sample': 'count'}, axis=1)
                 proba_df = pd.merge(count_per_length_keypoint, total_count_keypoint, on=['keypoint'], how='left')
@@ -249,15 +249,9 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
             plot_save(count_vs_keypoint, ~initial, title=f'count_vs_keypoint{suffix}', only_png=False,
                       outputdir=outputdir)
 
-        logging.info(f'Done with initial = {initial}')
+        logger.info(f'Done with initial = {initial}')
 
 
 if __name__ == '__main__':
-    """ LOGGING """
-    logging.basicConfig(level=logging.DEBUG,
-                        format=f'[%(levelname)s][%(asctime)s] %(message)s',
-                        datefmt='%d-%b-%y %H:%M:%S')
-    logging.getLogger("matplotlib").setLevel(logging.WARNING)
-    logging.getLogger("numpy").setLevel(logging.WARNING)
 
     create_proba_missing_files()

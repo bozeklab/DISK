@@ -1,7 +1,6 @@
 import os
 import sys
 import tqdm
-import logging
 import numpy as np
 import pandas as pd
 
@@ -34,12 +33,6 @@ if __name__ == '__main__':
     dataset_constants = read_constant_file(os.path.join(os.path.join(basedir, 'results_behavior/datasets', dataset_name,
                                                                      f'constants.py')))
 
-    """ LOGGING """
-    logging.basicConfig(level=logging.INFO,
-                        format=f'[%(levelname)s][%(asctime)s] %(message)s',
-                        datefmt='%d-%b-%y %H:%M:%S')
-    logging.getLogger("matplotlib").setLevel(logging.WARNING)
-    logging.getLogger("numpy").setLevel(logging.WARNING)
     sns.set_style("white")
     transforms = None
     train_dataset, val_dataset, test_dataset = load_datasets(dataset_name=dataset_name,

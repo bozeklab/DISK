@@ -3,9 +3,9 @@ import importlib.util
 import os
 import numpy as np
 import math
-import logging
 import torch
 import time
+from DISK.utils.logger_setup import logger
 
 
 def plot_training(df, offset=10, print_every=1):
@@ -50,7 +50,7 @@ def load_checkpoint(model, optimizer, PATH, device):
     for key in data.keys():
         if key in ['model_state_dict', 'optimizer_state_dict']:
             continue
-        logging.info(f'Loading with {key} = {data[key]}')
+        logger.info(f'Loading with {key} = {data[key]}')
         if key == 'print_every':
             print_every = data['print_every']
         else:

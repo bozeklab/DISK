@@ -1,7 +1,6 @@
 import os, sys
 from glob import glob
 from pathlib import Path
-import logging
 import json
 
 import tqdm
@@ -18,6 +17,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 
 from DISK.utils.dataset_utils import load_datasets
+from DISK.utils.logger_setup import logger
 from DISK.utils.utils import read_constant_file, plot_save, compute_interp, find_holes, load_checkpoint
 from DISK.utils.transforms import init_transforms, reconstruct_before_normalization
 from DISK.utils.train_fillmissing import construct_NN_model, feed_forward_list
@@ -33,11 +33,11 @@ from torch.utils.data import DataLoader
 def evaluate(_cfg: DictConfig) -> None:
     outputdir = os.getcwd()
     basedir = hydra.utils.get_original_cwd()
-    logging.info(f'[BASEDIR] {basedir}')
-    logging.info(f'[OUTPUT DIR] {outputdir}')
+    logger.info(f'[BASEDIR] {basedir}')
+    logger.info(f'[OUTPUT DIR] {outputdir}')
     """ LOGGING AND PATHS """
 
-    logging.info(f'{_cfg}')
+    logger.info(f'{_cfg}')
 
     dataset_constants = read_constant_file(os.path.join(basedir, 'datasets', _cfg.dataset.name, f'constants.py'))
     if _cfg.dataset.skeleton_file is not None:
@@ -58,7 +58,7 @@ def evaluate(_cfg: DictConfig) -> None:
         config_file = os.path.join(cf, '.hydra', 'config.yaml')
         if os.path.exists(config_file):
             cfg_model = OmegaConf.load(config_file)
-            logging.info(f'Found model at path {cf}')
+            logger.info(f'Found model at path {cf}')
             model_path = glob(os.path.join(cf, 'model_epoch*'))[0] # model_epoch to not take the model from the lastepoch
             paths_to_models.append(model_path)
             if not cfg_model.training.get('mu_sigma'):
@@ -66,7 +66,7 @@ def evaluate(_cfg: DictConfig) -> None:
             model_configs.append(cfg_model)
         else:
             for path in Path(os.path.join(basedir, cf)).rglob('model_epoch*'):
-                logging.info(f'Found model at path {str(path)}')
+                logger.info(f'Found model at path {str(path)}')
                 paths_to_models.append(str(path))
                 config_file = os.path.join(os.path.dirname(path), '.hydra', 'config.yaml')
                 cfg_model = OmegaConf.load(config_file)
@@ -75,18 +75,18 @@ def evaluate(_cfg: DictConfig) -> None:
                 model_configs.append(cfg_model)
 
     n_models = len(paths_to_models)
-    logging.info(f'Number of compared models: {n_models}')
+    logger.info(f'Number of compared models: {n_models}')
     if n_models == 0:
         sys.exit('No files found.')
 
-    logging.debug(f'Full path to 1st model: {paths_to_models[0]}')
+    logger.debug(f'Full path to 1st model: {paths_to_models[0]}')
 
     assert len(model_configs) == n_models
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    logging.info("Device: {}".format(device))
+    logger.info("Device: {}".format(device))
 
-    logging.info('Loading prediction model...')
+    logger.info('Loading prediction model...')
     # load model
     models = []
     model_name = []
@@ -104,7 +104,7 @@ def evaluate(_cfg: DictConfig) -> None:
         if not _cfg.evaluate.merge:
             full_name += f'_{imodel}'
         model_name.append(full_name)
-        logging.info(f'Network {full_name} constructed')
+        logger.info(f'Network {full_name} constructed')
 
     for path, model in zip(paths_to_models, models):
         load_checkpoint(model, None, path, device)
@@ -165,7 +165,7 @@ def evaluate(_cfg: DictConfig) -> None:
         """Visualization 3D, one timepoint each"""
 
         with (torch.no_grad()):
-            logging.info(f'Starting evaluation...')
+            logger.info(f'Starting evaluation...')
 
             for ind, data_dict in tqdm.tqdm(enumerate(test_loader), desc='Iterating on batch', total=len(test_loader)):
                 """Compute the prediction from networks"""
@@ -262,12 +262,12 @@ def evaluate(_cfg: DictConfig) -> None:
                                 0])
                         swap_length = np.max(swap_times) - np.min(swap_times) + 1
                         # Euclidean distance between keypoints that are swapped during the swap
-                        logging.debug(
+                        logger.debug(
                             f'[DEBUG] {data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids].shape} should be (Tbis, 2, 3) -- ')
                         swap_dist = np.mean(np.sqrt(np.sum((data_swapped_np[i_sample_in_batch, swap_times][:,
                                                             swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times][:,
                                                                               swapped_kp_ids]) ** 2, axis=-1)))
-                        logging.debug(
+                        logger.debug(
                         f'{np.sum((data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times][:, swapped_kp_ids])**2, axis=-1).shape} should be (T, 2)')
 
                     ## gives the length of a hole, one keypoint at a time, a sample can have multiple holes one after the other:
@@ -358,7 +358,7 @@ def evaluate(_cfg: DictConfig) -> None:
 
                 """VISUALIZATION, only first batch"""
                 if n_plots < _cfg.evaluate.n_plots:
-                    logging.info(f'Plotting sample: {n_plots} / {_cfg.evaluate.n_plots}')
+                    logger.info(f'Plotting sample: {n_plots} / {_cfg.evaluate.n_plots}')
                     potential_indices = np.where(n_missing > 0)[0]
                     np.random.seed(0)
                     for i in np.random.choice(potential_indices,  #full_data_np.shape[0],
@@ -444,17 +444,17 @@ def evaluate(_cfg: DictConfig) -> None:
 
                         n_plots += 1
 
-                    logging.info(f'Done with sample plot {n_plots}')
+                    logger.info(f'Done with sample plot {n_plots}')
 
                 for _ in range(3):
                     torch.cuda.empty_cache()
                     gc.collect()
 
-        logging.info(f'Finished with iterating the dataset')
+        logger.info(f'Finished with iterating the dataset')
         total_rmse = pd.DataFrame.from_dict(total_rmse)
         total_rmse = total_rmse.reset_index().convert_dtypes()
-        logging.info(f'n lines in result df: {total_rmse.shape[0]}')
-        logging.info(f"RMSE per sample averaged: \n"
+        logger.info(f'n lines in result df: {total_rmse.shape[0]}')
+        logger.info(f"RMSE per sample averaged: \n"
                      f"{total_rmse[(total_rmse['keypoint'] == 'all')].groupby(['method_param'])[[pck_name, 'RMSE', 'MPJPE']].agg('mean')}")
         tmp = total_rmse[(total_rmse['keypoint'] == 'all')].groupby(['method', 'method_param'])[[pck_name, 'RMSE', 'MPJPE']].agg('mean').reset_index()
         tmp['repeat'] = i_repeat
@@ -522,7 +522,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 # pivot_df only for one method
                 mask = (total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_name[i_model])
                 pcoeff, ppval = pearsonr(total_rmse.loc[mask, 'RMSE'].values, total_rmse.loc[mask, 'mean_uncertainty'])
-                logging.info(f'Model {model_name[i_model]}: PEARSONR COEFF w RMSE {pcoeff}, PVAL {ppval}')
+                logger.info(f'Model {model_name[i_model]}: PEARSONR COEFF w RMSE {pcoeff}, PVAL {ppval}')
 
                 def corr_plot():
                     total_rmse['mean_uncertainty'] = total_rmse['mean_uncertainty'].astype(float)
@@ -589,10 +589,5 @@ def evaluate(_cfg: DictConfig) -> None:
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG,
-                        format=f'[%(levelname)s][%(asctime)s] %(message)s',
-                        datefmt='%d-%b-%y %H:%M:%S',
-                        )
-    logger = logging.getLogger(__name__)
 
     evaluate()

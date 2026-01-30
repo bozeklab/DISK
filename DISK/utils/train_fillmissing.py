@@ -1,7 +1,7 @@
 import numpy as np
 import torch
-import logging
 
+from DISK.utils.logger_setup import logger
 from DISK.models.TCN import TemporalConvNet
 from DISK.models.stgcn_AE import STGCN_Model
 from DISK.models.sts_gcn import STS_GCN
@@ -38,7 +38,7 @@ def _loss(data, de_out, out_distribution, uncertainty_estimate, mask_holes_tenso
         mask_loss = torch.ones_like(mask_holes_tensor[:, 1:, :])
     n_missing_per_sample = torch.sum(mask_loss[..., -1], dim=(1, 2))
     if not torch.all(n_missing_per_sample != 0):
-        logging.info(f'n_missing_per_sample: {n_missing_per_sample}')
+        logger.info(f'n_missing_per_sample: {n_missing_per_sample}')
         raise ValueError('[ERROR][TRAIN_FILLMISSING][_loss function] at least one sample has no missing value. '
                          'It is usually caused by a problem in the gap making (see transforms code and proba_missing files).')
 

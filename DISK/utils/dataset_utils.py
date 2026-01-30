@@ -1,17 +1,16 @@
 import time
-
 import torch
 from torch.utils import data
 import numpy as np
 from scipy.spatial.distance import pdist
 import os
 import importlib.util
-import logging
 from tqdm import tqdm
 
 from DISK.utils.coordinates_utils import f2m, create_skeleton_plot, create_seq_plot
 from DISK.utils.transforms import transform_x
 from DISK.utils.utils import find_holes
+from DISK.utils.logger_setup import logger
 from DISK.models.graph import Graph
 
 
@@ -83,7 +82,8 @@ class ParentDataset(data.Dataset):
             self.skeleton_graph = None
 
         if transform is None:
-            logging.debug('[WARNING] NO TRANSFORM will be applied to the data. Is it really the behavior you are expecting??? '
+            logger.debug('[WARNING] NO TRANSFORM will be applied to the data. Is it really the behavior you are '
+                    'expecting??? '
                   'If not, check that you are passing a transform (without an s) list to the constructor.')
         if 'transforms' in kwargs:
             raise Warning('You are giving transforms (with an s) keyword argument. Expected: transform')
@@ -298,7 +298,7 @@ class FullLengthDataset(ParentDataset):
         self.kwargs.update(kwargs)
 
     def get_possible_indices(self):
-        logging.debug('calling get_possible_indices from FullLengthDataset')
+        logger.debug('calling get_possible_indices from FullLengthDataset')
         possible_indices = []
         for i_file, file_time in enumerate(self.time):
             file_time = file_time[file_time > -1]
@@ -373,7 +373,7 @@ class ImputeDataset(FullLengthDataset):
                                             stride, outputdir, verbose, **kwargs)
 
     def get_possible_indices(self):
-        logging.debug('calling the ImputeDataset get_possible_indices')
+        logger.debug('calling the ImputeDataset get_possible_indices')
 
         # some recordings are shorter than others, so find the real end point for each recording
         end_times = [np.where(t == -1)[0][0] if -1 in t else len(t) for t in self.time]
@@ -396,7 +396,7 @@ class ImputeDataset(FullLengthDataset):
                     continue
                 mask = np.any(np.isnan(self.X[recording]), axis=1)[start: stop]
                 holes = find_holes(mask[:, np.newaxis], ['all'], indep=False, target_val=True)
-                # logging.debug(f'holes {holes}')
+                # logger.debug(f'holes {holes}')
                 n_total += np.sum([h[1] for h in holes])
 
                 for ihole in range(len(holes)):
@@ -449,7 +449,7 @@ class ImputeDataset(FullLengthDataset):
                                 stop_segment = stop_segment + possible_extension_right
 
                         len_sample = stop_segment - start_segment
-                        # logging.debug(f'{ihole}, {start_segment}, {stop_segment}, {len_sample}')
+                        # logger.debug(f'{ihole}, {start_segment}, {stop_segment}, {len_sample}')
                         n_imputed += holes[ihole][1]
                         assert len_sample <= self.seq_length
                         assert np.all(~mask[start_segment: start_segment + self.padding[0]])
@@ -472,10 +472,10 @@ class ImputeDataset(FullLengthDataset):
         if n_imputed == 0:
             return np.array([])
 
-        logging.info(
+        logger.info(
             f'Found {n_imputed} imputable timepoints over the {n_total} total missing timepoints '
             f'({n_imputed / n_total * 100:.1f} %)')
-        logging.info(f'Lengths of imputable segments (25th, 50th, 75th percentiles): '
+        logger.info(f'Lengths of imputable segments (25th, 50th, 75th percentiles): '
                      f'{np.percentile(np.array(possible_indices)[:, -1], (25, 50, 75))}')
         return np.array(possible_indices)
 
@@ -491,8 +491,8 @@ class ImputeDataset(FullLengthDataset):
         x[:len_] = self.X[i_file, i_pos: i_pos + len_]
         m = np.zeros((self.seq_length, self.n_keypoints * self.original_divider), dtype=bool)
         m[:len_] = self.mask[i_file, i_pos: i_pos + len_] # False when missing
-        logging.debug(f'[WARNING] Updating {i_file} at pos {i_pos + 1}: {i_pos + len_} '
-                     f'with vector with {np.sum(np.isnan(x[:len_])) // 4} NaN')
+        # logger.debug(f'[WARNING] Updating {i_file} at pos {i_pos + 1}: {i_pos + len_} '
+        #              f'with vector with {np.sum(np.isnan(x[:len_])) // 4} NaN')
         if not np.all(~np.isnan(x[0])):
             raise ValueError(f'no missing data in sample')
         z = np.array([len_])  # we add this to fit the other supervised dataset item format
@@ -528,9 +528,9 @@ class ImputeDataset(FullLengthDataset):
                 unc = None
 
             if unc is None or unc <= threshold:
-                logging.debug(
-                f'[WARNING] Updating {i_file[ii][0]} at pos {i_pos[ii][0]}: {i_pos[ii][0] + len_[ii][0]} '
-                f'with vector with {np.sum(m)} NaN and uncertainty {unc}')
+                # logger.debug(
+                # f'[WARNING] Updating {i_file[ii][0]} at pos {i_pos[ii][0]}: {i_pos[ii][0] + len_[ii][0]} '
+                # f'with vector with {np.sum(m)} NaN and uncertainty {unc}')
                 if self.original_divider == self.divider:
                     self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][~m] = new_x_np[ii][:len_[ii][0]][~m]
                     self.mask[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][~m] = True
@@ -539,9 +539,9 @@ class ImputeDataset(FullLengthDataset):
                     self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0], dims][~m] = new_x_np[ii][:len_[ii][0]][~m]
                     self.mask[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][~m] = True
                     self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0], self.divider::self.original_divider][~m] = 2
-            else:
-                logging.info(
-                f'[WARNING] NOT Updating {i_file[ii][0]} at pos {i_pos[ii][0]}: {i_pos[ii][0] + len_[ii][0]} '
-                f'with vector with {np.sum(m)} NaN and uncertainty {unc}')
+            # else:
+                # logger.debug(
+                # f'[WARNING] NOT Updating {i_file[ii][0]} at pos {i_pos[ii][0]}: {i_pos[ii][0] + len_[ii][0]} '
+                # f'with vector with {np.sum(m)} NaN and uncertainty {unc}')
 
 

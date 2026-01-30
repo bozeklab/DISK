@@ -8,7 +8,6 @@ import pandas as pd
 from umap import UMAP
 from glob import glob
 from omegaconf import OmegaConf
-import logging
 import seaborn as sns
 from scipy.stats import mode
 import json
@@ -20,6 +19,7 @@ from matplotlib import gridspec
 from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
 
+from DISK.utils.logger_setup import logger
 from DISK.utils.utils import read_constant_file, load_checkpoint
 from DISK.utils.dataset_utils import load_datasets
 from DISK.utils.transforms import init_transforms
@@ -81,7 +81,7 @@ def statistics_human(input_tensor, dataset_constants, device):
     coordinates_fft, _ = torch.max(torch.abs(2.0/N * torch.fft.fft(input_fft, dim=1)[:, 5:N//2]), dim=1)
     mask_low_fft = torch.all(coordinates_fft < 0.04, dim=1)
     mask_high_fft = torch.any(coordinates_fft > 0.12, dim=1)
-    logging.debug(f'[STATISTICS] #low_fft {np.sum(mask_low_fft.detach().cpu().numpy())} #high_fft {np.sum(mask_high_fft.detach().cpu().numpy())}')
+    logger.debug(f'[STATISTICS] #low_fft {np.sum(mask_low_fft.detach().cpu().numpy())} #high_fft {np.sum(mask_high_fft.detach().cpu().numpy())}')
 
     periodicity_cat = mask_low_fft.type(torch.float) * -1 + mask_high_fft.type(torch.float) * 1
     periodicity_max, _ = torch.max(coordinates_fft, dim=1)
@@ -132,10 +132,10 @@ def statistics_MABe(input_tensor, dataset_constants, device):
     N = coordinates.shape[1]
     input_fft = coordinates.reshape(coordinates.shape[0], coordinates.shape[1], -1)
     coordinates_fft, _ = torch.max(torch.abs(2.0/N * torch.fft.fft(input_fft, dim=1)[:, 5:N//2]), dim=1)
-    logging.debug(f'[STATISTICS] {torch.max(coordinates_fft).detach().cpu().numpy()} {np.percentile(coordinates_fft.detach().cpu().numpy(), 90)}')
+    logger.debug(f'[STATISTICS] {torch.max(coordinates_fft).detach().cpu().numpy()} {np.percentile(coordinates_fft.detach().cpu().numpy(), 90)}')
     mask_low_fft = torch.all(coordinates_fft < 0.05, dim=1)
     mask_high_fft = torch.any(coordinates_fft > 0.14, dim=1)
-    logging.debug(f'[STATISTICS] #low_fft {np.sum(mask_low_fft.detach().cpu().numpy())} #high_fft {np.sum(mask_high_fft.detach().cpu().numpy())}')
+    logger.debug(f'[STATISTICS] #low_fft {np.sum(mask_low_fft.detach().cpu().numpy())} #high_fft {np.sum(mask_high_fft.detach().cpu().numpy())}')
 
     periodicity_cat = mask_low_fft.type(torch.float) * -1 + mask_high_fft.type(torch.float) * 1
     periodicity_max, _ = torch.max(coordinates_fft, dim=1)
@@ -202,7 +202,7 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
         input_tensor_with_holes[:, 1:, :] = input_tensor_with_holes[:, :-1, :].clone()
         de_out = model.proj_input(input_tensor_with_holes, mask_holes)
         n_missing = torch.sum(mask_holes, dim=(1,2))
-        logging.debug(f'NMISSING {mask_holes.shape} {torch.sum(mask_holes, dim=(1,2))}')
+        logger.debug(f'NMISSING {mask_holes.shape} {torch.sum(mask_holes, dim=(1,2))}')
 
         for i in range(model.num_layers):
             de_out = model.encoder_layers[i](de_out)
@@ -355,7 +355,7 @@ def plot_big_matrix(big_matrix, n_second_per_first, first_labels, col_first, tra
 def plot_umaps(df, all_columns, outputdir, dataset_name, suffix):
 
     for label_name in all_columns:
-        logging.info(f'drawing umap with colors = {label_name}')
+        logger.info(f'drawing umap with colors = {label_name}')
 
         fig = px.scatter(df, x='umap_x', y='umap_y', color=label_name,
                          hover_data=all_columns + ['train_or_test'])
@@ -372,7 +372,7 @@ def plot_umaps(df, all_columns, outputdir, dataset_name, suffix):
         plt.savefig(os.path.join(outputdir, f'{dataset_name}_normed_umap_colors-{label_name}_latent{suffix}.svg'))
 
 
-    logging.info(f'drawing umap overview')
+    logger.info(f'drawing umap overview')
     ncols = int(np.sqrt(len(all_columns)))
     nrows = int(np.ceil(len(all_columns) / ncols))
     fig, ax = plt.subplots(nrows, ncols, figsize=(20, 15), sharex='all', sharey='all')
@@ -564,12 +564,6 @@ if __name__ == '__main__':
     p.add_argument("--k", type=int, default=10, help='number of k-means clusters')
     args = p.parse_args()
 
-    logging.basicConfig(level=logging.INFO,
-                        format=f'[%(levelname)s][%(asctime)s] %(message)s',
-                        datefmt='%d-%b-%y %H:%M:%S')
-    logging.getLogger("matplotlib").setLevel(logging.WARNING)
-    logging.getLogger("numpy").setLevel(logging.WARNING)
-
     config_file = os.path.join(args.checkpoint_folder, '.hydra', 'config.yaml')
     model_cfg = OmegaConf.load(config_file)
     model_path = glob(os.path.join(args.checkpoint_folder, 'model_epoch*'))[0]  # model_epoch to not take the model from the lastepoch
@@ -589,7 +583,7 @@ if __name__ == '__main__':
     transforms, _ = init_transforms(model_cfg, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
                                  dataset_constants.SEQ_LENGTH, args.dataset_path, args.checkpoint_folder)
 
-    logging.info('Loading datasets...')
+    logger.info('Loading datasets...')
     train_dataset, val_dataset, test_dataset = load_datasets(dataset_name=model_cfg.dataset.name,
                                                              dataset_constants=dataset_constants,
                                                              transform=transforms,
@@ -605,33 +599,33 @@ if __name__ == '__main__':
                                                              verbose=model_cfg.feed_data.verbose)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    logging.info("Device: {}".format(device))
+    logger.info("Device: {}".format(device))
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
 
-    logging.info('Loading transformer model...')
+    logger.info('Loading transformer model...')
     # load model
     model = construct_NN_model(model_cfg, dataset_constants, skeleton_file_path, device)
-    logging.info(f'Network constructed')
+    logger.info(f'Network constructed')
 
     load_checkpoint(model, None, model_path, device)
 
-    logging.info('Extract hidden representation...')
+    logger.info('Extract hidden representation...')
     ### DIRECT KNN ON SEQ2SEQ LATENT SPACE
     hi_train, label_train, index_file_train, index_pos_train, statistics_train = extract_hidden(model, train_loader, dataset_constants, model_cfg,
                                            device, compute_statistics=True)
     time_train = train_dataset.possible_times
-    logging.info('Done with train hidden representation...')
+    logger.info('Done with train hidden representation...')
 
     hi_eval, label_eval, index_file_eval, index_pos_eval, statistics_eval = extract_hidden(model, val_loader, dataset_constants, model_cfg,
                                          device, compute_statistics=True)
     time_eval = val_dataset.possible_times
-    logging.info('Done with val hidden representation...')
+    logger.info('Done with val hidden representation...')
 
 
-    logging.info(f'hidden eval vectors {hi_eval.shape}')
-    logging.info(f'hidden train vectors {hi_train.shape}')
+    logger.info(f'hidden eval vectors {hi_eval.shape}')
+    logger.info(f'hidden train vectors {hi_train.shape}')
 
 
     ##############################################################################################
@@ -666,7 +660,7 @@ if __name__ == '__main__':
         df.loc[:, 'action_str'] = df['action'].apply(lambda x: reverse_dict_label[int(x)])
         metadata_columns += ['action_str']
     all_columns = metadata_columns + scalar_columns
-    logging.info(f'columns: {all_columns}')
+    logger.info(f'columns: {all_columns}')
 
     # get the representation per time
     bin_edges = np.arange(int(np.ceil(df['time'].max())) + 2) - 0.5
@@ -677,7 +671,7 @@ if __name__ == '__main__':
         for key in statistics_train.keys():
             df.loc[:, key] = statistics_train[key] + statistics_eval[key]
 
-    logging.info('Computing the umap projection')
+    logger.info('Computing the umap projection')
 
     for _ in range(3):
         gc.collect()
@@ -688,26 +682,26 @@ if __name__ == '__main__':
     else:
         vect2project = np.array(hi_train)
     myumap.fit(vect2project)
-    logging.info('Finished projecting')
+    logger.info('Finished projecting')
 
     for _ in range(3):
         gc.collect()
 
     proj_train = myumap.transform(hi_train)
-    logging.info('Finished projecting on the train')
+    logger.info('Finished projecting on the train')
     proj_eval = myumap.transform(hi_eval)
-    logging.info('Finished projecting on the eval')
+    logger.info('Finished projecting on the eval')
     df.loc[df['train_or_test'] == 'train', ['umap_x', 'umap_y']] = proj_train
     df.loc[df['train_or_test'] == 'eval', ['umap_x', 'umap_y']] = proj_eval
 
-    logging.info('Apply k-means...')
+    logger.info('Apply k-means...')
     df, df_percent, cluster_centers = apply_kmeans(args.k, hi_train, hi_eval, df, proj_train, proj_eval, metadata_columns,
                                                    outputfile=os.path.join(args.checkpoint_folder,
                                                    f'{model_cfg.dataset.name}_normed_train_umap_colors-kmeans_latent_1.png'))
 
     plot_umaps(df, all_columns + ['cluster'], args.checkpoint_folder, model_cfg.dataset.name, args.suffix)
 
-    logging.info('Saving data in csv and npy')
+    logger.info('Saving data in csv and npy')
     df.to_csv(os.path.join(args.checkpoint_folder, f'{model_cfg.dataset.name}.csv'),
               index=False)
     columns = [c for c in df.columns if 'latent' not in c]
@@ -721,7 +715,7 @@ if __name__ == '__main__':
     ### With a fix value of kmeans, compute umap and "signature" plot
     ##############################################################################################
 
-    logging.debug(f"plot_cluster_expression")
+    logger.debug(f"plot_cluster_expression")
     cmap_internal, all_colors = get_cmap(df['cluster'].values, "prism")
     plot_cluster_expression(df, scalar_columns, all_colors)
 

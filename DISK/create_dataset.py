@@ -7,9 +7,10 @@ import pandas as pd
 import pickle
 import h5py
 
-import logging
 import hydra
 from omegaconf import DictConfig
+
+from DISK.utils.logger_setup import logger
 
 
 def chop_coordinates_in_timeseries(time_vect: np.array,
@@ -41,7 +42,7 @@ def chop_coordinates_in_timeseries(time_vect: np.array,
     lengths = []
     times = []
     if len(good_segments) == 0:
-        logging.debug('No long enough segments.')
+        logger.debug('No long enough segments.')
     for index_good_segment in good_segments:
         data = coordinates[breakpoints[index_good_segment] + 1: breakpoints[index_good_segment + 1]]
 
@@ -134,7 +135,8 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
     elif file_type == 'npy':
         ## for human MoCap files
         data = np.array(np.load(f))
-        logging.info(f'[WARNING][CREATE_DATASET][OPEN_AND_EXTRACT_DATA function][NPY INPUT FILES] keypoints cannot be loaded from input files. '
+        logger.info(f'[WARNING][CREATE_DATASET][OPEN_AND_EXTRACT_DATA function][NPY INPUT FILES] keypoints cannot be '
+               f'loaded from input files. '
                      f'Expected behavior: the columns correspond to the keypoints and are in fixed order')
         # WARNING - here no information about keypoint, so we expect that the columns match for every file
         keypoints = [f'{i:02d}' for i in range(data.shape[1])]
@@ -144,7 +146,8 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
         with open(f, 'rb') as openedf:
             pkl_content = pickle.load(openedf)
         data = pkl_content['points3d']
-        logging.info(f'[WARNING][CREATE_DATASET][OPEN_AND_EXTRACT_DATA function][PKL INPUT FILES] keypoints cannot be loaded from input files. '
+        logger.info(f'[WARNING][CREATE_DATASET][OPEN_AND_EXTRACT_DATA function][PKL INPUT FILES] keypoints cannot be '
+               f'loaded from input files. '
                      f'Expected behavior: the columns correspond to the keypoints and are in fixed order')
         keypoints = [f'{i:02d}' for i in range(data.shape[1])]
         """ from DeepFly3D paper
@@ -282,10 +285,10 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
 @hydra.main(version_base=None, config_path="conf", config_name="conf_create_dataset")
 def create_dataset(_cfg: DictConfig) -> None:
     basedir = hydra.utils.get_original_cwd()
-    logging.info(f'[BASEDIR] {basedir}')
+    logger.info(f'[BASEDIR] {basedir}')
     """ LOGGING AND PATHS """
 
-    logging.info(f'{_cfg}')
+    logger.info(f'{_cfg}')
     outputdir = os.path.join(basedir, 'datasets', _cfg.dataset_name)
 
     constant_file_path = os.path.join(outputdir, 'constants.py')
@@ -294,7 +297,7 @@ def create_dataset(_cfg: DictConfig) -> None:
         os.mkdir(outputdir)
 
     # th_std = 0.2 if 'DF3D' in _cfg.dataset_name else 0
-    # logging.info(f'THRESHOLD TO REMOVE FLAT SAMPLES: {th_std}')
+    # logger.info(f'THRESHOLD TO REMOVE FLAT SAMPLES: {th_std}')
 
     #################################################################################################
     ### OPEN FILES AND PROCESS DATA
@@ -348,15 +351,15 @@ def create_dataset(_cfg: DictConfig) -> None:
                         if f'{k:02d}' in keypoints:
                             indices.append(keypoints.index(f'{k:02d}'))
             except ValueError:
-                logging.error(f'keypoints to drop {_cfg.drop_keypoints} not found in {f} with keypoints {keypoints}')
+                logger.error(f'keypoints to drop {_cfg.drop_keypoints} not found in {f} with keypoints {keypoints}')
                 raise ValueError
             other_indices = np.array([i for i in range(len(keypoints)) if not i in indices])
             data = data[:, other_indices]
-            logging.debug(f'After removing keypoints, data shape {data.shape} from file {f}')
+            logger.debug(f'After removing keypoints, data shape {data.shape} from file {f}')
             keypoints = [keypoints[i] for i in other_indices]
 
         if i_file == 0:
-            logging.info(f'Found keypoints:  {keypoints}')
+            logger.info(f'Found keypoints:  {keypoints}')
             old_keypoints = list(keypoints)
         else:
             if len(set(old_keypoints).symmetric_difference(set(keypoints))) > 0:
@@ -395,7 +398,7 @@ def create_dataset(_cfg: DictConfig) -> None:
         # step 3. remove remaining nans
         nb_nans_per_timestep = np.sum(np.isnan(data[..., 0]), axis=1)
 
-        # logging.info(f'Timepoint with at least one missing: {np.sum(nb_nans_per_timestep > 0)} / {len(data)}')
+        # logger.info(f'Timepoint with at least one missing: {np.sum(nb_nans_per_timestep > 0)} / {len(data)}')
 
         for nb_allowed_nans, nan_name in zip(nan_modalities, nan_modalities_names):
 
@@ -448,10 +451,10 @@ def create_dataset(_cfg: DictConfig) -> None:
 
                 # NB: times gives the beginning of the sample in the raw indices
                 if len(chopped_data) == 0:
-                    logging.info(f'[WARNING] file {i_file} has not long enough segments for {nan_name}')
+                    logger.info(f'[WARNING] file {i_file} has not long enough segments for {nan_name}')
                     continue
                 if nb_allowed_nans == 0:
-                    logging.info(f'From file {i_file}, extracted {chopped_data.shape} with 0 nans from {new_data.shape}')
+                    logger.info(f'From file {i_file}, extracted {chopped_data.shape} with 0 nans from {new_data.shape}')
                 dataset[(nan_name, partition)].extend(chopped_data)
                 data_lengths[(nan_name, partition)].extend(len_)
 
@@ -483,7 +486,8 @@ def create_dataset(_cfg: DictConfig) -> None:
             for i_length, length in enumerate(fulllength_maxlength[(nan_name, partition)]):
                 sub_fulllength_time[i_length, :length] = fulllength_time[(nan_name, partition)][i_length]
 
-            logging.info(f'In {partition} with {nan_name} NaNs, Shape: {subdata.shape}. Fulllength: {sub_fulllength_data.shape}')
+            logger.info(f'In {partition} with {nan_name} NaNs, Shape: {subdata.shape}. Fulllength: '
+                   f'{sub_fulllength_data.shape}')
             outputfile = os.path.join(outputdir, f'{partition}_dataset_w-{nan_name}-nans')
             print(f'saving in {outputfile}...')
             np.savez(outputfile, X=subdata, lengths=sublengths)
@@ -570,11 +574,5 @@ def create_dataset(_cfg: DictConfig) -> None:
 
 
 if __name__ == '__main__':
-
-    logging.basicConfig(level=logging.DEBUG,
-                        format=f'[%(levelname)s][%(asctime)s] %(message)s',
-                        datefmt='%d-%b-%y %H:%M:%S',
-                        )
-    logger = logging.getLogger(__name__)
 
     create_dataset()
