@@ -29,6 +29,11 @@ dependencies = [
     "umap-learn>=0.5",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "build"
+]
+
 [project.scripts]
 DISK = "DISK.launchers.DISK_launcher:cli"
 DISK-check-install = "DISK.launchers.check_install:cli"
@@ -43,6 +48,10 @@ Paper = "https://doi.org/10.1038/s41592-025-02893-y"
 Issues = "https://github.com/bozeklab/DISK/issues"
 
 
-[tool.setuptools]
-packages = ["DISK"]
+[tool.setuptools.packages.find]
+where = ["."]
 
+[tool.setuptools.package-data]
+DISK = [
+    "conf/**/*.yaml",
+]

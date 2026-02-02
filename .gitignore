@@ -13,3 +13,4 @@ venv/
 *.egg-info/
 .idea/
 build/
+dist/
