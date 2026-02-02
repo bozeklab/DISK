@@ -9,3 +9,7 @@ __pychache__/
 conf/
 .yaml
 .gitignore
+venv/
+*.egg-info/
+.idea/
+build/
