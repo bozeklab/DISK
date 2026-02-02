@@ -30,7 +30,9 @@ dependencies = [
 ]
 
 [project.scripts]
-DISK = "DISK.launchers.DISK_launcher:main"
+DISK = "DISK.launchers.DISK_launcher:cli"
+DISK-check-gpu = "DISK.launchers.check_gpu:cli"
+
 
 [project.urls]
 Labpage = "https://www.normalesup.org/~frose/"

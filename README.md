@@ -116,13 +116,7 @@ pip install . --extra-index-url <Torch-Wheel-Link>`
 
 This step should take up to 15-30 minutes. 
 
-**[VERY IMPORTANT - if using with GPU]** To test that pytorch is seeing the GPU, you can test it in python:
-```python
-# inside python interpreter
-import torch
-torch.cuda.is_available()
-# should return True
-```
+**[VERY IMPORTANT - if using with GPU]** To test that pytorch is seeing the GPU, you can test it in python: `DISK-check-gpu`
 
 For all cases, test if DISK is installed correctly. In Python, run:
 ```python

@@ -1,17 +1,22 @@
 #!/usr/bin/env python
-
-import DISK
 import argparse
+import logging
 import os
 import sys
-import logging
 
-def main():
+
+def main(loglevel, progress_bar,resources,args):
+    logging.info('[INFO] Welcome in DISK')
+    logging.debug('[DEBUG] Now in main() : {}'.format(main))
+    logging.debug('[DEBUG] Parsed arguments = {}'.format(args))
+    logging.debug('[DEBUG] loglevel : {}, progress_bar : {}, resources located in {}'.format(loglevel,progress_bar,resources))
+    return
+
+
+def cli():
 
     LAUNCHER_DIR = os.path.join(os.path.dirname(__file__))
     PYCKAGE_RESOURCES_DIR = os.path.join(os.path.abspath(os.path.join(LAUNCHER_DIR,os.pardir)),"resources")
-
-    parser = argparse.ArgumentParser()
 
     parser = argparse.ArgumentParser()
 
@@ -34,13 +39,13 @@ def main():
                         format='%(asctime)s %(message)s',
                         stream=sys.stdout)
 
-    show_progress_bar = False
-    if args.progress_bar:
-        show_progress_bar = True
 
-    DISK.app_module1.appfunction_of_module1(loglevel=verboselevel,
-                                                      progress_bar=show_progress_bar,
-                                                      resources=PYCKAGE_RESOURCES_DIR, args=vars(args))
+    main(
+        loglevel=verboselevel,
+        progress_bar=args.progress_bar,
+        resources=PYCKAGE_RESOURCES_DIR,
+        args=vars(args),
+    )
 
 if __name__ == "__main__":
-    main()
+    cli()
