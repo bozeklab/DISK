@@ -1,1 +1,1 @@
-
+from . import _version

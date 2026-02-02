@@ -1,11 +1,14 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = [
+    "setuptools>=61.0",
+    "setuptools_scm[toml]>=7.0"
+]
 build-backend = "setuptools.build_meta"
 
 [project]
+dynamic = ["version"]
 name = "DISK"
 requires-python = ">=3.9"
-version = "0.1"
 description = "Deep Imputation of SKeleton data"
 readme = "README.md"
 authors = [
@@ -55,3 +58,6 @@ where = ["."]
 DISK = [
     "conf/**/*.yaml",
 ]
+
+[tool.setuptools_scm]
+write_to = "DISK/_version.py"

@@ -4,6 +4,9 @@ def main():
 
     try:
         import DISK
+        version = DISK._version.version
+        print("Version Found:", version)
+
         import hydra
         from omegaconf import DictConfig
 
