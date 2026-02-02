@@ -103,20 +103,18 @@ conda create --name env_impute python=3.9 # requires python>=3.8,<3.10
 conda activate env_impute
 ```
 
-In all cases, installation from source can be achieved by the following commands:
-- if using GPU (highly recommended for training)
+
+To Install DISK and core dependencies, including PyTorch with the Correct CUDA Backend:
+
+
 ```bash
-git clone https://github.com/bozeklab/DISK.git
-cd DISK
-pip install -r DISK/requirements.txt -e .
+pip install . --extra-index-url <Torch-Wheel-Link>`
 ```
-- if using CPU only
-```bash
-git clone https://github.com/bozeklab/DISK.git
-cd DISK
-pip install -r DISK/requirements_cpu.txt -e .
-```
-This step should take up to 15-30 minutes.
+
+
+> Find link for your CUDA installation at this [page]((https://pytorch.org/get-started/previous-versions/) Not using a GPU at all?  Use "--extra-index-url https://download.pytorch.org/whl/cpu/torch_stable.html"
+
+This step should take up to 15-30 minutes. 
 
 **[VERY IMPORTANT - if using with GPU]** To test that pytorch is seeing the GPU, you can test it in python:
 ```python
@@ -141,7 +139,7 @@ For OSX, `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 -c 
 # First steps tutorial
 
 The tutorial is available as a Jupyter Notebook and compatible with Google colab: in this github repo in [`notebooks/DISK_tutorial_2025-05.ipynb`](https://github.com/bozeklab/DISK/blob/main/notebooks/DISK_tutorial_2024-05.ipynb)
-with processed datasets and saved checkpoint modles available on [zenodo](https://doi.org/10.5281/zenodo.15828939).
+with processed datasets and saved checkpoint models available on [zenodo](https://doi.org/10.5281/zenodo.15828939).
 
 Alternatively, the same steps (without the explanations and images) are available as a simple bash script in [`tests/test_tutorial_zenodo.sh`](https://github.com/bozeklab/DISK/blob/main/tests/test_tutorial_zenodo.sh).
 
