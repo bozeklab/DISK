@@ -9,18 +9,18 @@ Rose et al. Deep Imputation for Skeleton data (DISK) for behavioral science. Nat
 
 **Neural network method to impute missing values for 3D skeleton data.**
 
-![Examples of imputations](images/reconstructions_whitebg-1.png)
+![Examples of imputations](https://github.com/bozeklab/DISK/blob/main/images/reconstructions_whitebg-1.png?raw=true)
 Example of imputations: blue lines are the original signal, red dots represent the imputation done by a transformer model, and the gray line the linear interpolation.
 DISK is able to learn correlations between keypoints and dynamics from the training data to fill gaps on a much longer horizon than linear interpolation.
 DISK allows to use a bigger proportion of experimental data for downstream behavior analysis.
 
 ## Table of Contents
 
+- [Installation](#installation)
 - [Description](#description)
   - [Practical aspects](#practical-aspects)
     - [Configuration files and script launching](#configuration-files-and-script-launching)
     - [Neural network training](#neural-network-training)
-- [Installation](#installation)
 - [First steps tutorial](#first-steps-tutorial)
 - [Detailed usage](#detailed-usage)
   - [Step 0. File organization](#step-0-file-organization)
@@ -33,12 +33,30 @@ DISK allows to use a bigger proportion of experimental data for downstream behav
 
 ----
 
+# Installation
+
+To Install DISK and core dependencies, including PyTorch with the Correct CUDA Backend:
+
+
+```bash
+pip install disk-impute --extra-index-url <Torch-Wheel-Link>`
+```
+
+
+> Find link for your CUDA installation at this [page](https://pytorch.org/get-started/previous-versions/) Not using a GPU at all?  Use "--extra-index-url https://download.pytorch.org/whl/cpu/torch_stable.html"
+
+This step should take up to 10-15 minutes. 
+
+**[VERY IMPORTANT - if using with GPU]** To test that pytorch is seeing the GPU, you can test it in a terminal: `DISK-check-gpu`
+
+For all cases, test if DISK is installed correctly by running in the terminal: `DISK-check-install`
+
 # Description
 
 This code allows to train in an unsupervised way a neural network to learn imputation of missing values.
 Skeleton data are data points corresponding to body parts recorded through time. This code focuses on 3D data.
 
-![Unsupervised training scheme](images%2Fimputation_method_summary_wskeleton.png)
+![Unsupervised training scheme](https://github.com/bozeklab/DISK/blob/main/images/imputation_method_summary_wskeleton.png?raw=true)
 
 Several network backbones are implemented:
 - Temporal Convolutional Neural Network (TCN), 
@@ -49,7 +67,7 @@ Several network backbones are implemented:
 
 These networks have been tested on different animal skeletons and human skeleton (see Datasets section).
 
-![Performance comparison of the different architectures for tested datasets](images%2Fbarplot_newmissing_compare_networks.png)
+![Performance comparison of the different architectures for tested datasets](https://github.com/bozeklab/DISK/blob/main/images/barplot_newmissing_compare_networks.png?raw=true)
 
 
 The training is done on data with artificially introduced gaps. This process of introducing gaps is controlled by 3 files: 
@@ -94,35 +112,7 @@ GRU is the second best model in terms of performances.
 GRU can be trained with larger batch size (up to 512 if enough GPU memory) and is shorter to train. 
 It can still take hours to train on a middle sized dataset.
 
-# Installation
 
-If using [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)/pip, you can first create a new environment:
-```bash
-# if using conda environments
-conda create --name env_impute python=3.9 # requires python>=3.8,<3.10
-conda activate env_impute
-```
-
-
-To Install DISK and core dependencies, including PyTorch with the Correct CUDA Backend:
-
-
-```bash
-pip install . --extra-index-url <Torch-Wheel-Link>`
-```
-
-
-> Find link for your CUDA installation at this [page]((https://pytorch.org/get-started/previous-versions/) Not using a GPU at all?  Use "--extra-index-url https://download.pytorch.org/whl/cpu/torch_stable.html"
-
-This step should take up to 15-30 minutes. 
-
-**[VERY IMPORTANT - if using with GPU]** To test that pytorch is seeing the GPU, you can test it in python: `DISK-check-gpu`
-
-For all cases, test if DISK is installed correctly. In Python, run:
-```python
-import DISK
-# should run without returning anything
-```
 
 ## Python troubleshooting
 
@@ -215,7 +205,7 @@ On the contrary if the dataset is very large (over 20,000 samples for the traini
 
 ### Step 1.2 Create probability missing files
 
-In order to mimmick the real missing data during training, the original data will be browsed to approximate the frequency 
+In order to mimic the real missing data during training, the original data will be browsed to approximate the frequency 
 of a keypoint missing and the probability of this hole being a certain length.
 For the creation of proba missing files, the easiest way is to launch 
 `create_proba_missing_files.py dataset_name=<my_dataset_name>`
@@ -259,7 +249,7 @@ Additionally will be created and saved:
 - a lineplot of the averaged RMSE with respect to the length of the artificial hole
 Randomly selected samples will be plotted showing the ground truth and the imputation(s)
 
-![Example of produced test barplot](images/test_barplot_wo_RMSE.png)
+![Example of produced test barplot](https://github.com/bozeklab/DISK/blob/main/images/test_barplot_wo_RMSE.png?raw=true)
 
 Modify the `conf_test.yaml`. The fields to be modified are marked with `TOCHANGE`:
 - change the name of the output directory
@@ -312,6 +302,14 @@ Additional scripts to reproduce plots and analyses (comparison with other publis
 
 ### Developer Installation
 
+If using [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)/pip, you can first create a new environment:
+```bash
+# if using conda environments
+conda create --name env_DISK python=3.9 # requires python>=3.8,<3.10
+conda activate env_DISK
+```
+
+
 ```
 pip install -e .[dev]
 ```
@@ -323,3 +321,8 @@ pip install -e .[dev]
 python -m build && unzip dist/disk-<>.whl -d dist/unzipped
 ```
 
+### Upload to built package to pypi:
+
+```
+twine upload dist/* --config-file .pypirc
+```
