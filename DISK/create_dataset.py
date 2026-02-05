@@ -275,7 +275,7 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
 
     else:
         raise ValueError(f'File format not understood {f}, should be one of the following: mat_dannce, '
-                         f'mat_qualisys,simple_csv, dlc_csv, npy, df3d_pkl, sleap_h5')
+                         f'mat_qualisys, simple_csv, dlc_csv, dlc_h5, npy, df3d_pkl, sleap_h5')
 
     # we replace the spaces by underscore because when dealing with set of keypoints we separate them by spaces (fake and orginal holes)
     keypoints = [k.replace(' ', '_') for k in keypoints]
