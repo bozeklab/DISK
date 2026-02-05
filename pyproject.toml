@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 dynamic = ["version"]
-name = "DISK"
+name = "DISK-impute"
 requires-python = ">=3.9"
 description = "Deep Imputation of SKeleton data"
 readme = "README.md"
@@ -34,7 +34,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "build"
+    "build",
+    "twine"
 ]
 
 [project.scripts]
@@ -61,3 +62,5 @@ DISK = [
 
 [tool.setuptools_scm]
 write_to = "DISK/_version.py"
+version_scheme = "post-release"
+local_scheme = "no-local-version"

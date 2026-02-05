@@ -320,6 +320,6 @@ pip install -e .[dev]
 ### Build Package and Check Contents:
 
 ```
-python -m build && unzip dist/disk-0.1-py3-none-any.whl -d dist/unzipped
+python -m build && unzip dist/disk-<>.whl -d dist/unzipped
 ```
 
