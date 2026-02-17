@@ -39,7 +39,7 @@ To Install DISK and core dependencies, including PyTorch with the Correct CUDA B
 
 
 ```bash
-pip install disk-impute --extra-index-url <Torch-Wheel-Link>`
+pip install disk-impute --extra-index-url <Torch-Wheel-Link>
 ```
 
 

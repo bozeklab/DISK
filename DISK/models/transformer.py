@@ -56,38 +56,40 @@ class InputEncodingIndependent(InputEncoding):
 
 
 class TransformerModel(nn.Module):
-    def __init__(self, input_size: int, output_size: int, max_seq_len: int, n_keypoints: int, cfg: DictConfig,
-                 mu_sigma: bool=False, device: str = 'cpu'):
+    def __init__(self, input_size: int, output_size: int, max_seq_len: int,
+                 n_keypoints: int, cfg_network: DictConfig,
+                 device: str = 'cpu'):
         super(TransformerModel, self).__init__()
         self.device = device
-        self.d_model = cfg.network.d_model
-        self.num_heads = cfg.network.num_heads
-        self.num_layers = cfg.network.num_layers
-        self.norm_first = cfg.network.norm_first
+        self.d_model = cfg_network.d_model
+        self.num_heads = cfg_network.num_heads
+        self.num_layers = cfg_network.num_layers
+        self.norm_first = cfg_network.norm_first
 
-        if cfg.network.input_type == 'mixed':
+        if cfg_network.input_type == 'mixed':
             self.proj_input = InputEncodingMixed(input_size, self.d_model, n_keypoints, max_seq_len, self.device,
-                                                 enc_type=cfg.network.encoding).to(device)
+                                                 enc_type=cfg_network.encoding).to(device)
         else:
             self.proj_input = InputEncodingIndependent(input_size, self.d_model, n_keypoints, max_seq_len, device).to(device)
 
         self.encoder_layers = nn.ModuleList([EncoderLayer(d_model=self.d_model,
-                                                          dim_ff=cfg.network.dim_ff,
+                                                          dim_ff=cfg_network.dim_ff,
                                                           num_heads=self.num_heads,
-                                                          activation=cfg.network.activation,
-                                                          attn_type=cfg.network.attn_type,
-                                                          norm_first=cfg.network.norm_first,
-                                                          norm=cfg.network.norm) for _ in range(self.num_layers)]).to(device)
+                                                          activation=cfg_network.activation,
+                                                          attn_type=cfg_network.attn_type,
+                                                          norm_first=cfg_network.norm_first,
+                                                          norm=cfg_network.norm) for _ in range(
+            self.num_layers)]).to(device)
 
         if self.norm_first:
-            self.final_norm = Normalization(method=cfg.network.norm, d_model=self.d_model).to(device)
+            self.final_norm = Normalization(method=cfg_network.norm, d_model=self.d_model).to(device)
 
-        self.mu_sigma = mu_sigma
+        self.mu_sigma = cfg_network.mu_sigma
         if self.mu_sigma:
             self.distribution_output = NormalOutput(dim=output_size)
             self.parameter_projection = self.distribution_output.get_parameter_projection(self.d_model).to(device)
         else:
-            if cfg.network.input_type == 'mixed':
+            if cfg_network.input_type == 'mixed':
                 self.out_linear = nn.Linear(self.d_model, output_size * n_keypoints, bias=True).to(device)
             else:
                 self.out_linear = nn.Linear(self.d_model, output_size, bias=True).to(device)

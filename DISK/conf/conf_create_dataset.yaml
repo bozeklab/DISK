@@ -15,9 +15,9 @@ original_freq: 100
 # otherwise lower
 subsampling_freq: 100
 
-length: 60 # in number of timepoints at susampling_freq
+length: 60 # in number of timepoints at subsampling_freq
 # a good rule of thumb is to put stride to length or length/2
-stride: 30 # in number of timepoints at susampling_freq
+stride: 30 # in number of timepoints at subsampling_freq
 
 discard_beginning: 0 # if not used, should be set t 0
 discard_end: 0  # if not used, should be set to 0

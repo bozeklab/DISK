@@ -5,7 +5,6 @@ import numpy as np
 import math
 import torch
 import time
-from DISK.utils.logger_setup import logger
 
 
 def plot_training(df, offset=10, print_every=1):
@@ -41,7 +40,7 @@ def save_checkpoint(model, epoch, optimizer, dict_, PATH):
     }, PATH)
 
 
-def load_checkpoint(model, optimizer, PATH, device):
+def load_checkpoint(model, optimizer, PATH, device, logger):
     data = torch.load(PATH, map_location=torch.device(device))
     model.load_state_dict(data['model_state_dict'])
     if optimizer is not None:

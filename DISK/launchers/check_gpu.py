@@ -8,11 +8,11 @@ def main():
             print("✅ GPU Found!")
         else:
             print("⚠️ GPU not found! "
-                  "\nPlease reinstall torch linked to your Cuda wheels (details in DISK readme.")
+                  "\n  Please reinstall torch linked to your Cuda wheels (details in DISK readme.")
 
     except Exception:
         print("❌ There is a problem with Torch installation."
-              "\nPlease retry installing pytorch (see README for details).")
+              "\n  Please retry installing pytorch (see README for details).")
 
 
 

@@ -2,3 +2,10 @@ num_layers: 3
 dropout: 0
 type: 'GRU'
 size_layer: 512
+## if mu_sigma is True, then will change the output of the model from a point prediction (one value per keypoint per timepoint)
+## to a probabilistic output where for each keypoint and each timepoint, it will output a mean (mu) and a standard
+## deviation (sigma). The network is trained with a different loss (a different loss profile is expected).
+## Used in this framework to approximate the network imputation error on each sample (cf test_fillmissing.py)
+## Used also to filter the imputations in impute_dataset (cf impute_dataset.py)
+mu_sigma: False # TOCHANGE (True or False)
+beta_mu_sigma: 0.5 # default is 0 for the standard NLL loss

@@ -5,55 +5,45 @@ import pandas as pd
 import torch
 
 from DISK.utils.coordinates_utils import create_skeleton_plot, compute_svd
-from DISK.utils.logger_setup import logger
 
-def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputdir, add_missing=True):
+def init_transforms(proba_file, proba_length_file, indep_keypoints,
+                    keypoints, divider, length_input_seq,
+                    outputdir, logger, add_missing_pad=(1, 1),
+                    viewinvariant=True, normalize=False, normalizecube=True,
+                    swap=0.1,
+                    add_missing=True, verbose=0):
     transforms = []
 
-    if 'add_missing' in _cfg.feed_data.transforms.keys():
-        length_proba_df = pd.read_csv(os.path.join(basedir, 'datasets', _cfg.feed_data.transforms.add_missing.files[1]))
+    if add_missing:
+        length_proba_df = pd.read_csv(proba_length_file)
+
         if 'length' not in length_proba_df.columns:
-            raise ValueError(f'No "length" column in file {_cfg.feed_data.transforms.add_missing.files[1]}.')
+            raise ValueError(f'No "length" column in file {proba_length_file}.')
+
         length_proba_df['length'] = length_proba_df['length'].astype('int')
         length_proba_df['keypoint'] = length_proba_df['keypoint'].astype('str')
-        if _cfg.feed_data.transforms.add_missing.files[0].endswith('.txt'):
-            init_proba = np.loadtxt(os.path.join(basedir, 'datasets', _cfg.feed_data.transforms.add_missing.files[0]))
-            init_proba_df = pd.DataFrame(columns=('keypoint',), data=keypoints)
-            init_proba_df.loc[:, 'proba'] = init_proba
-        elif _cfg.feed_data.transforms.add_missing.files[0].endswith('.csv'):
-            init_proba_df = pd.read_csv(os.path.join(basedir, 'datasets', _cfg.feed_data.transforms.add_missing.files[0]),
-                                        dtype={'keypoint': str})
-        else:
-            raise ValueError('[init_transforms] First missing file should be a txt file or a csv file with a valid '
-                             'extension')
 
-        indep_keypoints = False if 'set_keypoint' in _cfg.feed_data.transforms.add_missing.files[1] else True
+        init_proba_df = pd.read_csv(proba_file, dtype={'keypoint': str})
 
-        if len(_cfg.feed_data.transforms.add_missing.files) > 2:
-            proba_n_missing = np.loadtxt(
-                os.path.join(basedir, 'datasets', _cfg.feed_data.transforms.add_missing.files[2]))
-        else:
-            proba_n_missing = None
 
-        if add_missing:
-            addmissing_transform = AddMissing_LengthProba(length_proba_df, keypoints, init_proba_df, divider=divider,
-                                                          proba_n_missing=proba_n_missing,
-                                                          indep_keypoints=indep_keypoints,
-                                                          pad=_cfg.feed_data.transforms.add_missing.pad,
-                                                          verbose=0, proba=1, outputdir=outputdir)
-            transforms.append(addmissing_transform)
+        addmissing_transform = AddMissing_LengthProba(length_proba_df, keypoints, init_proba_df, divider=divider,
+                                                      indep_keypoints=indep_keypoints,
+                                                      pad=add_missing_pad,
+                                                      logger=logger,
+                                                      verbose=verbose, proba=1, outputdir=outputdir)
+        transforms.append(addmissing_transform)
 
-    if _cfg.feed_data.transforms.viewinvariant:
+    if viewinvariant:
         transforms.append(ViewInvariant(proba=1, divider=divider, verbose=0, index_frame=int(length_input_seq / 2),
                                         outputdir=outputdir))
-    if _cfg.feed_data.transforms.normalize:
+    if normalize:
         transforms.append(Normalize(proba=1, divider=divider, verbose=0, outputdir=outputdir))
-    if _cfg.feed_data.transforms.normalizecube:
+    if normalizecube:
         transforms.append(NormalizeCube(proba=1, divider=divider, verbose=0, outputdir=outputdir))
-    if 'swap' in _cfg.feed_data.transforms.keys() and _cfg.feed_data.transforms.swap > 0:
-        transforms.append(Swap2Kp(proba=_cfg.feed_data.transforms.swap, divider=divider, verbose=0, outputdir=outputdir))
+    if swap > 0:
+        transforms.append(Swap2Kp(proba=swap, divider=divider, verbose=0, outputdir=outputdir))
 
-    return transforms, proba_n_missing
+    return transforms
 
 
 class Transform(object):
@@ -241,7 +231,7 @@ class ViewInvariant(Transform):
     def __call__(self, x, *args, x_supp=(), **kwargs):
         if np.all(np.isnan(x)):
             x_prime = np.array(x)
-            logger.debug(f'[ViewInvariant] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
+            self.logger.debug(f'[ViewInvariant] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
             x_supp_prime = [np.array(xs) for xs in x_supp]
             return x_prime, tuple(x_supp_prime), kwargs
 
@@ -268,7 +258,7 @@ class ViewInvariant(Transform):
         kwargs['max_sample'] = max_
 
         if np.all(np.isnan(x_prime)):
-            logger.debug('[ViewInvariant] all nan in x_prime')
+            self.logger.debug('[ViewInvariant] all nan in x_prime')
 
         return x_prime, tuple(x_supp_prime), kwargs
 
@@ -332,7 +322,7 @@ class NormalizeCube(Transform):
     def __call__(self, x, *args, x_supp=(), **kwargs):
         if np.all(np.isnan(x)):
             x_prime = np.array(x)
-            logger.debug(f'[NormalizeCube] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
+            self.logger.debug(f'[NormalizeCube] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
             x_supp_prime = [np.array(xs) for xs in x_supp]
             return x_prime, tuple(x_supp_prime), kwargs
 
@@ -344,7 +334,7 @@ class NormalizeCube(Transform):
         kwargs['min_sample'] = min_
         kwargs['max_sample'] = max_
         if np.any(np.isnan(min_)) or np.any(np.isnan(max_)):
-            logger.debug(f'[Problem in NormalizeCube] {min_}, {max_}, {x}')
+            self.logger.debug(f'[Problem in NormalizeCube] {min_}, {max_}, {x}')
 
         """Apply the transform"""
         x_prime = 2 * (x - ((max_ + min_) / 2)) / amplitude  # normalizes between -1 and 1
@@ -409,7 +399,7 @@ class Normalize(Transform):
         kwargs['min_sample'] = min_
         kwargs['max_sample'] = max_
         if np.any(np.isnan(min_)) or np.any(np.isnan(max_)):
-            logger.info(f'[Problem in Normalize] {min_}, {max_}, {x}')
+            self.logger.info(f'[Problem in Normalize] {min_}, {max_}, {x}')
 
         """Apply the transform"""
         x_prime = 2 * (x - min_) / (max_ - min_) - 1  # normalizes between -1 and 1
@@ -525,16 +515,15 @@ class AddMissing_LengthProba(Transform):
     ### - it needs to be applied first before other normlization to  not leak data through the normalization
     ### - it needs to be applied differently for each sample at each epoch
 
-    def __init__(self, length_proba_df, list_keypoints, init_proba_df, indep_keypoints=True, proba_n_missing=None, pad=(0, 0),
+    def __init__(self, length_proba_df, list_keypoints, init_proba_df, logger, indep_keypoints=True, pad=(0, 0),
                  **kwargs):
         self.length_proba_df = length_proba_df
         self.init_proba_df = init_proba_df
         self.list_keypoints = list_keypoints
         self.pad_before = max(int(pad[0]), 0)  # if 0, means we can alter all time points, if > 0 gives the number of frames untouched at the beginning and end
         self.pad_after = max(int(pad[1]), 0)  # if 0, means we can alter all time points, if > 0 gives the number of frames untouched at the beginning and end
-        self.proba_n_missing = proba_n_missing
         self.indep_keypoints = indep_keypoints
-        self.cumsum_proba_n_missing = np.cumsum(self.proba_n_missing)
+        self.logger = logger
 
         super().__init__(**kwargs)
 
@@ -544,17 +533,13 @@ class AddMissing_LengthProba(Transform):
 
         if np.max(np.sum(np.any(np.isnan(x), axis=2), axis=1)) > 0:
             if self.verbose == 2 or verbose_sample:
-                logger.info('[AddMissing Transform] There is already a missing keypoint in the sequence. Not adding '
+                self.logger.info('[AddMissing Transform] There is already a missing keypoint in the sequence. Not '
+                                'adding '
                            'more')
         else:
             # missing value place holder
             missing_values_placeholder = np.nan
-            # while not np.any(np.sum(np.isnan(x_with_holes), axis=(1, 2))):
-            # for now only one hole per sample
-            if self.proba_n_missing is None:
-                n_missing = 1
-            else:
-                n_missing = np.where(np.random.rand() <= self.cumsum_proba_n_missing)[0][0] + 1
+
 
             if not self.indep_keypoints:
                 ## in the proba file there should be probability of missing sets of keypoints
@@ -588,7 +573,7 @@ class AddMissing_LengthProba(Transform):
 
             else:
                 # all the keypoints are considered independent
-
+                n_missing = np.random.randint(1, x.shape[1] + 1)
                 buffer = self.pad_before
                 while buffer < x.shape[0] - self.pad_after:
 
@@ -619,10 +604,11 @@ class AddMissing_LengthProba(Transform):
                     x_with_holes[start_missing: end_missing, index_rd_kp, :] = missing_values_placeholder
 
             if self.verbose == 2 or verbose_sample:
-                logger.info("nb of missing kp:", np.sum(np.sum(np.any(np.isnan(x_with_holes), axis=2), axis=0) > 0))
+                self.logger.info("nb of missing kp:", np.sum(np.sum(np.any(np.isnan(x_with_holes), axis=2),
+                                                                    axis=0) > 0))
             v = np.sum(np.isnan(x_with_holes[..., 0]))
             if v == 0:
-                logger.info("nb of missing values:", v)
+                self.logger.info("nb of missing values:", v)
 
         return x_with_holes, x_supp, kwargs
 

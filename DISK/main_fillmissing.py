@@ -4,7 +4,6 @@ import sys
 import matplotlib
 
 matplotlib.use('Agg')
-basedir = '.'
 import matplotlib.pyplot as plt
 import time
 import random
@@ -12,7 +11,6 @@ import pandas as pd
 import hydra
 from omegaconf import DictConfig
 
-from DISK.utils.logger_setup import logger
 from DISK.utils.dataset_utils import load_datasets
 from DISK.utils.utils import read_constant_file, plot_training, timeSince, load_checkpoint, \
     save_checkpoint
@@ -27,23 +25,29 @@ from torch import optim
 from torch.nn.utils import clip_grad_norm_
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="conf_missing")
-def my_app(_cfg: DictConfig) -> None:
-    if _cfg.training.seed:
-        torch.manual_seed(_cfg.training.seed)
+def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_file, training_seed,
+                      load_model, cfg_network,
+                      training_batch_size, training_epochs, learning_rate,
+                      loss_type, loss_mask, loss_factor,
+                      model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,
+                      n_cpus,
+                      print_every,
+                      proba_file, proba_length_file, indep_keypoints,
+                      add_missing_pad, viewinvariant,
+                      normalize, normalizecube, swap,
+                      add_missing,
+                      logger, verbose=0) -> None:
+    if training_seed:
+        torch.manual_seed(training_seed)
         random.seed(0)
         np.random.seed(0)
-
-    outputdir = os.getcwd()
-    basedir = hydra.utils.get_original_cwd()
-    logger.info(f'basedir: {basedir}')
 
     torch.autograd.set_detect_anomaly(True)
     """ LOGGING AND PATHS """
 
-    logger.info(f'{_cfg}')
+    logger.debug(f'[TRAIN FILLMISSING]{training_seed}')
 
-    constant_file_path = os.path.join(basedir, 'datasets', _cfg.dataset.name, f'constants.py')
+    constant_file_path = os.path.join(dataset_path, f'constants.py')
     if not os.path.exists(constant_file_path):
         raise ValueError(f'no constant file found in', constant_file_path)
     dataset_constants = read_constant_file(constant_file_path)
@@ -51,92 +55,99 @@ def my_app(_cfg: DictConfig) -> None:
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logger.info("Device: {}".format(device))
 
-    print_every = _cfg.training.get('print_every', 1)
-
     """ DATA """
-    transforms, _ = init_transforms(_cfg, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
-                                 dataset_constants.SEQ_LENGTH, basedir, outputdir)
+    transforms = init_transforms(proba_file, proba_length_file, indep_keypoints,
+                                  dataset_constants.KEYPOINTS,
+                                    dataset_constants.DIVIDER,
+                                 dataset_constants.SEQ_LENGTH, model_dir,
+                                 logger, add_missing_pad, viewinvariant,
+                                 normalize, normalizecube, swap,
+                                 add_missing, verbose)
 
-    logger.info('Loading datasets...')
-    if _cfg.dataset.skeleton_file is not None:
-        skeleton_file_path = os.path.join(basedir, 'datasets', _cfg.dataset.skeleton_file)
+    logger.info('Loading datasets')
+    if skeleton_file is not None and skeleton_file != '':
+        skeleton_file_path = os.path.join(project_dir, 'DISK-data', skeleton_file)
         if not os.path.exists(skeleton_file_path):
             raise ValueError(f'no skeleton file found in', skeleton_file_path)
     else:
         skeleton_file_path = None
 
-    train_dataset, val_dataset, test_dataset = load_datasets(dataset_name=_cfg.dataset.name,
-                                                             dataset_constants=dataset_constants,
-                                                             transform=transforms,
-                                                             dataset_type='supervised',
-                                                             suffix='_w-0-nans',
-                                                             root_path=basedir,
-                                                             outputdir=outputdir,
-                                                             skeleton_file=skeleton_file_path,
-                                                             label_type='all',  # don't care, not using
-                                                             verbose=_cfg.feed_data.verbose)
+    train_dataset, val_dataset, test_dataset = load_datasets(
+        dataset_path=dataset_path,
+        dataset_constants=dataset_constants,
+        transform=transforms,
+        dataset_type='supervised',
+        suffix='_w-0-nans',
+        root_path=project_dir,
+        outputdir=model_dir,
+        skeleton_file=skeleton_file_path,
+        label_type='all',  # don't care, not using
+        verbose=verbose,
+        logger=logger
+    )
 
-    train_loader = DataLoader(train_dataset, batch_size=_cfg.training.batch_size, shuffle=True,
-                              num_workers=_cfg.training.n_cpus)
-    val_loader = DataLoader(val_dataset, batch_size=_cfg.training.batch_size, shuffle=True,
-                            num_workers=_cfg.training.n_cpus)
+    train_loader = DataLoader(train_dataset, batch_size=training_batch_size, shuffle=True,
+                              num_workers=n_cpus)
+    val_loader = DataLoader(val_dataset, batch_size=training_batch_size, shuffle=True,
+                            num_workers=n_cpus)
 
     """ MODEL INITIALIZATION """
-    logger.info('Initializing prediction model...')
+    logger.info('Initializing prediction model')
     # load model
-    model = construct_NN_model(_cfg, dataset_constants, skeleton_file_path, device)
+    model = construct_NN_model(cfg_network, dataset_constants, skeleton_file_path, device)
 
-    logger.info(f'{model}')
-    logger.info(f'Nb of NN parameters: {np.sum([p.numel() for p in model.parameters() if p.requires_grad])}')
+    logger.debug(f'Nb of NN parameters: {np.sum([p.numel() for p in model.parameters() if p.requires_grad])}')
 
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
-                                 lr=_cfg.training.learning_rate)
+                                 lr=learning_rate)
 
-    if _cfg.training.loss.type == 'l1':
+    if loss_type == 'l1':
         criterion_seq = nn.L1Loss(reduction='none')
-    elif _cfg.training.loss.type == 'l2':
+    elif loss_type == 'l2':
         criterion_seq = nn.MSELoss(reduction='none')
     else:
-        raise NotImplementedError(f'[ERROR][MAIN_FILLMISSING] Loss type _cfg.training.loss.type should be "l1" or "l2". '
-                                  f'Given: {_cfg.training.loss.type}')
+        raise NotImplementedError(f'[ERROR][MAIN_FILLMISSING] Loss type should be "l1" or '
+                                  f'"l2". '
+                                  f'Given: {loss_type}')
 
     start = time.time()
-    lambda1 = lambda ith_epoch: _cfg.training.model_scheduler.rate ** (ith_epoch // _cfg.training.model_scheduler.steps_epoch)
-    if _cfg.training.model_scheduler.type == 'lambdalr':
+    lambda1 = lambda ith_epoch: model_scheduler_rate ** (ith_epoch // model_scheduler_steps_epoch)
+    if model_scheduler_type == 'lambdalr':
         model_scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda1)
-    elif _cfg.training.model_scheduler.type == 'transformer':
-        total_steps = int(_cfg.training.epochs * len(train_loader))
+    elif model_scheduler_type == 'transformer':
+        total_steps = int(training_epochs * len(train_loader))
         warmup_steps = int(total_steps / 10)
-        model_scheduler = TransformerLRScheduler(optimizer, init_lr=1e-4, peak_lr=_cfg.training.learning_rate,
+        model_scheduler = TransformerLRScheduler(optimizer, init_lr=1e-4, peak_lr=learning_rate,
                                                  final_lr=1e-6, final_lr_scale=0.05,
                                                  warmup_steps=warmup_steps, decay_steps=total_steps - warmup_steps)
     past_val_rmse = np.inf
 
     start_epoch = 1
     # Load a saved model
-    if _cfg.training.load:
-        for item in os.listdir(os.path.join(basedir, _cfg.training.load)):
+    if load_model:
+        for item in os.listdir(load_model):
             if item.startswith('model_epoch') and not item.endswith('txt'):
                 # Pull the starting epoch from the file name
                 print('Loading model from', item)
-                start_epoch, loaded_print_every = load_checkpoint(model, optimizer, os.path.join(basedir, _cfg.training.load, item), device)
+                start_epoch, loaded_print_every = load_checkpoint(model, optimizer, os.path.join(project_dir, load_model,
+                                                                                                 item), device, logger)
                 start_epoch += 1
                 # found a model, so stop looking in the folders
                 break
 
-    if _cfg.training.load:
-        file_output = open(f'training_losses.txt', 'a')
-        for item in os.listdir(os.path.join(basedir, _cfg.training.load)):
+    if load_model:
+        file_output = open(os.path.join(model_dir, f'training_losses.txt'), 'a')
+        for item in os.listdir(load_model):
             if item.startswith('training_losses'):
-                previous_content = open(os.path.join(basedir, _cfg.training.load, item), 'r').readlines()
+                previous_content = open(os.path.join(load_model, item), 'r').readlines()
                 file_output.writelines(previous_content[:(start_epoch - 1) // loaded_print_every])
                 # found a model, stop looking in the folders
                 break
     else:
-        file_output = open(f'training_losses.txt', 'w')
+        file_output = open(os.path.join(model_dir, f'training_losses.txt'), 'w')
 
-
-    for ith_epoch in range(start_epoch, start_epoch + _cfg.training.epochs):
+    ith_epoch = 0
+    for ith_epoch in range(start_epoch, start_epoch + training_epochs):
         ave_loss_train = 0
         ave_rmse_train = 0
 
@@ -153,8 +164,11 @@ def my_app(_cfg: DictConfig) -> None:
 
             de_out, _, total_loss, loss_original, list_rmse = feed_forward(data_with_holes,
                                                                            mask_holes, dataset_constants.DIVIDER,
-                                                                           model, _cfg, data_full=data_full,
-                                                                           criterion_seq=criterion_seq)
+                                                                           model, loss_mask, loss_factor,
+                                                                           cfg_network,
+                                                                           data_full=data_full,
+                                                                           criterion_seq=criterion_seq,
+                                                                           logger=logger)
             ave_loss_train += total_loss.item()
             ave_rmse_train += list_rmse.mean().item()
 
@@ -173,13 +187,14 @@ def my_app(_cfg: DictConfig) -> None:
         if ith_epoch % print_every == 0 and ith_epoch != start_epoch:
             with torch.no_grad():
                 ave_loss_eval, ave_rmse_eval, _ = compute_loss(model, val_loader, dataset_constants.DIVIDER,
-                                                               criterion_seq, _cfg, device)
+                                                               criterion_seq, loss_mask, loss_factor, cfg_network,
+                                                               device, logger)
 
                 logger.info(f'Epoch {ith_epoch:>3}: TrainLoss {ave_loss_train:.6f} EvalLoss {ave_loss_eval:.6f} ')
                 logger.info(f'{"":>11}TrainRMSE {ave_rmse_train:.6f} EvalRMSE {ave_rmse_eval:.6f} ')
                 logger.info(f'{"":>11}Time since beginning: '
-                            f'{timeSince(start, (ith_epoch - start_epoch + 1) / _cfg.training.epochs)} '
-                             f'-- Completed: {(ith_epoch - start_epoch + 1) / _cfg.training.epochs * 100:.1f}% \n')
+                            f'{timeSince(start, (ith_epoch - start_epoch + 1) / training_epochs)} '
+                             f'-- Completed: {(ith_epoch - start_epoch + 1) / training_epochs * 100:.1f}% \n')
 
                 file_output.writelines('%.6f %.6f %.6f %.6f %.4f \n' %
                                        (ave_loss_train, ave_rmse_train, ave_loss_eval, ave_rmse_eval,
@@ -187,13 +202,13 @@ def my_app(_cfg: DictConfig) -> None:
 
                 if ave_rmse_eval < past_val_rmse:
                     past_val_rmse = ave_rmse_eval
-                    for item in os.listdir(outputdir):
+                    for item in os.listdir(model_dir):
                         if item.startswith('model_epoch') and not item.endswith('txt'):
                             # overwrite and make the file blank instead - ref: https://stackoverflow.com/a/4914288/3553367
-                            open(os.path.join(outputdir, item), 'w').close()
-                            os.remove(os.path.join(outputdir, item))
-                    logger.info('saving model...')
-                    path_model = os.path.join(os.path.join(outputdir, f'model_epoch{ith_epoch}'))
+                            open(os.path.join(model_dir, item), 'w').close()
+                            os.remove(os.path.join(model_dir, item))
+                    logger.info('saving model')
+                    path_model = os.path.join(os.path.join(model_dir, f'model_epoch{ith_epoch}'))
                     value_dict = {'ave_loss_train': ave_loss_train,
                                   'ave_rmse_train': ave_rmse_train,
                                   'ave_loss_eval': ave_loss_eval,
@@ -202,37 +217,40 @@ def my_app(_cfg: DictConfig) -> None:
                                   'print_every': print_every}
                     save_checkpoint(model, ith_epoch, optimizer, value_dict, path_model)
 
-        if ith_epoch % 50 == 0 or ith_epoch == start_epoch + _cfg.training.epochs - 1:  # to flush
+        if ith_epoch % 50 == 0 or ith_epoch == start_epoch + training_epochs - 1:  # to flush
             filename = file_output.name
             file_output.close()
             file_output = open(filename, 'a')
 
     with torch.no_grad():
         # ave_loss_train, ave_rmse_train, _ = compute_loss(model, train_loader, dataset_constants.DIVIDER, criterion_seq, _cfg, device)
-        ave_loss_eval, ave_rmse_eval, _ = compute_loss(model, val_loader, dataset_constants.DIVIDER, criterion_seq, _cfg, device)
-        value_dict = {'ave_loss_train': ave_loss_train, 'ave_rmse_train': ave_rmse_train, 'ave_loss_eval': ave_loss_eval,
-                  'ave_rmse_eval': ave_rmse_eval, 'lr': model_scheduler.get_last_lr()[0]}
+        ave_loss_eval, ave_rmse_eval, _ = compute_loss(model, val_loader, dataset_constants.DIVIDER, criterion_seq,
+                                                       loss_mask, loss_factor, cfg_network, device, logger)
+        value_dict = {
+            'ave_loss_train': ave_loss_train,
+            'ave_rmse_train': ave_rmse_train,
+            'ave_loss_eval': ave_loss_eval,
+            'ave_rmse_eval': ave_rmse_eval,
+            'lr': model_scheduler.get_last_lr()[0]
+                      }
         save_checkpoint(model, ith_epoch, optimizer, value_dict,
-                        os.path.join(os.path.join(outputdir, f'model_last_epoch{ith_epoch}')))
+                        os.path.join(os.path.join(model_dir, f'model_last_epoch{ith_epoch}')))
 
     file_output.close()
 
     """Plot training curves"""
-    df = pd.read_csv(f'training_losses.txt', sep=' ', header=None)
+    df = pd.read_csv(os.path.join(model_dir, f'training_losses.txt'), sep=' ', header=None)
     if df.shape[0] < 100:
         offset = 0
     else:
         offset = 10
     with plt.style.context('dark_background'):
         plot_training(df, offset=offset, print_every=print_every)
-        plt.savefig(os.path.join(outputdir, f'loss_dark.svg'), transparent=True)
+        plt.savefig(os.path.join(model_dir, f'loss_dark.svg'), transparent=True)
     with plt.style.context('seaborn'):
         plot_training(df, offset=offset, print_every=print_every)
-        plt.savefig(os.path.join(outputdir, f'loss.svg'))
+        plt.savefig(os.path.join(model_dir, f'loss.svg'))
 
     return past_val_rmse
 
 
-if __name__ == '__main__':
-
-    my_app()

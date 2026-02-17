@@ -10,11 +10,11 @@ from tqdm import tqdm
 from DISK.utils.coordinates_utils import f2m, create_skeleton_plot, create_seq_plot
 from DISK.utils.transforms import transform_x
 from DISK.utils.utils import find_holes
-from DISK.utils.logger_setup import logger
 from DISK.models.graph import Graph
 
 
-def load_datasets(dataset_name, dataset_constants, suffix='', dataset_type='supervised', root_path='', **kwargs):
+def load_datasets(dataset_path, dataset_constants, suffix='', dataset_type='supervised', root_path='',
+                  **kwargs):
     """
     Folder structure: all pt files in the same subfolder in datasets
 
@@ -24,23 +24,30 @@ def load_datasets(dataset_name, dataset_constants, suffix='', dataset_type='supe
 
     3 datasets: train, validation and test
 
-    :param dataset_name: subfolder name
     :return: 3 torch datasets (train_dataset, val_dataset, test_dataset)
     """
 
-    data_path = os.path.join(root_path, 'datasets', dataset_name)
     if dataset_type == 'supervised':
-        train_dataset = SupervisedDataset(os.path.join(data_path, f'train_dataset{suffix}.npz'), dataset_constants, **kwargs)
-        test_dataset = SupervisedDataset(os.path.join(data_path, f'test_dataset{suffix}.npz'), dataset_constants, **kwargs)
-        val_dataset = SupervisedDataset(os.path.join(data_path, f'val_dataset{suffix}.npz'),  dataset_constants, **kwargs)
+        train_dataset = SupervisedDataset(os.path.join(dataset_path, f'train_dataset{suffix}.npz'), dataset_constants,
+                                          **kwargs)
+        test_dataset = SupervisedDataset(os.path.join(dataset_path, f'test_dataset{suffix}.npz'), dataset_constants,
+                                         **kwargs)
+        val_dataset = SupervisedDataset(os.path.join(dataset_path, f'val_dataset{suffix}.npz'),  dataset_constants,
+                                        **kwargs)
     elif dataset_type == 'full_length':
-        train_dataset = FullLengthDataset(os.path.join(data_path, f'train_fulllength_dataset{suffix}.npz'), dataset_constants, **kwargs)
-        test_dataset = FullLengthDataset(os.path.join(data_path, f'test_fulllength_dataset{suffix}.npz'), dataset_constants, **kwargs)
-        val_dataset = FullLengthDataset(os.path.join(data_path, f'val_fulllength_dataset{suffix}.npz'), dataset_constants, **kwargs)
+        train_dataset = FullLengthDataset(os.path.join(dataset_path, f'train_fulllength_dataset{suffix}.npz'),
+                                          dataset_constants, **kwargs)
+        test_dataset = FullLengthDataset(os.path.join(dataset_path, f'test_fulllength_dataset{suffix}.npz'),
+                                         dataset_constants, **kwargs)
+        val_dataset = FullLengthDataset(os.path.join(dataset_path, f'val_fulllength_dataset{suffix}.npz'),
+                                        dataset_constants, **kwargs)
     elif dataset_type == 'impute':
-        train_dataset = ImputeDataset(os.path.join(data_path, f'train_fulllength_dataset{suffix}.npz'), dataset_constants, **kwargs)
-        test_dataset = ImputeDataset(os.path.join(data_path, f'test_fulllength_dataset{suffix}.npz'), dataset_constants, **kwargs)
-        val_dataset = ImputeDataset(os.path.join(data_path, f'val_fulllength_dataset{suffix}.npz'), dataset_constants, **kwargs)
+        train_dataset = ImputeDataset(os.path.join(dataset_path, f'train_fulllength_dataset{suffix}.npz'),
+                                      dataset_constants, **kwargs)
+        test_dataset = ImputeDataset(os.path.join(dataset_path, f'test_fulllength_dataset{suffix}.npz'),
+                                     dataset_constants, **kwargs)
+        val_dataset = ImputeDataset(os.path.join(dataset_path, f'val_fulllength_dataset{suffix}.npz'),
+                                    dataset_constants, **kwargs)
     else:
         raise ValueError(f'[load_datasets function] argument dataset_type = {dataset_type} is not recognized. '
                          f'Authorized values are "supervised" or "full_length"')
@@ -57,6 +64,7 @@ class ParentDataset(data.Dataset):
                  *args,
                  label_type: str=None,
                  verbose: int = 0,
+                 logger: object=None,
                  **kwargs
                  ):
         with np.load(file, allow_pickle=True) as data:
@@ -76,21 +84,22 @@ class ParentDataset(data.Dataset):
         self.divider = dataset_constants.DIVIDER
         self.seq_length = dataset_constants.SEQ_LENGTH
         self.original_divider = self.divider + 1 if dataset_constants.W_RESIDUALS else self.divider
-        if skeleton_file is not None:
+        if skeleton_file is not None and skeleton_file != '':
             self.skeleton_graph = Graph(file=skeleton_file, strategy='uniform', max_hop=1, dilation=1)
         else:
             self.skeleton_graph = None
 
-        if transform is None:
-            logger.debug('[WARNING] NO TRANSFORM will be applied to the data. Is it really the behavior you are '
-                    'expecting??? '
-                  'If not, check that you are passing a transform (without an s) list to the constructor.')
+        # if transform is None:
+        #     logger.debug('[WARNING] NO TRANSFORM will be applied to the data. Is it really the behavior you are '
+        #             'expecting??? '
+        #           'If not, check that you are passing a transform (without an s) list to the constructor.')
         if 'transforms' in kwargs:
             raise Warning('You are giving transforms (with an s) keyword argument. Expected: transform')
         self.transform = transform
 
         self.outputdir = outputdir
         self.label_type = label_type
+        self.logger = logger
         self.verbose = verbose
 
     def _get_sample(self, index: int):
@@ -213,8 +222,10 @@ class SupervisedDataset(ParentDataset):
                  skeleton_file: str = None,
                  outputdir: str = '',
                  verbose: int = 0,
+                 logger: object = None,
                  **kwargs):
-        super(SupervisedDataset, self).__init__(file, dataset_constants, transform, outputdir, skeleton_file, verbose)
+        super(SupervisedDataset, self).__init__(file, dataset_constants, transform, outputdir, skeleton_file, logger,
+                                                verbose)
         self.len_seq = self.data_dict['lengths']
 
         # compute an estimation of the average distance between keypoints of one pose, so when adding the gaussian noise
@@ -298,7 +309,7 @@ class FullLengthDataset(ParentDataset):
         self.kwargs.update(kwargs)
 
     def get_possible_indices(self):
-        logger.debug('calling get_possible_indices from FullLengthDataset')
+        self.logger.debug('calling get_possible_indices from FullLengthDataset')
         possible_indices = []
         for i_file, file_time in enumerate(self.time):
             file_time = file_time[file_time > -1]
@@ -373,7 +384,7 @@ class ImputeDataset(FullLengthDataset):
                                             stride, outputdir, verbose, **kwargs)
 
     def get_possible_indices(self):
-        logger.debug('calling the ImputeDataset get_possible_indices')
+        self.logger.debug('calling the ImputeDataset get_possible_indices')
 
         # some recordings are shorter than others, so find the real end point for each recording
         end_times = [np.where(t == -1)[0][0] if -1 in t else len(t) for t in self.time]
@@ -396,7 +407,6 @@ class ImputeDataset(FullLengthDataset):
                     continue
                 mask = np.any(np.isnan(self.X[recording]), axis=1)[start: stop]
                 holes = find_holes(mask[:, np.newaxis], ['all'], indep=False, target_val=True)
-                # logger.debug(f'holes {holes}')
                 n_total += np.sum([h[1] for h in holes])
 
                 for ihole in range(len(holes)):
@@ -449,7 +459,6 @@ class ImputeDataset(FullLengthDataset):
                                 stop_segment = stop_segment + possible_extension_right
 
                         len_sample = stop_segment - start_segment
-                        # logger.debug(f'{ihole}, {start_segment}, {stop_segment}, {len_sample}')
                         n_imputed += holes[ihole][1]
                         assert len_sample <= self.seq_length
                         assert np.all(~mask[start_segment: start_segment + self.padding[0]])
@@ -472,10 +481,10 @@ class ImputeDataset(FullLengthDataset):
         if n_imputed == 0:
             return np.array([])
 
-        logger.info(
+        self.logger.info(
             f'Found {n_imputed} imputable timepoints over the {n_total} total missing timepoints '
             f'({n_imputed / n_total * 100:.1f} %)')
-        logger.info(f'Lengths of imputable segments (25th, 50th, 75th percentiles): '
+        self.logger.info(f'Lengths of imputable segments (25th, 50th, 75th percentiles): '
                      f'{np.percentile(np.array(possible_indices)[:, -1], (25, 50, 75))}')
         return np.array(possible_indices)
 

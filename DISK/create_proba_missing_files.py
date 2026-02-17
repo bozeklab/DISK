@@ -10,7 +10,6 @@ from torch.utils.data import DataLoader
 import hydra
 from omegaconf import DictConfig
 
-from DISK.utils.logger_setup import logger
 from DISK.utils.dataset_utils import load_datasets
 from DISK.utils.utils import read_constant_file, plot_save, find_holes
 from DISK.utils.transforms import AddMissing_LengthProba
@@ -29,27 +28,21 @@ def create_uniform_proba(min_len, max_len, keypoints):
     return pd.concat(dfs).reset_index().drop('index', axis=1), df_proba_init
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="conf_proba_missing_files")
-def create_proba_missing_files(_cfg: DictConfig) -> None:
+def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints,
+                               skeleton_file_path, logger) -> None:
     """Check if the artificial missing coordinates match the original coordinates"""
-    basedir = hydra.utils.get_original_cwd()
-    logger.info(f'[BASEDIR] {basedir}')
-    """ LOGGING AND PATHS """
 
-    logger.info(f'{_cfg}')
-    outputdir = os.path.join(basedir, 'datasets', _cfg.dataset_name,)
-    if not os.path.exists(outputdir):
-        os.mkdir(outputdir)
+    logger.debug(f'[CREATE PROBA MISSING FILES] {project_path}, {dataset_path} {indep_keypoints}, {merge_keypoints}')
 
-    constant_file_path = os.path.join(outputdir, 'constants.py')
+    constant_file_path = os.path.join(dataset_path, 'constants.py')
     if not os.path.exists(constant_file_path):
         raise ValueError(f'no constant file found in', constant_file_path)
     dataset_constants = read_constant_file(constant_file_path)
 
-    suffix = f'_set_keypoints' if not _cfg.indep_keypoints else ''
-    if _cfg.indep_keypoints:
-        if _cfg.merge_keypoints:
-            logger.info(f'merge_keypoints = True is not a valid option when indep_keypoints = True. '
+    suffix = f'_set_keypoints' if not indep_keypoints else ''
+    if indep_keypoints:
+        if merge_keypoints:
+            logger.info(f'️ℹ\n️ merge_keypoints = True is not a valid option when indep_keypoints = True. '
                          f'merge_keypoints would be considered False')
             suffix += f'_merged'
     no_original_missing = False
@@ -57,40 +50,42 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
     for initial in [True, False]:
 
         if not initial:
-            length_proba_df = pd.read_csv(os.path.join(outputdir, f'proba_missing_length{suffix}.csv'))
-            init_proba = pd.read_csv(os.path.join(outputdir, f'proba_missing{suffix}.csv'))
+            length_proba_df = pd.read_csv(os.path.join(dataset_path, f'proba_missing_length{suffix}.csv'))
+            init_proba = pd.read_csv(os.path.join(dataset_path, f'proba_missing{suffix}.csv'))
 
             addmissing_transform = AddMissing_LengthProba(length_proba_df, dataset_constants.KEYPOINTS, init_proba,
                                                           proba_n_missing=None,
                                                           divider=dataset_constants.DIVIDER,
-                                                          indep_keypoints=_cfg.indep_keypoints,
+                                                          indep_keypoints=indep_keypoints,
                                                           pad=(0, 0), verbose=0, proba=1)
             transform = [addmissing_transform]
         else:
             transform = None
 
-        train_dataset, val_dataset, test_dataset = load_datasets(dataset_name=_cfg.dataset_name,
-                                                                 suffix='_w-all-nans',
-                                                                 dataset_constants=dataset_constants,
-                                                                 transform=transform,
-                                                                 dataset_type='supervised',
-                                                                 root_path=basedir,
-                                                                 outputdir=outputdir,
-                                                                 skeleton_file=_cfg.skeleton_file,
-                                                                 verbose=0)
+        train_dataset, val_dataset, test_dataset = load_datasets(
+            dataset_path=dataset_path,
+            suffix='_w-all-nans',
+            dataset_constants=dataset_constants,
+            transform=transform,
+            dataset_type='supervised',
+            root_path=project_path,
+            skeleton_file=skeleton_file_path,
+            logger=logger,
+            verbose=0
+        )
 
         train_loader = DataLoader(train_dataset, batch_size=1, shuffle=False)
 
         df = pd.DataFrame(columns=['index_sample', 'length', 'keypoint', 'original'])
         i_data = 0
 
-        for data_dict in tqdm(train_loader):
+        for data_dict in tqdm(train_loader, desc='Looping on samples to search for gaps'):
             logger.debug(f'{df.shape}')
             mask_holes = data_dict['mask_holes']
             mask_original = data_dict['original_mask']
             if torch.any(mask_original == 0):
                 '''original hole'''
-                out = find_holes(mask_holes[0], dataset_constants.KEYPOINTS, indep=_cfg.indep_keypoints)
+                out = find_holes(mask_holes[0], dataset_constants.KEYPOINTS, indep=indep_keypoints)
                 original = True
                 for (_, length_nan, keypoint_name) in out:
                     df.loc[df.shape[0], :] = [i_data, int(length_nan), keypoint_name, original]
@@ -102,7 +97,7 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
             elif not initial and torch.all(mask_original == 1) and torch.any(mask_holes == 1):
                 original = False
 
-                out = find_holes(mask_holes[0], dataset_constants.KEYPOINTS, indep=_cfg.indep_keypoints)
+                out = find_holes(mask_holes[0], dataset_constants.KEYPOINTS, indep=indep_keypoints)
                 for (_, length_nan, keypoint_name) in out:
                     df.loc[df.shape[0], :] = [i_data, int(length_nan), keypoint_name, original]
                 out = find_holes(torch.sum(mask_holes[0], dim=1).view(mask_holes.shape[1], 1),
@@ -111,14 +106,14 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
                     df.loc[df.shape[0], :] = [i_data, int(length_nan), name, original]
                 i_data += 1
 
-        logger.info(f'Done with the loop(s)')
+        logger.debug(f'Done with the loop(s)')
         df = df.convert_dtypes()
 
         if initial:
             if len(df[df['original']]) == 0:
                 no_original_missing = True
                 ## no missing datapoints in the original files
-                logger.info(f'No Missing keypoints in the original files. Create uniform missing proba.')
+                logger.info(f'ℹ️ No Missing keypoints in the original files. Create uniform missing proba.')
                 proba_df, df_init_proba = create_uniform_proba(1, dataset_constants.SEQ_LENGTH - 1,
                                                                dataset_constants.KEYPOINTS)
                 suffix = f'_uniform{suffix}'
@@ -130,9 +125,9 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
                 set_keypoints = np.append(set_keypoints, 'non_missing')
                 init_proba = np.append(init_proba, 0)
                 df_init_proba = pd.DataFrame(columns=['keypoint', 'proba'], data=np.vstack([set_keypoints, init_proba]).T)
-            df_init_proba.to_csv(os.path.join(outputdir, f'proba_missing{suffix}.csv'), index=False)
+            df_init_proba.to_csv(os.path.join(dataset_path, f'proba_missing{suffix}.csv'), index=False)
 
-        if (not _cfg.indep_keypoints) and _cfg.merge_keypoints:
+        if (not indep_keypoints) and merge_keypoints:
             """
             The idea here is to merge some keypoints in order to estimate better the missing probability.
             We use "merged_set" as a temporary variable to pool the corresponding keypoints, 
@@ -153,7 +148,8 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
                 #                              data=df.loc[(df['keypoint'] != 'non_missing') * (df['original']), ['keypoint', 'merged_set']].drop_duplicates())
                 # df_init_proba = pd.merge(df_init_proba, count_starts_merged, how='left', on=['merged_set'])
                 # count_starts_merged.loc[:, 'proba'] /= np.sum(count_starts_merged['proba'])
-                # df_init_proba[['keypoint', 'proba']].to_csv(os.path.join(outputdir, f'proba_missing{suffix}.csv'), index=False)
+                # df_init_proba[['keypoint', 'proba']].to_csv(os.path.join(dataset_path, f'proba_missing{suffix}.csv'),
+                # index=False)
 
                 # keep the non_missing for the length proba
                 total_count_keypoint = df.loc[df['original'], :].groupby(['merged_set'])['index_sample'].agg(
@@ -166,14 +162,14 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
                                                        how='left'), on=['merged_set'], how='left')
                 proba_df.loc[:, 'proba'] = proba_df['count'] / proba_df['total']
                 proba_df[['keypoint', 'length', 'proba']].sort_values(['keypoint', 'length'])\
-                    .to_csv(os.path.join(outputdir, f'proba_missing_length{suffix}.csv'), index=False)
+                    .to_csv(os.path.join(dataset_path, f'proba_missing_length{suffix}.csv'), index=False)
 
             df.loc[:, 'keypoint'] = df['merged_set']
 
-        elif (not _cfg.merge_keypoints) and initial:
+        elif (not merge_keypoints) and initial:
             # the counts here are the counts of starting points
             if not no_original_missing:
-                logger.info('Computing the output proba files')
+                logger.debug('Computing the output proba files')
                 total_count_keypoint = df.loc[df['original'], :].groupby(['keypoint'])['index_sample'].agg('count').reset_index().rename({'index_sample': 'total'}, axis=1)
                 count_per_length_keypoint = df.loc[df['original'], :].groupby(['length', 'keypoint'])['index_sample'].agg('count').reset_index().rename({'index_sample': 'count'}, axis=1)
                 proba_df = pd.merge(count_per_length_keypoint, total_count_keypoint, on=['keypoint'], how='left')
@@ -183,7 +179,7 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
                         ## length, keypoint, count, total, proba
                         proba_df.loc[proba_df.shape[0], :] = [0, kp, 1, 1, 1]
             proba_df[['keypoint', 'length', 'proba']].sort_values(['keypoint', 'length'])\
-                .to_csv(os.path.join(outputdir, f'proba_missing_length{suffix}.csv'), index=False)
+                .to_csv(os.path.join(dataset_path, f'proba_missing_length{suffix}.csv'), index=False)
 
         def hist_length_original_vs_fake():
             plt.figure()
@@ -201,7 +197,7 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
 
         plot_save(hist_length_original_vs_fake, ~initial,
                   title=f'hist_length_original_vs_fake{suffix}',
-                  only_png=False, outputdir=outputdir)
+                  only_png=False, outputdir=dataset_path)
 
         def hist_length_per_keypoint():
             keypoints = df.loc[df['keypoint'] != 'non_missing', 'keypoint'].unique()
@@ -231,7 +227,7 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
 
         if not (no_original_missing and initial):
             plot_save(hist_length_per_keypoint, ~initial, title=f'hist_length_per_keypoint{suffix}', only_png=True,
-                          outputdir=outputdir)
+                          outputdir=dataset_path)
 
         def count_vs_keypoint():
             keypoints = df['keypoint'].unique()
@@ -239,7 +235,6 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
             if not no_original_missing:
                 pivot_df.loc[pivot_df['original'], 'count'] /= pivot_df.loc[pivot_df['original'], 'count'].sum()
             pivot_df.loc[~pivot_df['original'], 'count'] /= pivot_df.loc[~pivot_df['original'], 'count'].sum()
-            print(pivot_df['count'])
             sns.catplot(data=pivot_df, x='count', hue='original', y='keypoint', orient='h', alpha=0.9,
                         height=max(5, len(keypoints) // 10))
             if no_original_missing:
@@ -247,11 +242,8 @@ def create_proba_missing_files(_cfg: DictConfig) -> None:
 
         if not (no_original_missing and initial):
             plot_save(count_vs_keypoint, ~initial, title=f'count_vs_keypoint{suffix}', only_png=False,
-                      outputdir=outputdir)
+                      outputdir=dataset_path)
 
-        logger.info(f'Done with initial = {initial}')
+        logger.debug(f'Done with initial = {initial}')
 
 
-if __name__ == '__main__':
-
-    create_proba_missing_files()

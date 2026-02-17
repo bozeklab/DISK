@@ -272,13 +272,13 @@ def evaluate(_cfg: DictConfig) -> None:
 
     logger.info(f'{_cfg}')
 
-    dataset_path = os.path.join(basedir, 'datasets', _cfg.dataset.name)
+    dataset_path = os.path.join(basedir, 'DISK-data', _cfg.dataset.name)
     constant_file_path = os.path.join(dataset_path, f'constants.py')
     if not os.path.exists(constant_file_path):
         raise ValueError(f'no constant file found at {constant_file_path}')
     dataset_constants = read_constant_file(constant_file_path)
     if _cfg.dataset.skeleton_file is not None:
-        skeleton_file_path = os.path.join(basedir, 'datasets', _cfg.dataset.skeleton_file)
+        skeleton_file_path = os.path.join(basedir, 'DISK-data', _cfg.dataset.skeleton_file)
         skeleton_graph = Graph(file=skeleton_file_path)
         if not os.path.exists(skeleton_file_path):
             raise ValueError(f'no skeleton file found in', skeleton_file_path)
@@ -347,22 +347,24 @@ def evaluate(_cfg: DictConfig) -> None:
         all_segments = False
 
     # return full length dataset for imputation
-    train_dataset, val_dataset, test_dataset = load_datasets(dataset_name=_cfg.dataset.name,
-                                                             dataset_constants=dataset_constants,
-                                                             transform=transforms,
-                                                             dataset_type='impute',
-                                                             suffix='_w-all-nans',
-                                                             root_path=basedir,
-                                                             outputdir=outputdir,
-                                                             label_type='all',  # don't care, not using
-                                                             verbose=_cfg.feed_data.verbose,
-                                                             padding=_cfg.feed_data.pad,
-                                                             keypoints_bool=True,
-                                                             skeleton_file=skeleton_file_path,
-                                                             stride=dataset_constants.STRIDE,
-                                                             length_sample=dataset_constants.SEQ_LENGTH,
-                                                             freq=dataset_constants.FREQ,
-                                                             all_segments=all_segments)
+    train_dataset, val_dataset, test_dataset = load_datasets(
+        dataset_path=os.path.join(basedir, 'DISK-data', _cfg.dataset.name),
+         dataset_constants=dataset_constants,
+         transform=transforms,
+         dataset_type='impute',
+         suffix='_w-all-nans',
+         root_path=basedir,
+         outputdir=outputdir,
+         label_type='all',  # don't care, not using
+         verbose=_cfg.feed_data.verbose,
+         padding=_cfg.feed_data.pad,
+         keypoints_bool=True,
+         skeleton_file=skeleton_file_path,
+         stride=dataset_constants.STRIDE,
+         length_sample=dataset_constants.SEQ_LENGTH,
+         freq=dataset_constants.FREQ,
+         all_segments=all_segments
+                                                             )
 
     """LOOPING ON DATA"""
     with torch.no_grad():
@@ -382,8 +384,10 @@ def evaluate(_cfg: DictConfig) -> None:
                     assert not torch.any(torch.isnan(transformed_data))
 
                     de_out = feed_forward(transformed_data, mask_holes,  # 1 for missing, 0 for non-missing
-                                          dataset_constants.DIVIDER, model, cfg_model,
-                                          key_padding_mask=lengths)
+                                          dataset_constants.DIVIDER, model,
+                                          loss_mask, loss_factor,
+                                          cfg_model,
+                                          key_padding_mask=lengths, logger=logger)
                     # References for key_padding_mask for transformer
                     # https://pytorch.org/docs/stable/_modules/torch/nn/modules/activation.html#MultiheadAttention
                     # https://stackoverflow.com/questions/62629644/what-the-difference-between-att-mask-and-key-padding-mask-in-multiheadattnetion

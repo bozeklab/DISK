@@ -18,7 +18,7 @@ def main():
         print("✅ DISK is installed successfully.")
     except Exception:
         print("❌ There is a problem with DISK installation."
-              "\nPlease retry from scratch (conda env) and post a Github issue")
+              "\n  Please retry from scratch (conda env) and post a Github issue")
 
     try:
         import torch
@@ -28,7 +28,7 @@ def main():
             print("⚠️ GPU is not found.")
     except Exception:
         print("❌ There is a problem with Torch installation."
-              "\nPlease retry installing pytorch (see README for details).")
+              "\n  Please retry installing pytorch (see README for details).")
 
 
 def cli():

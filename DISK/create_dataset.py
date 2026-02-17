@@ -1,3 +1,4 @@
+import logging
 import os
 import tqdm
 import shutil
@@ -10,7 +11,7 @@ import h5py
 import hydra
 from omegaconf import DictConfig
 
-from DISK.utils.logger_setup import logger
+# from DISK.utils.logging_setup import logging
 
 
 def chop_coordinates_in_timeseries(time_vect: np.array,
@@ -42,7 +43,7 @@ def chop_coordinates_in_timeseries(time_vect: np.array,
     lengths = []
     times = []
     if len(good_segments) == 0:
-        logger.debug('No long enough segments.')
+        logging.debug('No long enough segments.')
     for index_good_segment in good_segments:
         data = coordinates[breakpoints[index_good_segment] + 1: breakpoints[index_good_segment + 1]]
 
@@ -134,8 +135,11 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
 
     elif file_type == 'npy':
         ## for human MoCap files
-        data = np.array(np.load(f))
-        logger.info(f'[WARNING][CREATE_DATASET][OPEN_AND_EXTRACT_DATA function][NPY INPUT FILES] keypoints cannot be '
+        try:
+            data = np.array(np.load(f))
+        except ValueError:
+            data = np.array(np.load(f, allow_pickle=True))
+        logging.info(f'[WARNING][CREATE_DATASET][OPEN_AND_EXTRACT_DATA function][NPY INPUT FILES] keypoints cannot be '
                f'loaded from input files. '
                      f'Expected behavior: the columns correspond to the keypoints and are in fixed order')
         # WARNING - here no information about keypoint, so we expect that the columns match for every file
@@ -146,7 +150,7 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
         with open(f, 'rb') as openedf:
             pkl_content = pickle.load(openedf)
         data = pkl_content['points3d']
-        logger.info(f'[WARNING][CREATE_DATASET][OPEN_AND_EXTRACT_DATA function][PKL INPUT FILES] keypoints cannot be '
+        logging.info(f'[WARNING][CREATE_DATASET][OPEN_AND_EXTRACT_DATA function][PKL INPUT FILES] keypoints cannot be '
                f'loaded from input files. '
                      f'Expected behavior: the columns correspond to the keypoints and are in fixed order')
         keypoints = [f'{i:02d}' for i in range(data.shape[1])]
@@ -234,11 +238,12 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
                 new_keypoints.extend([f'animal{animal_id}_{k}' for k in keypoints])
             keypoints = new_keypoints
         else:
-            keypoints = [item[1] for item in multi_index]
+            keypoints = list(dict.fromkeys([item[1] for item in multi_index]))
 
         # EDIT: Make sure that the keypoints are in the same order
         new_order = np.argsort(keypoints)
         keypoints = [keypoints[n] for n in new_order]
+        logging.debug(f'{new_order}, {keypoints}')
         data = data[:, new_order]
 
     elif file_type == 'sleap_h5':
@@ -282,26 +287,22 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
     return data, keypoints
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="conf_create_dataset")
-def create_dataset(_cfg: DictConfig) -> None:
-    basedir = hydra.utils.get_original_cwd()
-    logger.info(f'[BASEDIR] {basedir}')
+
+def create_dataset(dataset_path, data_files, file_type, sample_length, stride, fill_gap, sequential, original_freq,
+                   subsampling_freq, dlc_likelihood_threshold, discard_beginning, discard_end, drop_keypoints,
+                   logger) -> int:
+
     """ LOGGING AND PATHS """
 
-    logger.info(f'{_cfg}')
-    outputdir = os.path.join(basedir, 'datasets', _cfg.dataset_name)
+    logger.debug(f'[CREATE_DATASET] {dataset_path}, {sample_length}, {stride}, {fill_gap},'
+                f' {sequential}, {original_freq}, {subsampling_freq}, {dlc_likelihood_threshold}, '
+                f'{discard_beginning}, {discard_end}, {drop_keypoints}')
 
-    constant_file_path = os.path.join(outputdir, 'constants.py')
+    constant_file_path = os.path.join(dataset_path, 'constants.py')
 
-    if not os.path.isdir(outputdir):
-        os.mkdir(outputdir)
-
-    # th_std = 0.2 if 'DF3D' in _cfg.dataset_name else 0
-    # logger.info(f'THRESHOLD TO REMOVE FLAT SAMPLES: {th_std}')
-
-    #################################################################################################
+    ###################################################################################
     ### OPEN FILES AND PROCESS DATA
-    #################################################################################################
+    ####################################################################################
     p_train_val_test = np.array([0, 0.7, 0.85, 1])  ## only used for sequential,
     ## otherwise 1/10th of the files in test, 1/10th of the files in val, and the rest in train
     nan_modalities = [0, 1, np.inf]
@@ -325,25 +326,25 @@ def create_dataset(_cfg: DictConfig) -> None:
             fulllength_time[(n, t)] = []
             fulllength_maxlength[(n, t)] = []
 
-    if (not _cfg.sequential) and len(_cfg.input_files) < 3:
+    if (not sequential) and len(data_files) < 3:
         raise ValueError('[ERROR][create_dataset] If not choosing the "sequential" option, '
                          'you need to supply at least 3 input files.')
 
     # and we want to count the number of effective files
-    for i_file, f in tqdm.tqdm(enumerate(_cfg.input_files)):
-
-        data, keypoints = open_and_extract_data(f, _cfg.file_type, _cfg.dlc_likelihood_threshold)
+    for i_file, f in tqdm.tqdm(enumerate(data_files), desc='Loading data files'):
+        logger.debug(f'[CREATE_DATASET] {f}')
+        data, keypoints = open_and_extract_data(f, file_type, dlc_likelihood_threshold)
 
         # shape (keypoints, coordinates + residual, timepoints)
-        begin = _cfg.discard_beginning * _cfg.original_freq if _cfg.discard_beginning > 0 else 0
-        end = - _cfg.discard_end * _cfg.original_freq if _cfg.discard_end > 0 else len(data)
+        begin = discard_beginning * original_freq if discard_beginning > 0 else 0
+        end = - discard_end * original_freq if discard_end > 0 else len(data)
 
         data = data[begin: end, :, :3]
 
-        if _cfg.drop_keypoints is not None:
+        if drop_keypoints is not None:
             try:
                 indices = []
-                for k in _cfg.drop_keypoints:
+                for k in drop_keypoints:
                     if type(k) == str:
                         if k in keypoints:
                             indices.append(keypoints.index(k))
@@ -351,7 +352,7 @@ def create_dataset(_cfg: DictConfig) -> None:
                         if f'{k:02d}' in keypoints:
                             indices.append(keypoints.index(f'{k:02d}'))
             except ValueError:
-                logger.error(f'keypoints to drop {_cfg.drop_keypoints} not found in {f} with keypoints {keypoints}')
+                logger.error(f'keypoints to drop {drop_keypoints} not found in {f} with keypoints {keypoints}')
                 raise ValueError
             other_indices = np.array([i for i in range(len(keypoints)) if not i in indices])
             data = data[:, other_indices]
@@ -364,15 +365,15 @@ def create_dataset(_cfg: DictConfig) -> None:
         else:
             if len(set(old_keypoints).symmetric_difference(set(keypoints))) > 0:
                 raise ValueError(f'[ERROR][CREATE_DATASET] Mismatch between keypoints: \n'
-                                 f'Found {old_keypoints} in file {_cfg.input_files[0]} \n'
+                                 f'Found {old_keypoints} in file {data_files[0]} \n'
                                  f'and {keypoints} in file {f}\n')
 
         # step 1. linear interpolation for small gaps (smaller than fill_gap value)
-        if _cfg.fill_gap > 0:
+        if fill_gap > 0:
             flattened_data = data.reshape(data.shape[0], -1)
             out = find_hole_nan(flattened_data)
             for start, length, index_column in out:
-                if length > _cfg.fill_gap:
+                if length > fill_gap:
                     # gap too long, skip
                     continue
                 if start == 0 or start + length >= data.shape[0]:
@@ -384,11 +385,11 @@ def create_dataset(_cfg: DictConfig) -> None:
             data = flattened_data.reshape(data.shape)
 
         # step 2. subsampling
-        if _cfg.subsampling_freq < _cfg.original_freq:
+        if subsampling_freq < original_freq:
             # the reshape creates an additional dimension to be averaged by the nanmean with axis = 1
             data = np.nanmean(
-                data[:int(len(data) / (_cfg.original_freq / _cfg.subsampling_freq)) * int(_cfg.original_freq / _cfg.subsampling_freq)] \
-                    .reshape((-1, int(_cfg.original_freq / _cfg.subsampling_freq), data.shape[1], data.shape[2])), axis=1)
+                data[:int(len(data) / (original_freq / subsampling_freq)) * int(original_freq / subsampling_freq)] \
+                    .reshape((-1, int(original_freq / subsampling_freq), data.shape[1], data.shape[2])), axis=1)
 
 
         # until now we have eventually filled the gaps with linear interpolation and resampled
@@ -407,7 +408,7 @@ def create_dataset(_cfg: DictConfig) -> None:
             new_data = data[mask_rows]
             new_time_vect = time_vect[mask_rows]
 
-            if _cfg.sequential:
+            if sequential:
                 total_len = len(new_data)
                 indices_ttv = (total_len * np.array(p_train_val_test)).astype('int')
 
@@ -415,8 +416,8 @@ def create_dataset(_cfg: DictConfig) -> None:
                     # chopped_data has shape (n_samples, times, keypoints * 3D)
                     chopped_data, len_, times = chop_coordinates_in_timeseries(new_time_vect[indices_ttv[i_partition]: indices_ttv[i_partition + 1]],
                                                                                new_data[indices_ttv[i_partition]: indices_ttv[i_partition + 1]],
-                                                                               length=_cfg.length,
-                                                                               stride=_cfg.stride,
+                                                                               length=sample_length,
+                                                                               stride=stride,
                                                                                th_std=0)
 
                     # NB: times gives the beginning of the sample in the raw indices
@@ -426,7 +427,7 @@ def create_dataset(_cfg: DictConfig) -> None:
                     crop_len = indices_ttv[i_partition + 1] - indices_ttv[i_partition]
                     if crop_len > 0:
                         fulllength_data[(nan_name, partition)].append(new_data[indices_ttv[i_partition]: indices_ttv[i_partition + 1]].reshape(crop_len, -1))
-                        fulllength_time[(nan_name, partition)].append(new_time_vect[indices_ttv[i_partition]: indices_ttv[i_partition + 1]] / _cfg.subsampling_freq)
+                        fulllength_time[(nan_name, partition)].append(new_time_vect[indices_ttv[i_partition]: indices_ttv[i_partition + 1]] / subsampling_freq)
                         fulllength_maxlength[(nan_name, partition)].append(crop_len)
                         fulllength_original_files[(nan_name, partition)].append(os.path.basename(f))
 
@@ -442,34 +443,38 @@ def create_dataset(_cfg: DictConfig) -> None:
                     partition = 'train'
 
                 # chopped_data has shape (n_samples, times, keypoints * 3D)
-                chopped_data, len_, times = chop_coordinates_in_timeseries(new_time_vect,
-                                                                           new_data,
-                                                                           length=_cfg.length,
-                                                                           stride=_cfg.stride,
-                                                                           th_std=0)
-
+                chopped_data, len_, times = chop_coordinates_in_timeseries(
+                                                new_time_vect,
+                                                new_data,
+                                                length=sample_length,
+                                                stride=stride,
+                                                th_std=0
+                                            )
 
                 # NB: times gives the beginning of the sample in the raw indices
                 if len(chopped_data) == 0:
-                    logger.info(f'[WARNING] file {i_file} has not long enough segments for {nan_name}')
+                    logger.debug(f'[WARNING] file {i_file} has not long enough segments for {nan_name}')
                     continue
                 if nb_allowed_nans == 0:
-                    logger.info(f'From file {i_file}, extracted {chopped_data.shape} with 0 nans from {new_data.shape}')
+                    logger.debug(f'From file {i_file}, extracted {chopped_data.shape} with 0 nans from'
+                                 f' {new_data.shape}')
                 dataset[(nan_name, partition)].extend(chopped_data)
                 data_lengths[(nan_name, partition)].extend(len_)
 
                 fulllength_data[(nan_name, partition)].append(new_data.reshape(new_data.shape[0], -1))
-                fulllength_time[(nan_name, partition)].append(new_time_vect / _cfg.subsampling_freq)
+                fulllength_time[(nan_name, partition)].append(new_time_vect / subsampling_freq)
                 fulllength_maxlength[(nan_name, partition)].append(new_data.shape[0])
                 fulllength_original_files[(nan_name, partition)].append(os.path.basename(f))
 
-    ####################################################################################################
+    ####################################################################################
     ###### END FOR LOOP ON THE FILES ######
-    ####################################################################################################
+    ####################################################################################
 
     for nb_allowed_nans, nan_name in zip(nan_modalities, nan_modalities_names):
 
         for i_ttv, partition in enumerate(partitions):
+            if nan_name == '0' and partition == 'train':
+                number_sample_trains = len(dataset[(nan_name, partition)])
             if len(dataset[(nan_name, partition)]) == 0:
                 raise ValueError(f'no data for {partition} with {nan_name} NaNs, probably due to not long enough '
                                  f'segments')
@@ -486,14 +491,14 @@ def create_dataset(_cfg: DictConfig) -> None:
             for i_length, length in enumerate(fulllength_maxlength[(nan_name, partition)]):
                 sub_fulllength_time[i_length, :length] = fulllength_time[(nan_name, partition)][i_length]
 
-            logger.info(f'In {partition} with {nan_name} NaNs, Shape: {subdata.shape}. Fulllength: '
+            logger.info(f'In {partition:>5} with {nan_name:>3} NaNs, Shape: {subdata.shape}. Fulllength: '
                    f'{sub_fulllength_data.shape}')
-            outputfile = os.path.join(outputdir, f'{partition}_dataset_w-{nan_name}-nans')
-            print(f'saving in {outputfile}...')
+            outputfile = os.path.join(dataset_path, f'{partition}_dataset_w-{nan_name}-nans')
+            logger.debug(f'saving in {outputfile}...')
             np.savez(outputfile, X=subdata, lengths=sublengths)
 
-            outputfile = os.path.join(outputdir, f'{partition}_fulllength_dataset_w-{nan_name}-nans')
-            print(f'saving in {outputfile}...')
+            outputfile = os.path.join(dataset_path, f'{partition}_fulllength_dataset_w-{nan_name}-nans')
+            logger.debug(f'saving in {outputfile}...')
             np.savez(outputfile, X=sub_fulllength_data, time=sub_fulllength_time,
                      files=np.array(fulllength_original_files[(nan_name, partition)]))
 
@@ -505,74 +510,14 @@ def create_dataset(_cfg: DictConfig) -> None:
                     # DIVIDER= 2 for 2D, 3 for 3D, sometimes additional dimension for a confidence score or an error
                     # score for the detection
                     txt += f"DIVIDER = {data.shape[-1]}\n"
-                    txt += f"ORIG_FREQ = {_cfg.original_freq}\n"
-                    txt += f"FREQ = {_cfg.subsampling_freq}\n"
+                    txt += f"ORIG_FREQ = {original_freq}\n"
+                    txt += f"FREQ = {subsampling_freq}\n"
                     txt += f"SEQ_LENGTH = {subdata.shape[1]}\n"
-                    txt += f"STRIDE = {_cfg.stride}\n"
+                    txt += f"STRIDE = {stride}\n"
                     txt += f"W_RESIDUALS = False\n"  # for compatibility reasons (see dataset classes)
-                    txt += f"FILE_TYPE = '{_cfg.file_type}'\n"
-                    txt += f"DLC_LIKELIHOOD_THRESHOLD = {_cfg.dlc_likelihood_threshold}"
+                    txt += f"FILE_TYPE = '{file_type}'\n"
+                    txt += f"DLC_LIKELIHOOD_THRESHOLD = {dlc_likelihood_threshold}"
                     opened_file.write(txt)
 
 
-    create_skeleton_file = input('Would you like to create a skeleton file [y/n]? \n'
-          '(If this is the first time creating a dataset for a specific data, then type y. \n'
-          'If a skeleton file has already been generated for this type of data (animal + recording type), then type n. ')
-
-    possible_colors = ['orange', 'gold', 'grey', 'cornflowerblue', 'turquoise', 'hotpink', 'purple', 'blue', 'seagreen',
-                       'darkolivegreen', ]
-
-    if create_skeleton_file.lower() == 'y': ## answer is yes, create a skeleton file
-        print('The keypoints are:')
-        [print(f'{"":>11}{i} - {keypoints[i]}') for i in range(len(keypoints))]
-        print('Please indicate the links between keypoints (if possible in groups of links,\n'
-              'e.g. a leg, or the spine - groups of links will be displayed in the same color. ')
-        neighbor_links = []
-        link_colors = []
-        i = 0
-        while True:
-            groups_of_neighbors = input("Indicate the first group using the keypoints' indices and "
-                                        "follow the convention (0, 2), (0, 6), (2, 4) or (0, 2) \n"
-                                        "for only one link in a group. "
-                                        "Just press <Enter> if no more links. ")
-            if groups_of_neighbors == '':
-                break
-            group = eval(groups_of_neighbors)
-            neighbor_links.append(group)
-            link_colors.append(possible_colors[i % len(possible_colors)])
-            i += 1
-
-        center = None
-        while center is None:
-            center_index = input("Indicate which keypoint index is closer to the center of mass of the animal. "
-                                 "Please pick only one index. Should be an integer. ")
-            try:
-                center = int(center_index)
-            except NameError:
-                print('Wrong input')
-
-
-        ## Now right the skeleton file
-        skeleton_file_path = os.path.join(outputdir, 'skeleton.py')
-        with open(skeleton_file_path, 'w') as opened_file:
-            txt = f"num_keypoints = {len(keypoints)}\n"
-            txt += f"keypoints = {keypoints}\n"
-            # DIVIDER= 2 for 2D, 3 for 3D, sometimes additional dimension for a confidence score or an error
-            # score for the detection
-            txt += f"center = {center}\n"
-            txt += f"original_directory = '{outputdir}'\n"
-            txt += f"neighbor_links = {neighbor_links}\n"
-            txt += f"link_colors = {link_colors}\n"
-
-            opened_file.write(txt)
-
-    # we copy the config file, because it might be overwritten by the create_proba_missing config files
-    # and we need the original one for imputation later
-    shutil.copy(os.path.join('.hydra', 'config.yaml'), os.path.join('.hydra', 'config_create_dataset.yaml'))
-
-    print('______ End of create_dataset ______')
-
-
-if __name__ == '__main__':
-
-    create_dataset()
+    return number_sample_trains

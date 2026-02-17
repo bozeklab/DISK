@@ -17,7 +17,6 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 
 from DISK.utils.dataset_utils import load_datasets
-from DISK.utils.logger_setup import logger
 from DISK.utils.utils import read_constant_file, plot_save, compute_interp, find_holes, load_checkpoint
 from DISK.utils.transforms import init_transforms, reconstruct_before_normalization
 from DISK.utils.train_fillmissing import construct_NN_model, feed_forward_list
@@ -29,19 +28,46 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="conf_test")
-def evaluate(_cfg: DictConfig) -> None:
-    outputdir = os.getcwd()
-    basedir = hydra.utils.get_original_cwd()
-    logger.info(f'[BASEDIR] {basedir}')
-    logger.info(f'[OUTPUT DIR] {outputdir}')
-    """ LOGGING AND PATHS """
+def test(project_path: str,
+         output_dir: str,
+         dataset_path: str,
+         dataset_name:str,
+         skeleton_file,
+         model_checkpoints: list,
+         batch_size,
+         n_cpus: int,
+         loss_mask,
+         loss_factor,
+         proba_file,
+         proba_length_file,
+         indep_keypoints,
+         add_missing_pad,
+         viewinvariant,
+         normalize,
+         normalizecube,
+         swap,
+         add_missing,
+         test_name_items,
+         test_merge,
+         test_original_coordinates,
+         test_threshold_pck,
+         n_repeat,
+         merge_sets_file,
+         total_n_plots,
+         plot2d_only_holes,
+         plot3d_size,
+         plot3d_azim,
+         logger,
+         suffix='',
+         stride=None,
+         verbose=0) -> None:
 
-    logger.info(f'{_cfg}')
+    logger.debug(f'{project_path}')
 
-    dataset_constants = read_constant_file(os.path.join(basedir, 'datasets', _cfg.dataset.name, f'constants.py'))
-    if _cfg.dataset.skeleton_file is not None:
-        skeleton_file_path = os.path.join(basedir, 'datasets', _cfg.dataset.skeleton_file)
+    dataset_constants = read_constant_file(os.path.join(dataset_path, f'constants.py'))
+
+    if skeleton_file is not None and skeleton_file != '':
+        skeleton_file_path = os.path.join(project_path, 'DISK-data', skeleton_file)
         skeleton_graph = Graph(file=skeleton_file_path)
         if not os.path.exists(skeleton_file_path):
             raise ValueError(f'no skeleton file found in', skeleton_file_path)
@@ -54,24 +80,20 @@ def evaluate(_cfg: DictConfig) -> None:
 
     paths_to_models = []
     model_configs = []
-    for cf in _cfg.evaluate.checkpoints:
-        config_file = os.path.join(cf, '.hydra', 'config.yaml')
+    for cf in model_checkpoints:
+        config_file = os.path.join(cf, 'config', 'config_train.yaml')
         if os.path.exists(config_file):
             cfg_model = OmegaConf.load(config_file)
             logger.info(f'Found model at path {cf}')
             model_path = glob(os.path.join(cf, 'model_epoch*'))[0] # model_epoch to not take the model from the lastepoch
             paths_to_models.append(model_path)
-            if not cfg_model.training.get('mu_sigma'):
-                cfg_model.training['mu_sigma'] = False
             model_configs.append(cfg_model)
         else:
-            for path in Path(os.path.join(basedir, cf)).rglob('model_epoch*'):
+            for path in Path(os.path.join(project_path, cf)).rglob('model_epoch*'):
                 logger.info(f'Found model at path {str(path)}')
                 paths_to_models.append(str(path))
-                config_file = os.path.join(os.path.dirname(path), '.hydra', 'config.yaml')
+                config_file = os.path.join(os.path.dirname(path), 'config', 'config_train.yaml')
                 cfg_model = OmegaConf.load(config_file)
-                if not cfg_model.training.get('mu_sigma'):
-                    cfg_model.training['mu_sigma'] = False
                 model_configs.append(cfg_model)
 
     n_models = len(paths_to_models)
@@ -83,17 +105,14 @@ def evaluate(_cfg: DictConfig) -> None:
 
     assert len(model_configs) == n_models
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    logger.info("Device: {}".format(device))
-
     logger.info('Loading prediction model...')
     # load model
     models = []
     model_name = []
     full_name = ''
     for imodel, model_cfg in enumerate(model_configs):
-        models.append(construct_NN_model(model_cfg, dataset_constants, skeleton_file_path, device))
-        for ini, name_item in enumerate(_cfg.evaluate.name_items):
+        models.append(construct_NN_model(model_cfg.network, dataset_constants, skeleton_file_path, device))
+        for ini, name_item in enumerate(test_name_items):
             val = model_cfg[name_item[0]]
             for item in name_item[1:]:
                 val = val[item]
@@ -101,56 +120,63 @@ def evaluate(_cfg: DictConfig) -> None:
                 full_name = f'{name_item[-1]}-{val}'
             else:
                 full_name += f'_{name_item[-1]}-{val}'
-        if not _cfg.evaluate.merge:
+        if not test_merge:
             full_name += f'_{imodel}'
         model_name.append(full_name)
         logger.info(f'Network {full_name} constructed')
 
     for path, model in zip(paths_to_models, models):
-        load_checkpoint(model, None, path, device)
+        load_checkpoint(model, None, path, device, logger)
         model.eval()
 
     """ DATA """
-    transforms, _ = init_transforms(_cfg, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
-                                 dataset_constants.SEQ_LENGTH, basedir, outputdir)
+    transforms = init_transforms(proba_file, proba_length_file, indep_keypoints, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
+                                 dataset_constants.SEQ_LENGTH, output_dir, logger, add_missing_pad,
+                                    viewinvariant, normalize, normalizecube, swap, add_missing, verbose)
 
     logger.info('Loading datasets...')
-    train_dataset, val_dataset, test_dataset = load_datasets(dataset_name=_cfg.dataset.name,
-                                                             dataset_constants=dataset_constants,
-                                                             transform=transforms,
-                                                             dataset_type='full_length',
-                                                             suffix='_w-0-nans',
-                                                             root_path=basedir,
-                                                             outputdir=outputdir,
-                                                             label_type=None,  # don't care, not using
-                                                             verbose=_cfg.feed_data.verbose,
-                                                             keypoints_bool=True,
-                                                             skeleton_file=skeleton_file_path,
-                                                             stride=_cfg.dataset.stride,
-                                                             length_sample=dataset_constants.SEQ_LENGTH,
-                                                             freq=dataset_constants.FREQ)
-    if _cfg.evaluate.original_coordinates:
-        pck_final_threshold = train_dataset.kwargs['max_dist_bw_keypoints'] * _cfg.evaluate.threshold_pck
+    if stride is None:
+        stride = dataset_constants.STRIDE
+    train_dataset, val_dataset, test_dataset = load_datasets(
+            dataset_path=dataset_path,
+            dataset_constants=dataset_constants,
+            transform=transforms,
+            dataset_type='full_length',
+            suffix='_w-0-nans',
+            root_path=project_path,
+            outputdir=output_dir,
+            label_type=None,  # don't care, not using
+            verbose=verbose,
+            keypoints_bool=True,
+            skeleton_file=skeleton_file_path,
+            stride=stride,
+            length_sample=dataset_constants.SEQ_LENGTH,
+            freq=dataset_constants.FREQ,
+            logger=logger
+        )
+
+    if test_original_coordinates:
+        pck_final_threshold = train_dataset.kwargs['max_dist_bw_keypoints'] * test_threshold_pck
     else:
         # when normalized coordinates, approximation of the PCK score from the furthest away points could be (1, 1, 1) and (-1, -1, -1)
         # divider should be 2 in 2D and 3 in 3D
-        pck_final_threshold = 2 * np.sqrt(dataset_constants.DIVIDER) * _cfg.evaluate.threshold_pck
+        pck_final_threshold = 2 * np.sqrt(dataset_constants.DIVIDER) * test_threshold_pck
 
-    pck_name = f'PCK@{_cfg.evaluate.threshold_pck}'
+    pck_name = f'PCK@{test_threshold_pck}'
     
-    test_loader = DataLoader(test_dataset, batch_size=_cfg.evaluate.batch_size, shuffle=False,
-                             num_workers=_cfg.evaluate.n_cpus, persistent_workers=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False,
+                             num_workers=n_cpus, persistent_workers=True)
 
     criterion_seq = nn.L1Loss(reduction='none')
 
-    visualize_val_outputdir = os.path.join(outputdir, 'visualize_prediction_val')
+    visualize_val_outputdir = os.path.join(output_dir, 'visualize_prediction_val')
     if not os.path.isdir(visualize_val_outputdir):
         os.mkdir(visualize_val_outputdir)
 
-    swap_bool = bool(_cfg['feed_data']['transforms']['swap'])
+    swap_bool = swap > 0
     mean_RMSE = []
-    for i_repeat in range(_cfg.evaluate.n_repeat):
-        suffix = _cfg.evaluate.suffix + f'_repeat-{i_repeat}'
+    for i_repeat in range(n_repeat):
+        suffix = suffix + f'_repeat-{i_repeat}'
         """RMSE computation"""
         total_rmse = {'id_sample': [], 'id_hole':[], 'keypoint':[], 'method':[], 'method_param':[],
                       'RMSE':[], 'MPJPE':[], pck_name:[], 'mean_uncertainty':[], 'length_hole':[],
@@ -182,13 +208,16 @@ def evaluate(_cfg: DictConfig) -> None:
 
                 de_outs, uncertainty_estimates, _, _ = feed_forward_list(data_with_holes, mask_holes,
                                                                          dataset_constants.DIVIDER, models,
-                                                                         model_configs, data_full=data_full,
-                                                                         criterion_seq=criterion_seq)
+                                                                         loss_mask, loss_factor,
+                                                                         [m.network for m in model_configs],
+                                                                          data_full=data_full,
+                                                                         criterion_seq=criterion_seq,
+                                                                         logger=logger)
 
                 full_data_np = data_full.detach().cpu().clone().numpy()
                 data_with_holes_np = data_with_holes.detach().cpu().numpy()
 
-                if _cfg.evaluate.original_coordinates:
+                if test_original_coordinates:
                     full_data_np = reconstruct_before_normalization(full_data_np, data_dict, transforms)
                     data_with_holes_np = reconstruct_before_normalization(data_with_holes_np, data_dict, transforms)
                     if swap_bool:
@@ -205,7 +234,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 n_missing = np.sum(mask_holes_np, axis=(1, 2))  ## (batch,)
 
                 x_outputs_np = [out.detach().cpu().numpy() for out in de_outs]
-                if _cfg.evaluate.original_coordinates:
+                if test_original_coordinates:
                     x_outputs_np = [reconstruct_before_normalization(out, data_dict, transforms)
                                for out in x_outputs_np]
 
@@ -222,7 +251,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 rmse = [np.sum(((out - full_data_np) ** 2) * reshaped_mask_holes, axis=3)
                                       for out in x_outputs_np]  # sum on the XYZ dimension, output shape (batch, time, keypoint)
 
-                if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
+                if np.min(add_missing_pad) > 0:
                     linear_interp_data = compute_interp(data_with_holes_np, mask_holes_np, dataset_constants.KEYPOINTS,
                                                         dataset_constants.DIVIDER)
                     rmse_linear_interp = np.sum(((linear_interp_data - full_data_np) ** 2) * reshaped_mask_holes,
@@ -235,7 +264,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 bandexcess = [[]] * n_models
 
                 for i_model in range(n_models):
-                    if model_configs[i_model].training.mu_sigma:
+                    if model_configs[i_model].network.mu_sigma:
                         factor = 2
                         in_ = np.sum((full_data_np <= x_outputs_np[i_model] + uncertainty_estimates_np[i_model] * factor) *
                                      (full_data_np >= x_outputs_np[i_model] - uncertainty_estimates_np[i_model] * factor) *
@@ -294,7 +323,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                 total_rmse['swap_length'].append(swap_length)
                                 total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
 
-                        if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
+                        if np.min(add_missing_pad) > 0:
                             mean_rmse_linear = np.sqrt(np.mean(rmse_linear_interp[slice_]))
                             mean_euclidean_linear = np.mean(euclidean_distance_linear_interp[slice_])
                             mean_pck_linear = np.sum(pck_linear_interpolation[slice_] * mask_holes_np[slice_])\
@@ -316,7 +345,7 @@ def evaluate(_cfg: DictConfig) -> None:
                         id_hole += 1
 
                     ## the sample as a whole, not hole by hole
-                    if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
+                    if np.min(add_missing_pad) > 0:
                         total_rmse['id_sample'].append(id_sample)
                         total_rmse['id_hole'].append(-1)
                         total_rmse['keypoint'].append('all')
@@ -334,7 +363,7 @@ def evaluate(_cfg: DictConfig) -> None:
                             total_rmse['swap_length'].append(swap_length)
                             total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
                     for i_model in range(n_models):
-                        if model_configs[i_model].training.mu_sigma:
+                        if model_configs[i_model].network.mu_sigma:
                             mean_uncertainty_model = np.sum(uncertainty[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch]
                         else:
                             mean_uncertainty_model = np.nan
@@ -357,26 +386,29 @@ def evaluate(_cfg: DictConfig) -> None:
                     id_sample += 1
 
                 """VISUALIZATION, only first batch"""
-                if n_plots < _cfg.evaluate.n_plots:
-                    logger.info(f'Plotting sample: {n_plots} / {_cfg.evaluate.n_plots}')
+                if n_plots < total_n_plots:
+                    logger.info(f'Plotting sample: {n_plots} / {total_n_plots}')
                     potential_indices = np.where(n_missing > 0)[0]
                     np.random.seed(0)
                     for i in np.random.choice(potential_indices,  #full_data_np.shape[0],
-                                              min(len(potential_indices), _cfg.evaluate.n_plots),
+                                              min(len(potential_indices), n_plots),
                                               replace=False):
                         if skeleton_graph is not None:
                             for i_model, xo in enumerate(x_outputs_np):
+                                save_path = os.path.join(
+                                    visualize_val_outputdir,
+                                    f'traj3D_{indices_sample[i][0]}{model_name[i_model]}{suffix}'
+                                )
                                 plot_sequence(full_data_np[i, 1:], xo[i, 1:], mask_holes_np[i, 1:], skeleton_graph, nplots=15,
-                                              save_path=os.path.join(visualize_val_outputdir,
-                                                                     f'traj3D_{indices_sample[i][0]}{model_name[i_model]}{suffix}'),
-                                              size=_cfg.evaluate.size, azim=_cfg.evaluate.azim,
-                                              normalized_coordinates=(not _cfg.evaluate.original_coordinates))
+                                              save_path=save_path,
+                                              size=plot3d_size, azim=plot3d_azim,
+                                              normalized_coordinates=(not test_original_coordinates))
 
                         title = '(swap) ' if swap_bool else ''
                         title += f'RMSE & MPJPE'
                         title += ' -  '.join(
                             [f'{i_model}: {np.sqrt(np.mean(rmse[i_model][i])):.3f} & {np.mean(euclidean_distance[i_model][i]):.3f}' for i_model in range(n_models)])
-                        if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
+                        if np.min(add_missing_pad) > 0:
                             title += f'; linear: {np.sqrt(np.mean(rmse_linear_interp[i])):.3f} & {np.mean(euclidean_distance_linear_interp[i]):.3f}'
                         def make_xyz_plot():
                             fig, axes = plt.subplots(dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER,
@@ -388,7 +420,7 @@ def evaluate(_cfg: DictConfig) -> None:
                             t_vect = np.arange(1, dataset_constants.SEQ_LENGTH) / dataset_constants.FREQ
 
                             for j in range(dataset_constants.N_KEYPOINTS):
-                                if _cfg.evaluate.only_holes:
+                                if plot2d_only_holes:
                                     t_mask = (mask_holes_np[i, 1:, j] == 1)
                                     t_mask_holes = (mask_holes_np[i, 1:, j] == 1)
                                 else:
@@ -402,7 +434,7 @@ def evaluate(_cfg: DictConfig) -> None:
                                         for i_model, xo in enumerate(x_outputs_np):
                                             plot_ = axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[t_mask], xo[i, 1:, j, i_dim][t_mask], 'o',
                                                              label=model_name[i_model], )
-                                            if model_configs[i_model].training.mu_sigma:
+                                            if model_configs[i_model].network.mu_sigma:
                                                 # 3 * std otherwise 1/ we do not see anything,
                                                 # 2/ because the underlying distribution is supposed to be Gaussian
                                                 axes[dataset_constants.DIVIDER * j + i_dim]\
@@ -414,13 +446,13 @@ def evaluate(_cfg: DictConfig) -> None:
                                             assert not np.any(np.isnan(xo))
 
                                     out = find_holes(np.array(t_mask_holes).reshape(dataset_constants.SEQ_LENGTH - 1, 1).astype(int), ['0'], indep=True)
-                                    if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
+                                    if np.min(add_missing_pad) > 0:
                                         for o in out:
                                             axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[o[0]:o[0]+o[1]],
                                                                                      linear_interp_data[i, 1:, j, i_dim][o[0]:o[0]+o[1]], 'r-',
                                                      label='linear interp 1D')
 
-                                    if not _cfg.evaluate.original_coordinates:
+                                    if not test_original_coordinates:
                                         axes[dataset_constants.DIVIDER * j + i_dim].set_ylim(-1.2, 1.2)
 
                                 if np.any(t_mask_holes):
@@ -458,15 +490,15 @@ def evaluate(_cfg: DictConfig) -> None:
                      f"{total_rmse[(total_rmse['keypoint'] == 'all')].groupby(['method_param'])[[pck_name, 'RMSE', 'MPJPE']].agg('mean')}")
         tmp = total_rmse[(total_rmse['keypoint'] == 'all')].groupby(['method', 'method_param'])[[pck_name, 'RMSE', 'MPJPE']].agg('mean').reset_index()
         tmp['repeat'] = i_repeat
-        tmp['dataset'] = _cfg.dataset.name
+        tmp['dataset'] = dataset_name
         mean_RMSE.append(tmp)
 
         plt.close('all')
 
         def barplot_RMSE_keypoint():
             mask = (total_rmse['keypoint'] != 'all')
-            if len(_cfg.evaluate.merge_sets_file) > 0:
-                with open(os.path.join(basedir, _cfg.evaluate.merge_sets_file)) as f:
+            if len(merge_sets_file) > 0:
+                with open(os.path.join(project_path, merge_sets_file)) as f:
                     sets2merge = json.load(f)
                 for v in total_rmse.loc[mask, 'keypoint'].unique():
                     vv = ''.join([str(dataset_constants.KEYPOINTS.index(xx)) for xx in v.split(' ')])
@@ -484,7 +516,7 @@ def evaluate(_cfg: DictConfig) -> None:
         for metric in [pck_name, 'RMSE', 'MPJPE']:
             plot_save(barplot_RMSE_keypoint,
                       title=f'barplot_comparison_{metric}{suffix}', only_png=False,
-                      outputdir=outputdir)
+                      outputdir=output_dir)
             plt.close('all')
 
         def lineplot_length():
@@ -497,7 +529,7 @@ def evaluate(_cfg: DictConfig) -> None:
         for metric in [pck_name, 'RMSE', 'MPJPE']:
             plot_save(lineplot_length,
                   title=f'comparison_length_hole_kp_vs_{metric}{suffix}', only_png=False,
-                  outputdir=outputdir)
+                  outputdir=output_dir)
         plt.close('all')
 
 
@@ -511,10 +543,10 @@ def evaluate(_cfg: DictConfig) -> None:
         for metric in [pck_name, 'RMSE', 'MPJPE']:
             plot_save(lineplot_all_length,
                       title=f'comparison_length_hole_all_vs_{metric}{suffix}', only_png=False,
-                      outputdir=outputdir)
+                      outputdir=output_dir)
         plt.close('all')
 
-        total_rmse.to_csv(os.path.join(outputdir, f'total_metrics{suffix}.csv'), index=False)
+        total_rmse.to_csv(os.path.join(output_dir, f'total_metrics{suffix}.csv'), index=False)
 
         thresholding_df = pd.DataFrame(columns=['th', 'RMSE', 'RMSE_std', 'MPJPE', 'MPJPE_std', pck_name, f'{pck_name}_std', 'count', 'method'])
         for i_model in range(n_models):
@@ -535,7 +567,7 @@ def evaluate(_cfg: DictConfig) -> None:
                 metric = 'RMSE'
                 plot_save(corr_plot,
                           title=f'corrplot-model-{metric}-{model_name[i_model]}{suffix}', only_png=False,
-                          outputdir=outputdir)
+                          outputdir=output_dir)
                 plt.close('all')
 
                 th_vals = np.unique(total_rmse.loc[mask, 'mean_uncertainty'])[10:]
@@ -567,7 +599,7 @@ def evaluate(_cfg: DictConfig) -> None:
             def plot_thresholding():
                 fig, ax1 = plt.subplots(1, 1)
                 for i_model in range(n_models):
-                    if not model_configs[i_model].training.mu_sigma:
+                    if not model_configs[i_model].network.mu_sigma:
                         continue
                     m = model_name[i_model]
                     count = thresholding_df.loc[thresholding_df['method'] == m, 'count'].astype(int)
@@ -582,12 +614,7 @@ def evaluate(_cfg: DictConfig) -> None:
             for metric in [pck_name, 'RMSE', 'MPJPE']:
                 plot_save(plot_thresholding,
                           title=f'thresholding_curve_{metric}{suffix}', only_png=False,
-                          outputdir=outputdir)
+                          outputdir=output_dir)
                 plt.close('all')
 
-    pd.concat(mean_RMSE).to_csv(os.path.join(outputdir, f'mean_metrics{_cfg.evaluate.suffix}.csv'), index=False)
-
-
-if __name__ == '__main__':
-
-    evaluate()
+    pd.concat(mean_RMSE).to_csv(os.path.join(output_dir, f'mean_metrics{suffix}.csv'), index=False)

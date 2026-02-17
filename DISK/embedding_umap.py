@@ -568,7 +568,8 @@ if __name__ == '__main__':
     model_cfg = OmegaConf.load(config_file)
     model_path = glob(os.path.join(args.checkpoint_folder, 'model_epoch*'))[0]  # model_epoch to not take the model from the lastepoch
 
-    dataset_constants = read_constant_file(os.path.join(args.dataset_path, 'datasets', model_cfg.dataset.name, 'constants.py'))
+    dataset_constants = read_constant_file(os.path.join(args.dataset_path, 'DISK-data', model_cfg.dataset.name,
+                                                        'constants.py'))
 
     if model_cfg.dataset.skeleton_file is not None:
         skeleton_file_path = os.path.join(args.dataset_path, 'datasets', model_cfg.dataset.skeleton_file)
@@ -584,19 +585,21 @@ if __name__ == '__main__':
                                  dataset_constants.SEQ_LENGTH, args.dataset_path, args.checkpoint_folder)
 
     logger.info('Loading datasets...')
-    train_dataset, val_dataset, test_dataset = load_datasets(dataset_name=model_cfg.dataset.name,
-                                                             dataset_constants=dataset_constants,
-                                                             transform=transforms,
-                                                             dataset_type='full_length',
-                                                             stride=args.stride,
-                                                             suffix='_w-0-nans',
-                                                             root_path=args.dataset_path,
-                                                             length_sample=dataset_constants.SEQ_LENGTH,
-                                                             freq=dataset_constants.FREQ,
-                                                             outputdir=args.checkpoint_folder,
-                                                             skeleton_file=None,
-                                                             label_type='all',  # don't care, not using
-                                                             verbose=model_cfg.feed_data.verbose)
+    train_dataset, val_dataset, test_dataset = load_datasets(
+        dataset_path=os.path.join(args.dataset_path, 'DISK-data', model_cfg.dataset.name),
+        dataset_constants=dataset_constants,
+        transform=transforms,
+        dataset_type='full_length',
+        stride=args.stride,
+        suffix='_w-0-nans',
+        root_path=args.dataset_path,
+        length_sample=dataset_constants.SEQ_LENGTH,
+        freq=dataset_constants.FREQ,
+        outputdir=args.checkpoint_folder,
+        skeleton_file=None,
+        label_type='all',  # don't care, not using
+        verbose=model_cfg.feed_data.verbose
+    )
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logger.info("Device: {}".format(device))

@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 
-from DISK.utils.logger_setup import logger
 from DISK.models.TCN import TemporalConvNet
 from DISK.models.stgcn_AE import STGCN_Model
 from DISK.models.sts_gcn import STS_GCN
@@ -22,7 +21,8 @@ def _rmse(data, de_out, mask_holes_tensor, n_missing_per_sample):
     return rmse
 
 
-def _loss(data, de_out, out_distribution, uncertainty_estimate, mask_holes_tensor, criterion_seq, cfg):
+def _loss(data, de_out, out_distribution, uncertainty_estimate, mask_holes_tensor, criterion_seq, loss_mask,
+          loss_factor, cfg_network, logger):
     """
     Computes the loss given data and network output.
 
@@ -30,7 +30,7 @@ def _loss(data, de_out, out_distribution, uncertainty_estimate, mask_holes_tenso
     """
 
     # if training mask_loss
-    if cfg.training.loss.get('mask'):
+    if loss_mask:
         # copy mask with holes
         mask_loss = mask_holes_tensor[:, 1:, :]
     else:
@@ -43,12 +43,12 @@ def _loss(data, de_out, out_distribution, uncertainty_estimate, mask_holes_tenso
                          'It is usually caused by a problem in the gap making (see transforms code and proba_missing files).')
 
     # if mu_sigma
-    if cfg.training.get('mu_sigma'):
+    if cfg_network.mu_sigma:
         # NLL loss
         loss = - out_distribution.log_prob(data)
-        if cfg.training.beta_mu_sigma > 0:
+        if cfg_network.beta_mu_sigma > 0:
             ### from paper "On the Pitfalls of Heteroscedastic Uncertainty Estimation with Probabilistic Neural Networks"
-            loss *= torch.mean(uncertainty_estimate.detach(), dim=-1) ** cfg.training.beta_mu_sigma
+            loss *= torch.mean(uncertainty_estimate.detach(), dim=-1) ** cfg_network.beta_mu_sigma
         # sum over time and keypoints
         loss = torch.sum(loss[:, 1:] * mask_loss[..., 0], dim=(1, 2)) / n_missing_per_sample
         # mean over batch
@@ -66,14 +66,15 @@ def _loss(data, de_out, out_distribution, uncertainty_estimate, mask_holes_tenso
     # multiply by loss factor
     # mean per batch
     loss = torch.mean(torch.masked_select(loss, n_missing_per_sample > 0))
-    if cfg.training.loss.get('factor'):
-       loss *= cfg.training.loss.factor
+    if loss_factor:
+       loss *= loss_factor
 
     return loss, loss_original
 
 
-def apply_model(model, input_tensor_with_holes, mask_holes, n_dim, cfg,
-                data_full=None, criterion_seq=None, **kwargs):
+def apply_model(model, input_tensor_with_holes, mask_holes, n_dim, loss_mask,
+                loss_factor, cfg_network,
+                data_full=None, criterion_seq=None, logger=None, **kwargs):
     """
 
     Parameters
@@ -102,12 +103,12 @@ def apply_model(model, input_tensor_with_holes, mask_holes, n_dim, cfg,
     uncertainty_estimate = None
     out_distribution = None
 
-    if cfg.network.type in ['GRU', 'BiGRU']:
+    if cfg_network.type in ['GRU', 'BiGRU']:
         input_tensor_with_holes = input_tensor_with_holes.view(
             (input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], -1))
         de_out, _ = model(input_tensor_with_holes, **kwargs)
 
-        if cfg.training.mu_sigma:
+        if cfg_network.mu_sigma:
             de_out, uncertainty_estimate = de_out
             uncertainty_estimate = uncertainty_estimate.view(
                 (input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], -1, n_dim))
@@ -122,12 +123,12 @@ def apply_model(model, input_tensor_with_holes, mask_holes, n_dim, cfg,
         de_out = de_out.view(
                 (input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], -1, n_dim))
 
-    elif cfg.network.type == 'ST_GCN':
+    elif cfg_network.type == 'ST_GCN':
         inputs = torch.unsqueeze(torch.moveaxis(input_tensor_with_holes, -1, 1), -1)
         de_out = model(inputs, **kwargs)
         de_out = torch.squeeze(torch.moveaxis(de_out, 1, 3), -1)
 
-    elif cfg.network.type == 'TCN':
+    elif cfg_network.type == 'TCN':
         inputs = torch.moveaxis(input_tensor_with_holes.view(
             (input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], -1)), 1, 2)
         de_out = model(inputs, **kwargs)
@@ -135,14 +136,14 @@ def apply_model(model, input_tensor_with_holes, mask_holes, n_dim, cfg,
         de_out = de_out.view(
                 (input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], -1, n_dim))
 
-    elif cfg.network.type == 'STS_GCN':
+    elif cfg_network.type == 'STS_GCN':
         de_out = model(torch.moveaxis(input_tensor_with_holes, 3, 1), **kwargs)
         de_out = torch.moveaxis(de_out, 3, 2)\
             .reshape(input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], -1, n_dim)
 
-    elif cfg.network.type == 'transformer':
+    elif cfg_network.type == 'transformer':
         de_out = model(input_tensor_with_holes, mask_holes, **kwargs)
-        if cfg.training.mu_sigma:
+        if cfg_network.mu_sigma:
             de_out, uncertainty_estimate = de_out
             uncertainty_estimate = uncertainty_estimate.view(
                 (input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], input_tensor_with_holes.shape[2], -1))
@@ -153,7 +154,7 @@ def apply_model(model, input_tensor_with_holes, mask_holes, n_dim, cfg,
             de_out = de_out.view(
                     (input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], input_tensor_with_holes.shape[2], -1))
     else:
-        raise ValueError(f'[TRAIN_FILLMISSING][APPLY_MODEL function] model type {cfg.network.type} not understood.')
+        raise ValueError(f'[TRAIN_FILLMISSING][APPLY_MODEL function] model type {cfg_network.type} not understood.')
 
     if data_full is None or criterion_seq is None:
         return de_out, uncertainty_estimate
@@ -164,12 +165,14 @@ def apply_model(model, input_tensor_with_holes, mask_holes, n_dim, cfg,
         rmse = _rmse(data_full, de_out, mask_holes_tensor, n_missing_per_sample)
 
         loss, loss_original = _loss(data_full, de_out, out_distribution, uncertainty_estimate, mask_holes_tensor,
-                                    criterion_seq, cfg)
+                                    criterion_seq, loss_mask, loss_factor, cfg_network, logger)
 
         return de_out, uncertainty_estimate, loss, loss_original, rmse
 
 
-def feed_forward_list(data_with_holes, mask_holes, n_dim, models, cfgs,  data_full=None, criterion_seq=None):
+def feed_forward_list(data_with_holes, mask_holes, n_dim, models, loss_mask, loss_factor, cfg_networks,
+                      data_full=None,
+                      criterion_seq=None, logger=None):
     """
 
     Parameters
@@ -186,7 +189,7 @@ def feed_forward_list(data_with_holes, mask_holes, n_dim, models, cfgs,  data_fu
     Returns
     -------
     de_out : list of model outputs, pytorch tensors of shape (batch, time, keypoints, n_dim)
-    uncertainty_estimate : lsit of None if the model has no probability head,
+    uncertainty_estimate : list of None if the model has no probability head,
                            else pytorch tensor of shape (batch, time, keypoints, n_dim)
     loss : [optional, only if ground truth data_full is not None] numpy array of average losses per model,
            according to the given criterion_seq
@@ -196,16 +199,20 @@ def feed_forward_list(data_with_holes, mask_holes, n_dim, models, cfgs,  data_fu
     uncertainty_out = []
     loss_out = []
     rmse_out = []
-    for m, cfg in zip(models, cfgs):
+    for m, cfg in zip(models, cfg_networks):
         if data_full is None or criterion_seq is None:
-            out, uncertainty_estimate = feed_forward(data_with_holes, mask_holes, n_dim, m, cfg,  data_full=None,
-                                                     criterion_seq=None)
+            out, uncertainty_estimate = feed_forward(data_with_holes, mask_holes, n_dim, m, loss_mask,
+                                                     loss_factor, cfg, data_full=None,
+                                                     criterion_seq=None, logger=logger)
             de_out.append(out)
             if uncertainty_estimate:
                 uncertainty_out.append(uncertainty_estimate)
         else:
-            out, uncertainty_estimate, loss, _, list_rmse = feed_forward(data_with_holes, mask_holes, n_dim, m, cfg,
-                                                   data_full=data_full, criterion_seq=criterion_seq)
+            out, uncertainty_estimate, loss, _, list_rmse = feed_forward(data_with_holes, mask_holes, n_dim, m,
+                                                                         loss_mask, loss_factor, cfg,
+                                                                         data_full=data_full,
+                                                                         criterion_seq=criterion_seq,
+                                                                         logger=logger)
             de_out.append(out)
             uncertainty_out.append(uncertainty_estimate)
             loss_out.append(loss.item())
@@ -217,8 +224,10 @@ def feed_forward_list(data_with_holes, mask_holes, n_dim, models, cfgs,  data_fu
         return de_out, uncertainty_out, np.array(loss_out), np.array(rmse_out)
 
 
-def feed_forward(data_with_holes, mask_holes, n_dim, model, cfg,
-                 data_full=None, criterion_seq=None, **kwargs):
+def feed_forward(data_with_holes, mask_holes, n_dim, model, loss_mask,
+                 loss_factor, cfg_network, feed_data_mask=True,
+                 data_full=None, criterion_seq=None,
+                 logger=None, **kwargs):
     """
 
     Parameters
@@ -244,28 +253,32 @@ def feed_forward(data_with_holes, mask_holes, n_dim, model, cfg,
                     without clamping and scaling
     rmse : [optional, only if ground truth data_full is not None] rmse per sample
     """
-    if cfg.feed_data.mask:
+    if feed_data_mask:
         input_tensor_with_holes = torch.cat([data_with_holes[..., :n_dim],
                                              torch.unsqueeze(mask_holes, dim=-1)], dim=3)
     else:
         input_tensor_with_holes = data_with_holes[..., :3].detach().clone().type(torch.float32)
     input_tensor_with_holes[:, 1:, :] = input_tensor_with_holes[:, :-1, :].clone()
     if data_full is None or mask_holes is None or criterion_seq is None:
-        de_out, uncertainty_estimate = apply_model(model, input_tensor_with_holes, mask_holes, n_dim, cfg,
-                                                   data_full=None, criterion_seq=None)
+        de_out, uncertainty_estimate = apply_model(model, input_tensor_with_holes, mask_holes, n_dim,
+                                                   loss_mask, loss_factor, cfg_network,
+                                                   data_full=None, criterion_seq=None, logger=logger)
 
         return de_out, uncertainty_estimate
     else:
         de_out, uncertainty_estimate, loss, loss_original, list_rmse = apply_model(model, input_tensor_with_holes,
-                                                                                   mask_holes, n_dim, cfg,
+                                                                                   mask_holes, n_dim, loss_mask,
+                                                                                   loss_factor,
+                                                                                   cfg_network,
                                                                                    data_full=data_full,
                                                                                    criterion_seq=criterion_seq,
+                                                                                   logger=logger,
                                                                                    **kwargs)
 
         return de_out, uncertainty_estimate, loss, loss_original, list_rmse
 
 
-def compute_loss(model, data_loader, n_dim, criterion_seq, cfg, device):
+def compute_loss(model, data_loader, n_dim, criterion_seq, loss_mask, loss_factor, cfg_network, device, logger):
     """
     Compute average loss for all the data in the loader (iterates on the loader)
 
@@ -279,6 +292,7 @@ def compute_loss(model, data_loader, n_dim, criterion_seq, cfg, device):
     total_loss = 0
     total_rmse = 0
     loss_original = 0
+    ind = 1
     for ind, data_dict in enumerate(data_loader):
         data_with_holes = data_dict['X'].to(device)
         data_full = data_dict['x_supp'].to(device)
@@ -289,8 +303,11 @@ def compute_loss(model, data_loader, n_dim, criterion_seq, cfg, device):
         data_with_holes = data_with_holes[:max_len]
         mask_holes = mask_holes[:max_len]
 
-        _, _, tl, lo, lr = feed_forward(data_with_holes, mask_holes, n_dim, model, cfg, data_full=data_full,
-                                        criterion_seq=criterion_seq)
+        _, _, tl, lo, lr = feed_forward(data_with_holes, mask_holes, n_dim,
+                                        model, loss_mask, loss_factor, cfg_network,
+                                        data_full=data_full,
+                                        criterion_seq=criterion_seq,
+                                        logger=logger)
         total_loss += tl.item()
         total_rmse += torch.mean(lr).item()
         loss_original += lo.item()
@@ -302,18 +319,19 @@ def compute_loss(model, data_loader, n_dim, criterion_seq, cfg, device):
     return ave_loss, ave_rmse, loss_original
 
 
-def construct_NN_model(cfg, dataset_constants, skeleton_file, device):
+def construct_NN_model(cfg_network, dataset_constants, skeleton_file, device):
     """
     :args n_dim: 2 or 3, for 2D or 3D
     """
-    dim = dataset_constants.DIVIDER + int(cfg.feed_data.mask)
+    feed_data_mask = True
+    dim = dataset_constants.DIVIDER + int(feed_data_mask)
     output_size = dataset_constants.DIVIDER * dataset_constants.N_KEYPOINTS
 
-    if cfg.network.type in ['GRU', 'BiGRU']:
+    if cfg_network.type in ['GRU', 'BiGRU']:
         input_size = dim * dataset_constants.N_KEYPOINTS
-        model = BiGRU(input_size, output_size, cfg=cfg, mu_sigma=cfg.training.mu_sigma, device=device)
+        model = BiGRU(input_size, output_size, cfg_network=cfg_network, device=device)
 
-    elif cfg.network.type == 'ST_GCN':
+    elif cfg_network.type == 'ST_GCN':
         if skeleton_file is None:
             raise ValueError('You need to provide a valid skeleton file when using ST_GCN architecture.')
         # ST GCN
@@ -322,32 +340,34 @@ def construct_NN_model(cfg, dataset_constants, skeleton_file, device):
                       'max_hop': 1,
                       'dilation': 1}
         edge_importance_weighting = True
-        model = STGCN_Model(dim, cfg.network.num_layers, graph_args, edge_importance_weighting,
-                            dim_start=cfg.network.size_layer, out_channels=dataset_constants.DIVIDER).to(device)
-    elif cfg.network.type == 'STS_GCN':
+        model = STGCN_Model(dim, cfg_network.num_layers, graph_args, edge_importance_weighting,
+                            dim_start=cfg_network.size_layer, out_channels=dataset_constants.DIVIDER).to(device)
+    elif cfg_network.type == 'STS_GCN':
         model = STS_GCN(input_channels=dim, # input_dim
                         output_channels=dataset_constants.DIVIDER,
                          input_time_frame=dataset_constants.SEQ_LENGTH,
                          output_time_frame=dataset_constants.SEQ_LENGTH,
                          st_gcnn_dropout=0,
                          joints_to_consider=dataset_constants.N_KEYPOINTS,
-                         n_gcn_layers=cfg.network.en_num_layers,
-                         n_txcnn_layers=cfg.network.de_num_layers,
-                         txc_kernel_size=(cfg.network.kernel_size, cfg.network.kernel_size),
+                         n_gcn_layers=cfg_network.en_num_layers,
+                         n_txcnn_layers=cfg_network.de_num_layers,
+                         txc_kernel_size=(cfg_network.kernel_size, cfg_network.kernel_size),
                          txc_dropout=0.,
-                         size_layer=cfg.network.size_layer).to(device)
+                         size_layer=cfg_network.size_layer).to(device)
 
-    elif cfg.network.type == 'TCN':
+    elif cfg_network.type == 'TCN':
         model = TemporalConvNet(dim * dataset_constants.N_KEYPOINTS,
-                                [cfg.network.size_layer for _ in range(cfg.network.num_layers - 1)] + [output_size],
-                                kernel_size=cfg.network.kernel_size, dropout=cfg.network.dropout).to(device)
+                                [cfg_network.size_layer for _ in range(cfg_network.num_layers - 1)] + [output_size],
+                                kernel_size=cfg_network.kernel_size, dropout=cfg_network.dropout).to(device)
 
-    elif cfg.network.type == 'transformer':
-        model = TransformerModel(dim, dataset_constants.DIVIDER, max_seq_len=dataset_constants.SEQ_LENGTH,
-                                 n_keypoints=dataset_constants.N_KEYPOINTS, cfg=cfg, mu_sigma=cfg.training.mu_sigma,
+    elif cfg_network.type == 'transformer':
+        model = TransformerModel(dim, dataset_constants.DIVIDER,
+                                 max_seq_len=dataset_constants.SEQ_LENGTH,
+                                 n_keypoints=dataset_constants.N_KEYPOINTS,
+                                 cfg_network=cfg_network,
                                  device=device)
     else:
         raise NotImplementedError(f'The only supported models are GRU, BiGRU, ST_GCN, STS_GCN or TCN. '
-                                  f'Given: {cfg.network.type}')
+                                  f'Given: {cfg_network.type}')
 
     return model
