@@ -261,7 +261,7 @@ def feed_forward(data_with_holes, mask_holes, n_dim, model, loss_mask,
     input_tensor_with_holes[:, 1:, :] = input_tensor_with_holes[:, :-1, :].clone()
     if data_full is None or mask_holes is None or criterion_seq is None:
         de_out, uncertainty_estimate = apply_model(model, input_tensor_with_holes, mask_holes, n_dim,
-                                                   loss_mask, loss_factor, cfg_network,
+                                                   loss_mask, loss_factor, cfg_network.network,
                                                    data_full=None, criterion_seq=None, logger=logger)
 
         return de_out, uncertainty_estimate
@@ -269,7 +269,7 @@ def feed_forward(data_with_holes, mask_holes, n_dim, model, loss_mask,
         de_out, uncertainty_estimate, loss, loss_original, list_rmse = apply_model(model, input_tensor_with_holes,
                                                                                    mask_holes, n_dim, loss_mask,
                                                                                    loss_factor,
-                                                                                   cfg_network,
+                                                                                   cfg_network.network,
                                                                                    data_full=data_full,
                                                                                    criterion_seq=criterion_seq,
                                                                                    logger=logger,
@@ -319,16 +319,18 @@ def compute_loss(model, data_loader, n_dim, criterion_seq, loss_mask, loss_facto
     return ave_loss, ave_rmse, loss_original
 
 
-def construct_NN_model(cfg_network, dataset_constants, skeleton_file, device):
+def construct_NN_model(cfg_network, keypoints, divider, seq_length, skeleton_file, device):
     """
     :args n_dim: 2 or 3, for 2D or 3D
     """
     feed_data_mask = True
-    dim = dataset_constants.DIVIDER + int(feed_data_mask)
-    output_size = dataset_constants.DIVIDER * dataset_constants.N_KEYPOINTS
+    n_keypoints = len(keypoints)
+    divider = divider
+    dim = divider + int(feed_data_mask)
+    output_size = divider * n_keypoints
 
     if cfg_network.type in ['GRU', 'BiGRU']:
-        input_size = dim * dataset_constants.N_KEYPOINTS
+        input_size = dim * n_keypoints
         model = BiGRU(input_size, output_size, cfg_network=cfg_network, device=device)
 
     elif cfg_network.type == 'ST_GCN':
@@ -341,14 +343,14 @@ def construct_NN_model(cfg_network, dataset_constants, skeleton_file, device):
                       'dilation': 1}
         edge_importance_weighting = True
         model = STGCN_Model(dim, cfg_network.num_layers, graph_args, edge_importance_weighting,
-                            dim_start=cfg_network.size_layer, out_channels=dataset_constants.DIVIDER).to(device)
+                            dim_start=cfg_network.size_layer, out_channels=divider).to(device)
     elif cfg_network.type == 'STS_GCN':
         model = STS_GCN(input_channels=dim, # input_dim
-                        output_channels=dataset_constants.DIVIDER,
-                         input_time_frame=dataset_constants.SEQ_LENGTH,
-                         output_time_frame=dataset_constants.SEQ_LENGTH,
+                        output_channels=divider,
+                         input_time_frame=seq_length,
+                         output_time_frame=seq_length,
                          st_gcnn_dropout=0,
-                         joints_to_consider=dataset_constants.N_KEYPOINTS,
+                         joints_to_consider=n_keypoints,
                          n_gcn_layers=cfg_network.en_num_layers,
                          n_txcnn_layers=cfg_network.de_num_layers,
                          txc_kernel_size=(cfg_network.kernel_size, cfg_network.kernel_size),
@@ -356,14 +358,14 @@ def construct_NN_model(cfg_network, dataset_constants, skeleton_file, device):
                          size_layer=cfg_network.size_layer).to(device)
 
     elif cfg_network.type == 'TCN':
-        model = TemporalConvNet(dim * dataset_constants.N_KEYPOINTS,
+        model = TemporalConvNet(dim * n_keypoints,
                                 [cfg_network.size_layer for _ in range(cfg_network.num_layers - 1)] + [output_size],
                                 kernel_size=cfg_network.kernel_size, dropout=cfg_network.dropout).to(device)
 
     elif cfg_network.type == 'transformer':
-        model = TransformerModel(dim, dataset_constants.DIVIDER,
-                                 max_seq_len=dataset_constants.SEQ_LENGTH,
-                                 n_keypoints=dataset_constants.N_KEYPOINTS,
+        model = TransformerModel(dim, divider,
+                                 max_seq_len=seq_length,
+                                 n_keypoints=n_keypoints,
                                  cfg_network=cfg_network,
                                  device=device)
     else:

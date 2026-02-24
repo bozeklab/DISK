@@ -6,11 +6,11 @@ import torch
 
 from DISK.utils.coordinates_utils import create_skeleton_plot, compute_svd
 
-def init_transforms(proba_file, proba_length_file, indep_keypoints,
+def init_transforms(
                     keypoints, divider, length_input_seq,
                     outputdir, logger, add_missing_pad=(1, 1),
                     viewinvariant=True, normalize=False, normalizecube=True,
-                    swap=0.1,
+                    swap=0.1, proba_file='', proba_length_file='', indep_keypoints=False,
                     add_missing=True, verbose=0):
     transforms = []
 
@@ -26,7 +26,10 @@ def init_transforms(proba_file, proba_length_file, indep_keypoints,
         init_proba_df = pd.read_csv(proba_file, dtype={'keypoint': str})
 
 
-        addmissing_transform = AddMissing_LengthProba(length_proba_df, keypoints, init_proba_df, divider=divider,
+        addmissing_transform = AddMissing_LengthProba(length_proba_df,
+                                                      init_proba_df,
+                                                      keypoints,
+                                                      divider=divider,
                                                       indep_keypoints=indep_keypoints,
                                                       pad=add_missing_pad,
                                                       logger=logger,
@@ -515,7 +518,7 @@ class AddMissing_LengthProba(Transform):
     ### - it needs to be applied first before other normlization to  not leak data through the normalization
     ### - it needs to be applied differently for each sample at each epoch
 
-    def __init__(self, length_proba_df, list_keypoints, init_proba_df, logger, indep_keypoints=True, pad=(0, 0),
+    def __init__(self, length_proba_df, init_proba_df, list_keypoints, logger, indep_keypoints=True, pad=(0, 0),
                  **kwargs):
         self.length_proba_df = length_proba_df
         self.init_proba_df = init_proba_df

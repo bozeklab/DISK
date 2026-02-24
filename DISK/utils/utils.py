@@ -103,10 +103,7 @@ def plot_save(plot_fct, save_bool=True, title='', only_png=False, outputdir=''):
     with plt.style.context('seaborn'): #plt.style.context('dark_background'):
         plot_fct()
         if save_bool:
-            if only_png:
-                plt.savefig(os.path.join(outputdir, title + '_dark.png'), transparent=True)
-            else:
-                plt.savefig(os.path.join(outputdir, title + '.svg'), transparent=True)
+            plt.savefig(os.path.join(outputdir, title + '.svg'), transparent=True)
             plt.close()
     with plt.style.context('seaborn'):
         plot_fct()

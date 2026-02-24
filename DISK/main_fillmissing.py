@@ -56,13 +56,21 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_file, train
     logger.info("Device: {}".format(device))
 
     """ DATA """
-    transforms = init_transforms(proba_file, proba_length_file, indep_keypoints,
-                                  dataset_constants.KEYPOINTS,
-                                    dataset_constants.DIVIDER,
-                                 dataset_constants.SEQ_LENGTH, model_dir,
-                                 logger, add_missing_pad, viewinvariant,
-                                 normalize, normalizecube, swap,
-                                 add_missing, verbose)
+    transforms = init_transforms(dataset_constants.KEYPOINTS,
+                                 dataset_constants.DIVIDER,
+                                 dataset_constants.SEQ_LENGTH,
+                                 model_dir,
+                                 logger,
+                                 add_missing_pad,
+                                 viewinvariant,
+                                 normalize,
+                                 normalizecube,
+                                 swap,
+                                 proba_file,
+                                 proba_length_file,
+                                 indep_keypoints,
+                                 add_missing,
+                                 verbose)
 
     logger.info('Loading datasets')
     if skeleton_file is not None and skeleton_file != '':
@@ -74,7 +82,8 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_file, train
 
     train_dataset, val_dataset, test_dataset = load_datasets(
         dataset_path=dataset_path,
-        dataset_constants=dataset_constants,
+        keypoints=dataset_constants.KEYPOINTS,
+        divider=dataset_constants.DIVIDER,
         transform=transforms,
         dataset_type='supervised',
         suffix='_w-0-nans',
@@ -94,7 +103,10 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_file, train
     """ MODEL INITIALIZATION """
     logger.info('Initializing prediction model')
     # load model
-    model = construct_NN_model(cfg_network, dataset_constants, skeleton_file_path, device)
+    model = construct_NN_model(cfg_network, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
+                               dataset_constants.SEQ_LENGTH,
+                               skeleton_file_path,
+                               device)
 
     logger.debug(f'Nb of NN parameters: {np.sum([p.numel() for p in model.parameters() if p.requires_grad])}')
 
@@ -244,9 +256,7 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_file, train
         offset = 0
     else:
         offset = 10
-    with plt.style.context('dark_background'):
-        plot_training(df, offset=offset, print_every=print_every)
-        plt.savefig(os.path.join(model_dir, f'loss_dark.svg'), transparent=True)
+
     with plt.style.context('seaborn'):
         plot_training(df, offset=offset, print_every=print_every)
         plt.savefig(os.path.join(model_dir, f'loss.svg'))

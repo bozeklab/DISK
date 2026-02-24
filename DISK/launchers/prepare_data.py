@@ -5,7 +5,9 @@ from omegaconf import DictConfig, OmegaConf
 import os
 import sys
 import yaml
-from DISK.utils.logger_setup import setup_custom_logging
+
+from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
+
 
 
 
@@ -18,7 +20,7 @@ def main(project_path, dataset_path, dataset_name, data_files, file_type,
     from DISK.create_dataset import create_dataset
     from DISK.create_proba_missing_files import create_proba_missing_files
 
-    number_samples_train = create_dataset(
+    number_samples_train, keypoints, divider = create_dataset(
                                 dataset_path,
                                 data_files,
                                 file_type,
@@ -44,10 +46,11 @@ def main(project_path, dataset_path, dataset_name, data_files, file_type,
 
     create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_file_path, logger)
     logger.info(f'✅ Successfully estimated probabilities of missing keypoints.\n')
-
+    return keypoints, divider
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config_prepare_data")
 def cli(_cfg: DictConfig) -> None:
+    modified_cfg = DictConfig(_cfg)
 
     ### _CFG PARAMETER CHECK --- REQUIRED PARAMETERS
 
@@ -80,8 +83,8 @@ def cli(_cfg: DictConfig) -> None:
         stride = max(length // 2, 1)
     else:
         if type(_cfg.stride) != int:
-            print("\n❌ stride is a required parameter and should be an "
-                  f"integer > 0. Got {_cfg.stride}")
+            print("\n❌ stride is a required parameter and should be a "
+                  f"strictly positive integer. Got {_cfg.stride}")
             sys.exit(1)
         stride = max(_cfg.stride, 1)
 
@@ -112,6 +115,8 @@ def cli(_cfg: DictConfig) -> None:
         sys.exit(1)
     else:
         original_freq = _cfg.original_freq
+
+    config['original_freq'] = original_freq
 
     if _cfg.subsampling_freq is None or type(_cfg.subsampling_freq) != int:
         print("\n❌ subsampling_freq should be an "
@@ -195,13 +200,27 @@ def cli(_cfg: DictConfig) -> None:
     else:
         merge_keypoints = _cfg.merge_keypoints
 
+
+    os.makedirs(os.path.join(dataset_path, 'config'), exist_ok=True)
+
+    output_config_file = os.path.join(dataset_path, 'config', f'config_prepare_data.yaml')
+    copy_config_file(modified_cfg, output_config_file)
+
     logger.info(f'✅ Successfully loaded configuration.\n')
 
-    main(project_path, dataset_path, dataset_name, data_files, file_type,
+    keypoints, divider = main(project_path, dataset_path, dataset_name, data_files, file_type,
          length, stride, fill_gap, sequential, original_freq, subsampling_freq,
          dlc_likelihood_threshold, discard_beginning, discard_end,
          drop_keypoints, indep_keypoints, merge_keypoints, skeleton_file_path,
          logger)
+
+    config['keypoints'] = keypoints
+    config['divider'] = divider
+
+    with open(os.path.join(project_path, 'config_project.yaml'), 'w') as file:
+        yaml.dump(config, file)
+
+    return
 
 if __name__ == '__main__':
     cli()

@@ -13,7 +13,7 @@ from DISK.utils.utils import find_holes
 from DISK.models.graph import Graph
 
 
-def load_datasets(dataset_path, dataset_constants, suffix='', dataset_type='supervised', root_path='',
+def load_datasets(dataset_path, suffix='', dataset_type='supervised', root_path='',
                   **kwargs):
     """
     Folder structure: all pt files in the same subfolder in datasets
@@ -28,26 +28,26 @@ def load_datasets(dataset_path, dataset_constants, suffix='', dataset_type='supe
     """
 
     if dataset_type == 'supervised':
-        train_dataset = SupervisedDataset(os.path.join(dataset_path, f'train_dataset{suffix}.npz'), dataset_constants,
+        train_dataset = SupervisedDataset(os.path.join(dataset_path, f'train_dataset{suffix}.npz'),
                                           **kwargs)
-        test_dataset = SupervisedDataset(os.path.join(dataset_path, f'test_dataset{suffix}.npz'), dataset_constants,
+        test_dataset = SupervisedDataset(os.path.join(dataset_path, f'test_dataset{suffix}.npz'),
                                          **kwargs)
-        val_dataset = SupervisedDataset(os.path.join(dataset_path, f'val_dataset{suffix}.npz'),  dataset_constants,
+        val_dataset = SupervisedDataset(os.path.join(dataset_path, f'val_dataset{suffix}.npz'),
                                         **kwargs)
     elif dataset_type == 'full_length':
         train_dataset = FullLengthDataset(os.path.join(dataset_path, f'train_fulllength_dataset{suffix}.npz'),
-                                          dataset_constants, **kwargs)
+                                         **kwargs)
         test_dataset = FullLengthDataset(os.path.join(dataset_path, f'test_fulllength_dataset{suffix}.npz'),
-                                         dataset_constants, **kwargs)
+                                         **kwargs)
         val_dataset = FullLengthDataset(os.path.join(dataset_path, f'val_fulllength_dataset{suffix}.npz'),
-                                        dataset_constants, **kwargs)
+                                     **kwargs)
     elif dataset_type == 'impute':
         train_dataset = ImputeDataset(os.path.join(dataset_path, f'train_fulllength_dataset{suffix}.npz'),
-                                      dataset_constants, **kwargs)
+                                      **kwargs)
         test_dataset = ImputeDataset(os.path.join(dataset_path, f'test_fulllength_dataset{suffix}.npz'),
-                                     dataset_constants, **kwargs)
+                                     **kwargs)
         val_dataset = ImputeDataset(os.path.join(dataset_path, f'val_fulllength_dataset{suffix}.npz'),
-                                    dataset_constants, **kwargs)
+                                    **kwargs)
     else:
         raise ValueError(f'[load_datasets function] argument dataset_type = {dataset_type} is not recognized. '
                          f'Authorized values are "supervised" or "full_length"')
@@ -57,11 +57,13 @@ def load_datasets(dataset_path, dataset_constants, suffix='', dataset_type='supe
 class ParentDataset(data.Dataset):
     def __init__(self,
                  file: str,
-                 dataset_constants: object,
                  transform: list,
                  outputdir: str,
                  skeleton_file: str,
                  *args,
+                 keypoints: list = [],
+                 seq_length: int=60,
+                 divider: int=2,
                  label_type: str=None,
                  verbose: int = 0,
                  logger: object=None,
@@ -80,10 +82,9 @@ class ParentDataset(data.Dataset):
             self.files = None
         self.mask = self.get_mask()
 
-        self.n_keypoints = dataset_constants.N_KEYPOINTS
-        self.divider = dataset_constants.DIVIDER
-        self.seq_length = dataset_constants.SEQ_LENGTH
-        self.original_divider = self.divider + 1 if dataset_constants.W_RESIDUALS else self.divider
+        self.n_keypoints = len(keypoints)
+        self.divider = divider
+        self.seq_length = seq_length
         if skeleton_file is not None and skeleton_file != '':
             self.skeleton_graph = Graph(file=skeleton_file, strategy='uniform', max_hop=1, dilation=1)
         else:
@@ -123,8 +124,8 @@ class ParentDataset(data.Dataset):
         sample = self._get_sample(index)
         timepoints = sample['x'].shape[0]
 
-        x_coordinates = sample['x'].reshape((timepoints, self.n_keypoints, self.original_divider))[..., :self.divider]
-        m = np.all(sample['m'].reshape((timepoints, self.n_keypoints, self.original_divider)), axis=-1)
+        x_coordinates = sample['x'].reshape((timepoints, self.n_keypoints, self.divider))[..., :self.divider]
+        m = np.all(sample['m'].reshape((timepoints, self.n_keypoints, self.divider)), axis=-1)
 
         # Copy x for debug purpose and verify the transformation
         x_prev = np.array(x_coordinates)
@@ -217,28 +218,30 @@ class ParentDataset(data.Dataset):
 class SupervisedDataset(ParentDataset):
     def __init__(self,
                  file: str,
-                 dataset_constants: object,
                  transform: list = None,
                  skeleton_file: str = None,
                  outputdir: str = '',
                  verbose: int = 0,
                  logger: object = None,
                  **kwargs):
-        super(SupervisedDataset, self).__init__(file, dataset_constants, transform, outputdir, skeleton_file, logger,
-                                                verbose)
+        super(SupervisedDataset, self).__init__(file, transform, outputdir, skeleton_file,
+                                                logger=logger,
+                                                verbose=verbose, **kwargs)
+
         self.len_seq = self.data_dict['lengths']
 
         # compute an estimation of the average distance between keypoints of one pose, so when adding the gaussian noise
         # we add it proportionally
-        subsample = self.X[np.random.choice(self.__len__(), min(1000, self.__len__()), replace=False)].reshape((-1, self.n_keypoints, self.original_divider))
+        subsample = self.X[np.random.choice(self.__len__(), min(1000, self.__len__()), replace=False)].reshape((-1,
+                                                                                                                self.n_keypoints, self.divider))
         max_dist_bw_keypoints = np.max(list(map(pdist, subsample)))
-        self.max_dataset = np.max(self.X.max(axis=(0, 1)).reshape((-1, self.original_divider)),
+        self.max_dataset = np.max(self.X.max(axis=(0, 1)).reshape((-1, self.divider)),
                                   axis=0)  # should be of shape divider (for the x, y, and z axes)
-        self.min_dataset = np.max(self.X.min(axis=(0, 1)).reshape((-1, self.original_divider)), axis=0)  # same
+        self.min_dataset = np.max(self.X.min(axis=(0, 1)).reshape((-1, self.divider)), axis=0)  # same
         self.min_per_sample = np.nanmin(
-            self.X.reshape(self.X.shape[0], self.X.shape[1], self.n_keypoints, self.original_divider), axis=(1, 2))
+            self.X.reshape(self.X.shape[0], self.X.shape[1], self.n_keypoints, self.divider), axis=(1, 2))
         self.max_per_sample = np.nanmax(
-            self.X.reshape(self.X.shape[0], self.X.shape[1], self.n_keypoints, self.original_divider), axis=(1, 2))
+            self.X.reshape(self.X.shape[0], self.X.shape[1], self.n_keypoints, self.divider), axis=(1, 2))
 
         self.kwargs = dict(min_coordinates_dataset=self.min_dataset, max_coordinates_dataset=self.max_dataset,
                            max_dist_bw_keypoints=max_dist_bw_keypoints)
@@ -268,7 +271,6 @@ class FullLengthDataset(ParentDataset):
 
     def __init__(self,
                  file: str,
-                 dataset_constants: object,
                  transform: list = None,
                  skeleton_file: str = None,
                  freq: int = 60,
@@ -278,7 +280,7 @@ class FullLengthDataset(ParentDataset):
                  verbose=1,
                  **kwargs):
 
-        super(FullLengthDataset, self).__init__(file, dataset_constants, transform, outputdir, skeleton_file,
+        super(FullLengthDataset, self).__init__(file, transform, outputdir, skeleton_file,
                                                 verbose, **kwargs)
         self.time = self.data_dict['time']  # shape (batch, max_len time)
 
@@ -294,15 +296,15 @@ class FullLengthDataset(ParentDataset):
             self.possible_times.append(self.time[index[0], index[1]])
 
         self.min_per_sample = [np.nanmin(
-            self.X[pi[0], pi[1]: pi[1] + self.length_sample].reshape(-1, self.n_keypoints, self.original_divider),
+            self.X[pi[0], pi[1]: pi[1] + self.length_sample].reshape(-1, self.n_keypoints, self.divider),
             axis=(0, 1))[..., :self.divider] for pi in self.possible_indices]
         self.max_per_sample = [np.nanmax(
-            self.X[pi[0], pi[1]: pi[1] + self.length_sample].reshape(-1, self.n_keypoints, self.original_divider),
+            self.X[pi[0], pi[1]: pi[1] + self.length_sample].reshape(-1, self.n_keypoints, self.divider),
             axis=(0, 1))[..., :self.divider] for pi in self.possible_indices]
 
         subsample = self.X[self.time > -1]
         subsample = subsample[np.random.choice(len(subsample), min(10000, len(subsample)), replace=False)]\
-            .reshape((-1, self.n_keypoints, self.original_divider))
+            .reshape((-1, self.n_keypoints, self.divider))
         max_dist_bw_keypoints = np.max(list(map(pdist, subsample)))
 
         self.kwargs = dict(max_dist_bw_keypoints=max_dist_bw_keypoints)
@@ -359,7 +361,9 @@ class FullLengthDataset(ParentDataset):
                   'i_file': i_file,
                   'i_pos': i_pos,
                   'swap': True if 'swap_length' in self.kwargs else False,
-                  'swap_gt': self.kwargs['swap_gt'] if 'swap_gt' in self.kwargs else np.zeros((x.shape[0], self.n_keypoints, self.original_divider)) * np.nan}
+                  'swap_gt': self.kwargs['swap_gt'] if 'swap_gt' in self.kwargs else np.zeros((x.shape[0],
+                                                                                               self.n_keypoints,
+                                                                                               self.divider)) * np.nan}
         return sample
 
 
@@ -367,7 +371,6 @@ class ImputeDataset(FullLengthDataset):
 
     def __init__(self,
                  file: str,
-                 dataset_constants: object,
                  transform: list = None,
                  freq: int = 60,
                  skeleton_file: str = None,
@@ -376,11 +379,9 @@ class ImputeDataset(FullLengthDataset):
                  padding: tuple = (1, 1),
                  outputdir: str = '',
                  verbose: int = 1, # 0, 1, or 2
-                 all_segments: bool = False,
                  **kwargs):
         self.padding = padding
-        self.all_segments = all_segments
-        super(ImputeDataset, self).__init__(file, dataset_constants, transform, skeleton_file, freq, length_sample,
+        super(ImputeDataset, self).__init__(file, transform, skeleton_file, freq, length_sample,
                                             stride, outputdir, verbose, **kwargs)
 
     def get_possible_indices(self):
@@ -410,9 +411,7 @@ class ImputeDataset(FullLengthDataset):
                 n_total += np.sum([h[1] for h in holes])
 
                 for ihole in range(len(holes)):
-                    if not self.all_segments and len(holes[ihole][1].split(' ')) > 1:
-                        # case where we want only one keypoint missing, but several are missing
-                        continue
+
                     # center segment on each hole
                     end = holes[ihole + 1][0] if ihole < len(holes) - 1 else len(mask)
                     begin = holes[ihole - 1][0] + holes[ihole - 1][1] + 1 if ihole >= 1 else 0
@@ -466,15 +465,16 @@ class ImputeDataset(FullLengthDataset):
                         if not np.all(np.isclose(
                                 np.diff((self.time[recording, start + start_segment: start + stop_segment] * self.freq)),
                                 1)):
-                            print('Problem in segment formation, gap in time')
-                            print(self.time[recording, start + start_segment: start + stop_segment] * self.freq)
-                            print(recording, start, start_segment, stop_segment, breakpoints)
+                            self.logger.debug('[IMPUTEDATASET][GET_POSSIBLE_INDICES] Problem in segment formation, '
+                                          'gap in time')
+                            self.logger.debug(f'{self.time[recording, start + start_segment: start + stop_segment] * self.freq}')
+                            self.logger.debug(f'{recording}, {start}, {start_segment}, {stop_segment}, {breakpoints}')
                             import sys
                             sys.exit(1)
 
                         sample_x = np.zeros((self.seq_length, self.n_keypoints, self.divider))
                         sample_x[:len_sample] = self.X[recording, start + start_segment: start + stop_segment].reshape(
-                            (len_sample, self.n_keypoints, self.original_divider))[..., :self.divider]
+                            (len_sample, self.n_keypoints, self.divider))[..., :self.divider]
 
                         possible_indices.append([recording, start + start_segment, len_sample])
 
@@ -496,9 +496,9 @@ class ImputeDataset(FullLengthDataset):
         i_pos = self.possible_indices[index, 1]
         len_ = self.possible_indices[index, 2]
 
-        x = np.ones((self.seq_length, self.n_keypoints * self.original_divider)) * np.nan
+        x = np.ones((self.seq_length, self.n_keypoints * self.divider)) * np.nan
         x[:len_] = self.X[i_file, i_pos: i_pos + len_]
-        m = np.zeros((self.seq_length, self.n_keypoints * self.original_divider), dtype=bool)
+        m = np.zeros((self.seq_length, self.n_keypoints * self.divider), dtype=bool)
         m[:len_] = self.mask[i_file, i_pos: i_pos + len_] # False when missing
         # logger.debug(f'[WARNING] Updating {i_file} at pos {i_pos + 1}: {i_pos + len_} '
         #              f'with vector with {np.sum(np.isnan(x[:len_])) // 4} NaN')
@@ -540,14 +540,14 @@ class ImputeDataset(FullLengthDataset):
                 # logger.debug(
                 # f'[WARNING] Updating {i_file[ii][0]} at pos {i_pos[ii][0]}: {i_pos[ii][0] + len_[ii][0]} '
                 # f'with vector with {np.sum(m)} NaN and uncertainty {unc}')
-                if self.original_divider == self.divider:
+                if self.divider == self.divider:
                     self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][~m] = new_x_np[ii][:len_[ii][0]][~m]
                     self.mask[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][~m] = True
                 else:  # only for Qualisys Mocap
                     dims = [i for i in range(self.X.shape[-1]) if i != 0 and i % self.divider == 0]
                     self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0], dims][~m] = new_x_np[ii][:len_[ii][0]][~m]
                     self.mask[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][~m] = True
-                    self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0], self.divider::self.original_divider][~m] = 2
+                    self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0], self.divider::self.divider][~m] = 2
             # else:
                 # logger.debug(
                 # f'[WARNING] NOT Updating {i_file[ii][0]} at pos {i_pos[ii][0]}: {i_pos[ii][0] + len_[ii][0]} '

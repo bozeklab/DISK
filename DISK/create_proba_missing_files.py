@@ -53,8 +53,10 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
             length_proba_df = pd.read_csv(os.path.join(dataset_path, f'proba_missing_length{suffix}.csv'))
             init_proba = pd.read_csv(os.path.join(dataset_path, f'proba_missing{suffix}.csv'))
 
-            addmissing_transform = AddMissing_LengthProba(length_proba_df, dataset_constants.KEYPOINTS, init_proba,
-                                                          proba_n_missing=None,
+            addmissing_transform = AddMissing_LengthProba(length_proba_df,
+                                                          init_proba,
+                                                          dataset_constants.KEYPOINTS,
+                                                          logger=logger,
                                                           divider=dataset_constants.DIVIDER,
                                                           indep_keypoints=indep_keypoints,
                                                           pad=(0, 0), verbose=0, proba=1)
@@ -65,7 +67,8 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
         train_dataset, val_dataset, test_dataset = load_datasets(
             dataset_path=dataset_path,
             suffix='_w-all-nans',
-            dataset_constants=dataset_constants,
+            keypoints=dataset_constants.KEYPOINTS,
+            divider=dataset_constants.DIVIDER,
             transform=transform,
             dataset_type='supervised',
             root_path=project_path,

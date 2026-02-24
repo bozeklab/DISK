@@ -305,8 +305,10 @@ def create_dataset(dataset_path, data_files, file_type, sample_length, stride, f
     ####################################################################################
     p_train_val_test = np.array([0, 0.7, 0.85, 1])  ## only used for sequential,
     ## otherwise 1/10th of the files in test, 1/10th of the files in val, and the rest in train
-    nan_modalities = [0, 1, np.inf]
-    nan_modalities_names = ['0', '1', 'all']
+    nan_modalities = [0, np.inf]
+    nan_modalities_names = ['0', 'all']
+    # nan_modalities = [0, 1, np.inf]
+    # nan_modalities_names = ['0', '1', 'all']
     partitions = ['train', 'val', 'test']
 
     dataset = {}  # chopped fixed-length sequences
@@ -429,7 +431,7 @@ def create_dataset(dataset_path, data_files, file_type, sample_length, stride, f
                         fulllength_data[(nan_name, partition)].append(new_data[indices_ttv[i_partition]: indices_ttv[i_partition + 1]].reshape(crop_len, -1))
                         fulllength_time[(nan_name, partition)].append(new_time_vect[indices_ttv[i_partition]: indices_ttv[i_partition + 1]] / subsampling_freq)
                         fulllength_maxlength[(nan_name, partition)].append(crop_len)
-                        fulllength_original_files[(nan_name, partition)].append(os.path.basename(f))
+                        fulllength_original_files[(nan_name, partition)].append(f)
 
                     i_file += 1
             else:
@@ -464,7 +466,7 @@ def create_dataset(dataset_path, data_files, file_type, sample_length, stride, f
                 fulllength_data[(nan_name, partition)].append(new_data.reshape(new_data.shape[0], -1))
                 fulllength_time[(nan_name, partition)].append(new_time_vect / subsampling_freq)
                 fulllength_maxlength[(nan_name, partition)].append(new_data.shape[0])
-                fulllength_original_files[(nan_name, partition)].append(os.path.basename(f))
+                fulllength_original_files[(nan_name, partition)].append(f)
 
     ####################################################################################
     ###### END FOR LOOP ON THE FILES ######
@@ -491,8 +493,9 @@ def create_dataset(dataset_path, data_files, file_type, sample_length, stride, f
             for i_length, length in enumerate(fulllength_maxlength[(nan_name, partition)]):
                 sub_fulllength_time[i_length, :length] = fulllength_time[(nan_name, partition)][i_length]
 
+
             logger.info(f'In {partition:>5} with {nan_name:>3} NaNs, Shape: {subdata.shape}. Fulllength: '
-                   f'{sub_fulllength_data.shape}')
+                    f'{sub_fulllength_data.shape}')
             outputfile = os.path.join(dataset_path, f'{partition}_dataset_w-{nan_name}-nans')
             logger.debug(f'saving in {outputfile}...')
             np.savez(outputfile, X=subdata, lengths=sublengths)
@@ -507,9 +510,10 @@ def create_dataset(dataset_path, data_files, file_type, sample_length, stride, f
                 with open(constant_file_path, 'w') as opened_file:
                     txt = f"NUM_FEATURES = {subdata.shape[2]}\n"
                     txt += f"KEYPOINTS = {keypoints}\n"
-                    # DIVIDER= 2 for 2D, 3 for 3D, sometimes additional dimension for a confidence score or an error
+                    # DIVIDER= 2 for 2D, 3 for 3D
                     # score for the detection
-                    txt += f"DIVIDER = {data.shape[-1]}\n"
+                    divider = data.shape[-1]
+                    txt += f"DIVIDER = {divider}\n"
                     txt += f"ORIG_FREQ = {original_freq}\n"
                     txt += f"FREQ = {subsampling_freq}\n"
                     txt += f"SEQ_LENGTH = {subdata.shape[1]}\n"
@@ -520,4 +524,4 @@ def create_dataset(dataset_path, data_files, file_type, sample_length, stride, f
                     opened_file.write(txt)
 
 
-    return number_sample_trains
+    return number_sample_trains, keypoints, divider

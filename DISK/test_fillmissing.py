@@ -111,7 +111,10 @@ def test(project_path: str,
     model_name = []
     full_name = ''
     for imodel, model_cfg in enumerate(model_configs):
-        models.append(construct_NN_model(model_cfg.network, dataset_constants, skeleton_file_path, device))
+        models.append(construct_NN_model(model_cfg.network, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
+                                         dataset_constants.SEQ_LENGTH,
+                                         skeleton_file_path,
+                                         device))
         for ini, name_item in enumerate(test_name_items):
             val = model_cfg[name_item[0]]
             for item in name_item[1:]:
@@ -130,25 +133,37 @@ def test(project_path: str,
         model.eval()
 
     """ DATA """
-    transforms = init_transforms(proba_file, proba_length_file, indep_keypoints, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
-                                 dataset_constants.SEQ_LENGTH, output_dir, logger, add_missing_pad,
-                                    viewinvariant, normalize, normalizecube, swap, add_missing, verbose)
+    transforms = init_transforms(dataset_constants.KEYPOINTS,
+                                 dataset_constants.DIVIDER,
+                                 dataset_constants.SEQ_LENGTH,
+                                 output_dir,
+                                 logger,
+                                 add_missing_pad,
+                                 viewinvariant,
+                                 normalize,
+                                 normalizecube,
+                                 swap,
+                                 proba_file,
+                                 proba_length_file,
+                                 indep_keypoints,
+                                 add_missing,
+                                 verbose)
 
     logger.info('Loading datasets...')
     if stride is None:
         stride = dataset_constants.STRIDE
     train_dataset, val_dataset, test_dataset = load_datasets(
             dataset_path=dataset_path,
-            dataset_constants=dataset_constants,
             transform=transforms,
+            outputdir=output_dir,
+            skeleton_file=skeleton_file_path,
             dataset_type='full_length',
             suffix='_w-0-nans',
             root_path=project_path,
-            outputdir=output_dir,
             label_type=None,  # don't care, not using
             verbose=verbose,
-            keypoints_bool=True,
-            skeleton_file=skeleton_file_path,
+            keypoints=dataset_constants.KEYPOINTS,
+            divider=dataset_constants.DIVIDER,
             stride=stride,
             length_sample=dataset_constants.SEQ_LENGTH,
             freq=dataset_constants.FREQ,
@@ -193,7 +208,9 @@ def test(project_path: str,
         with (torch.no_grad()):
             logger.info(f'Starting evaluation...')
 
-            for ind, data_dict in tqdm.tqdm(enumerate(test_loader), desc='Iterating on batch', total=len(test_loader)):
+            for ind, data_dict in tqdm.tqdm(enumerate(test_loader), desc='Testing trained model -- iterating on data',
+                                            total=len(
+                    test_loader)):
                 """Compute the prediction from networks"""
 
                 data_with_holes = data_dict['X'].to(device)  # shape (timepoints, n_keypoints, 2 or 3 or 4)
