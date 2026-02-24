@@ -39,12 +39,12 @@ dev = [
 ]
 
 [project.scripts]
-DISK = "DISK.launchers.DISK_launcher:cli"
 DISK-check-install = "DISK.launchers.check_install:cli"
 DISK-check-gpu = "DISK.launchers.check_gpu:cli"
 DISK-create-project = "DISK.launchers.create_project:cli"
 DISK-prepare-data = "DISK.launchers.prepare_data:cli"
 DISK-train = "DISK.launchers.train_test:cli"
+DISK-impute = "DISK.launchers.impute:cli"
 
 
 [project.urls]

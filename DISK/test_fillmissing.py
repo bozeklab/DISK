@@ -36,6 +36,7 @@ def test(project_path: str,
          model_checkpoints: list,
          batch_size,
          n_cpus: int,
+         loss_type,
          loss_mask,
          loss_factor,
          proba_file,
@@ -47,12 +48,9 @@ def test(project_path: str,
          normalizecube,
          swap,
          add_missing,
-         test_name_items,
-         test_merge,
          test_original_coordinates,
          test_threshold_pck,
          n_repeat,
-         merge_sets_file,
          total_n_plots,
          plot2d_only_holes,
          plot3d_size,
@@ -80,6 +78,7 @@ def test(project_path: str,
 
     paths_to_models = []
     model_configs = []
+    model_names = []
     for cf in model_checkpoints:
         config_file = os.path.join(cf, 'config', 'config_train.yaml')
         if os.path.exists(config_file):
@@ -88,6 +87,7 @@ def test(project_path: str,
             model_path = glob(os.path.join(cf, 'model_epoch*'))[0] # model_epoch to not take the model from the lastepoch
             paths_to_models.append(model_path)
             model_configs.append(cfg_model)
+            model_names.append(os.path.basename(cf))
         else:
             for path in Path(os.path.join(project_path, cf)).rglob('model_epoch*'):
                 logger.info(f'Found model at path {str(path)}')
@@ -95,6 +95,7 @@ def test(project_path: str,
                 config_file = os.path.join(os.path.dirname(path), 'config', 'config_train.yaml')
                 cfg_model = OmegaConf.load(config_file)
                 model_configs.append(cfg_model)
+                model_names.append(os.path.basename(path))
 
     n_models = len(paths_to_models)
     logger.info(f'Number of compared models: {n_models}')
@@ -108,24 +109,13 @@ def test(project_path: str,
     logger.info('Loading prediction model...')
     # load model
     models = []
-    model_name = []
     full_name = ''
     for imodel, model_cfg in enumerate(model_configs):
         models.append(construct_NN_model(model_cfg.network, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
                                          dataset_constants.SEQ_LENGTH,
                                          skeleton_file_path,
                                          device))
-        for ini, name_item in enumerate(test_name_items):
-            val = model_cfg[name_item[0]]
-            for item in name_item[1:]:
-                val = val[item]
-            if ini == 0:
-                full_name = f'{name_item[-1]}-{val}'
-            else:
-                full_name += f'_{name_item[-1]}-{val}'
-        if not test_merge:
-            full_name += f'_{imodel}'
-        model_name.append(full_name)
+
         logger.info(f'Network {full_name} constructed')
 
     for path, model in zip(paths_to_models, models):
@@ -182,7 +172,14 @@ def test(project_path: str,
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False,
                              num_workers=n_cpus, persistent_workers=True)
 
-    criterion_seq = nn.L1Loss(reduction='none')
+    if loss_type == 'l1':
+        criterion_seq = nn.L1Loss(reduction='none')
+    elif loss_type == 'l2':
+        criterion_seq = nn.MSELoss(reduction='none')
+    else:
+        raise NotImplementedError(f'[ERROR][MAIN_FILLMISSING] Loss type should be "l1" or '
+                                  f'"l2". '
+                                  f'Given: {loss_type}')
 
     visualize_val_outputdir = os.path.join(output_dir, 'visualize_prediction_val')
     if not os.path.isdir(visualize_val_outputdir):
@@ -329,7 +326,7 @@ def test(project_path: str,
                             total_rmse['id_hole'].append(id_hole)
                             total_rmse['keypoint'].append(o[2])
                             total_rmse['method'].append(model_configs[i_model].network.type)
-                            total_rmse['method_param'].append(model_name[i_model])
+                            total_rmse['method_param'].append(model_names[i_model])
                             total_rmse['RMSE'].append(mean_rmse)
                             total_rmse['MPJPE'].append(mean_euclidean)
                             total_rmse[pck_name].append(mean_pck)
@@ -388,7 +385,7 @@ def test(project_path: str,
                         total_rmse['id_hole'].append(-1)
                         total_rmse['keypoint'].append('all')
                         total_rmse['method'].append(model_configs[i_model].network.type)
-                        total_rmse['method_param'].append(model_name[i_model])
+                        total_rmse['method_param'].append(model_names[i_model])
                         total_rmse['RMSE'].append(np.sqrt(np.sum(rmse[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch]))
                         total_rmse['MPJPE'].append(np.sum(euclidean_distance[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch])
                         total_rmse[pck_name].append(
@@ -414,7 +411,7 @@ def test(project_path: str,
                             for i_model, xo in enumerate(x_outputs_np):
                                 save_path = os.path.join(
                                     visualize_val_outputdir,
-                                    f'traj3D_{indices_sample[i][0]}{model_name[i_model]}{suffix}'
+                                    f'traj3D_{indices_sample[i][0]}{model_names[i_model]}{suffix}'
                                 )
                                 plot_sequence(full_data_np[i, 1:], xo[i, 1:], mask_holes_np[i, 1:], skeleton_graph, nplots=15,
                                               save_path=save_path,
@@ -450,7 +447,7 @@ def test(project_path: str,
                                     if np.sum(t_mask) > 0:
                                         for i_model, xo in enumerate(x_outputs_np):
                                             plot_ = axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[t_mask], xo[i, 1:, j, i_dim][t_mask], 'o',
-                                                             label=model_name[i_model], )
+                                                             label=model_names[i_model], )
                                             if model_configs[i_model].network.mu_sigma:
                                                 # 3 * std otherwise 1/ we do not see anything,
                                                 # 2/ because the underlying distribution is supposed to be Gaussian
@@ -514,20 +511,8 @@ def test(project_path: str,
 
         def barplot_RMSE_keypoint():
             mask = (total_rmse['keypoint'] != 'all')
-            if len(merge_sets_file) > 0:
-                with open(os.path.join(project_path, merge_sets_file)) as f:
-                    sets2merge = json.load(f)
-                for v in total_rmse.loc[mask, 'keypoint'].unique():
-                    vv = ''.join([str(dataset_constants.KEYPOINTS.index(xx)) for xx in v.split(' ')])
-                    if not vv in sets2merge:
-                        sets2merge[vv] = vv
-                total_rmse.loc[total_rmse['keypoint'] != 'all', 'sets'] = total_rmse.loc[total_rmse['keypoint'] != 'all', 'keypoint']\
-                    .apply(lambda x: sets2merge[''.join([str(dataset_constants.KEYPOINTS.index(xx)) for xx in x.split(' ')])])
-                sns.catplot(data=total_rmse.loc[mask, :], kind='bar', y='sets',
-                            hue='method_param', x=metric, orient='h')
-            else:
-                sns.catplot(data=total_rmse.loc[mask, :], kind='bar', x='keypoint',
-                            hue='method_param', y=metric)
+            sns.catplot(data=total_rmse.loc[mask, :], kind='bar', x='keypoint',
+                        hue='method_param', y=metric)
             plt.tight_layout()
 
         for metric in [pck_name, 'RMSE', 'MPJPE']:
@@ -569,9 +554,9 @@ def test(project_path: str,
         for i_model in range(n_models):
             if uncertainty_estimates[i_model] is not None:
                 # pivot_df only for one method
-                mask = (total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_name[i_model])
+                mask = (total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_names[i_model])
                 pcoeff, ppval = pearsonr(total_rmse.loc[mask, 'RMSE'].values, total_rmse.loc[mask, 'mean_uncertainty'])
-                logger.info(f'Model {model_name[i_model]}: PEARSONR COEFF w RMSE {pcoeff}, PVAL {ppval}')
+                logger.info(f'Model {model_names[i_model]}: PEARSONR COEFF w RMSE {pcoeff}, PVAL {ppval}')
 
                 def corr_plot():
                     total_rmse['mean_uncertainty'] = total_rmse['mean_uncertainty'].astype(float)
@@ -583,7 +568,7 @@ def test(project_path: str,
 
                 metric = 'RMSE'
                 plot_save(corr_plot,
-                          title=f'corrplot-model-{metric}-{model_name[i_model]}{suffix}', only_png=False,
+                          title=f'corrplot-model-{metric}-{model_names[i_model]}{suffix}', only_png=False,
                           outputdir=output_dir)
                 plt.close('all')
 
@@ -591,26 +576,26 @@ def test(project_path: str,
                 th_vals = th_vals[::len(th_vals) // 10]
                 for th in th_vals:
                     filtered_id_samples = total_rmse.loc[(total_rmse[metric] <= th) *
-                        (total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_name[i_model]),
+                        (total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_names[i_model]),
                         'id_sample'].values
                     if len(filtered_id_samples) == 0:
                         continue
                     vals_RMSE = total_rmse[(total_rmse['keypoint'] == 'all') *
-                                      (total_rmse['method_param'] == model_name[i_model]) *
+                                      (total_rmse['method_param'] == model_names[i_model]) *
                                       (total_rmse['id_sample'].isin(filtered_id_samples))]['RMSE'].agg(['mean', 'std', 'count'])
                     vals_MPJPE = total_rmse[(total_rmse['keypoint'] == 'all') *
-                                           (total_rmse['method_param'] == model_name[i_model]) *
+                                           (total_rmse['method_param'] == model_names[i_model]) *
                                            (total_rmse['id_sample'].isin(filtered_id_samples))]['MPJPE'].agg(
                         ['mean', 'std', 'count'])
                     vals_pck = total_rmse[(total_rmse['keypoint'] == 'all') *
-                                           (total_rmse['method_param'] == model_name[i_model]) *
+                                           (total_rmse['method_param'] == model_names[i_model]) *
                                            (total_rmse['id_sample'].isin(filtered_id_samples))][pck_name].agg(
                         ['mean', 'std', 'count'])
                     ## add values in thresholding_df which holds the results for all uncertainty methods
                     thresholding_df.loc[thresholding_df.shape[0], :] = [th, vals_RMSE['mean'], vals_RMSE['std'],
                                                                         vals_MPJPE['mean'], vals_MPJPE['std'],
                                                                         vals_pck['mean'], vals_pck['std'],
-                                                                        vals_RMSE['count'], model_name[i_model]]
+                                                                        vals_RMSE['count'], model_names[i_model]]
 
         if np.any([unc is not None for unc in uncertainty_estimates]):
             def plot_thresholding():
@@ -618,7 +603,7 @@ def test(project_path: str,
                 for i_model in range(n_models):
                     if not model_configs[i_model].network.mu_sigma:
                         continue
-                    m = model_name[i_model]
+                    m = model_names[i_model]
                     count = thresholding_df.loc[thresholding_df['method'] == m, 'count'].astype(int)
                     rmse = thresholding_df.loc[thresholding_df['method'] == m, metric].astype(float)
                     rmse_std = thresholding_df.loc[thresholding_df['method'] == m, f'{metric}_std'].astype(float)

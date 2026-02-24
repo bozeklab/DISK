@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 import hydra
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, OmegaConf, listconfig
 import os
 import sys
 import yaml
@@ -9,55 +9,36 @@ import yaml
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
 
 
-def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_file,
-         training_seed, load_model, cfg_network, training_batch_size,
-         training_epochs, learning_rate, loss_type, loss_mask, loss_factor,
-         model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,
-         n_cpus, print_every,
+def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton_file,
+         training_batch_size,
+         loss_type, loss_mask, loss_factor,
+         n_cpus,
          proba_file, proba_length_file, indep_keypoints,
          add_missing_pad, viewinvariant, normalize, normalizecube, swap,
          add_missing,
-         test_name_items, test_merge, test_original_coordinates, test_threshold_pck,
-         n_repeat, merge_sets_file,
+         test_original_coordinates, test_threshold_pck,
+         n_repeat,
          total_n_plots, plot2d_only_holes, plot3d_size, plot3d_azim,
-         suffix, logger, verbose=0):
+         logger, verbose=0):
 
-    from DISK.main_fillmissing import train_fillmissing
     from DISK.test_fillmissing import test
-
-    logger.info(f'\n*********************** TRAINING DISK *********************** \n')
-    train_fillmissing(project_dir, model_dir, dataset_path, skeleton_file, training_seed,
-                      load_model, cfg_network,
-                      training_batch_size, training_epochs, learning_rate,
-                      loss_type, loss_mask, loss_factor,
-                      model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,
-                      n_cpus,
-                      print_every,
-                      proba_file, proba_length_file, indep_keypoints,
-                      add_missing_pad, viewinvariant,
-                      normalize, normalizecube, swap,
-                      add_missing,
-                      logger, verbose=verbose)
-
-    logger.info(f'✅ Successfully trained DISK model.\n')
 
     logger.info(f'\n*********************** TESTING DISK TRAINED MODEL *********************** \n')
 
     test(project_dir, test_dir, dataset_path, dataset_name, skeleton_file,
-         [model_dir, ], training_batch_size, n_cpus,
-         loss_mask, loss_factor,
+         model_dirs, training_batch_size, n_cpus,
+         loss_type, loss_mask, loss_factor,
          proba_file, proba_length_file, indep_keypoints,
          add_missing_pad,
          viewinvariant, normalize, normalizecube, swap, add_missing,
-         test_name_items, test_merge,
          test_original_coordinates, test_threshold_pck, n_repeat,
-         merge_sets_file, total_n_plots, plot2d_only_holes,
+         total_n_plots, plot2d_only_holes,
          plot3d_size, plot3d_azim,
-         logger, suffix=suffix, stride=None, verbose=verbose)
+         logger, suffix='', stride=None, verbose=verbose)
     logger.info(f'✅ Successfully tested DISK model.\n')
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="config_train")
+@hydra.main(version_base=None, config_path="../conf", config_name="config_test")
 def cli(_cfg: DictConfig) -> None:
     modified_cfg = DictConfig(_cfg)
 
@@ -95,38 +76,26 @@ def cli(_cfg: DictConfig) -> None:
 
     dataset_path = os.path.join(project_path, 'DISK_data', dataset_name)
 
-    final_model_path = None
-    load_model = None
-    if _cfg.model_name == '_DEFAULT_':
-        if _cfg.load_model is not None and type(_cfg.load_model) == str:
-            final_model_path = os.path.join(project_path, 'DISK_train', _cfg.load_model)
-            if not os.path.exists(final_model_path):
-                print(f"\n❌ You provided a load_model entry, but could not find the checkpoint at {final_model_path}.")
-                sys.exit(1)
-            model_name = _cfg.load_model
-        else:
-            if _cfg.network.type == 'transformer':
-                network_name = 'DISK'
-            else:
-                network_name = f'DISK-{_cfg.network.type}'
-            model_name = f'{dataset_name}_{network_name}'
+    final_model_path = []
+    if _cfg.model_name_list is None or type(_cfg.model_name_list) != listconfig.ListConfig:
+        print("\n❌ model_name_list should be a "
+              f"list of strings. Got {_cfg.model_name_list}")
+        sys.exit(1)
     else:
-        if _cfg.model_name is None or type(_cfg.model_name) != str:
-            print("\n❌ model_name should be a "
-                  f"string. Got {_cfg.model_name}")
-            sys.exit(1)
-        else:
-            model_name = _cfg.model_name
+        model_path_list = []
+        for model_name in _cfg.model_name_list:
+            if model_name is None or type(model_name) != str:
+                print("\n❌ model_name_list should be a "
+                      f"list of strings. Got {_cfg.model_name_list}")
+                sys.exit(1)
+            model_path = os.path.join(project_path, 'DISK_train', model_name)
+            if not os.path.exists(model_path):
+                print(f"\n❌ model_name {model_name}  was not found. Please "
+                      f"check the name. It should match a folder within the "
+                      f"subfolder 'DISK_train' of your project.")
+                sys.exit(1)
+            model_path_list.append(model_path)
 
-    if final_model_path is None:
-        ext_model_path = 1
-        model_path = os.path.join(project_path, 'DISK_train', model_name)
-        final_model_path = str(model_path)
-        while os.path.exists(final_model_path):
-            final_model_path = model_path + f'_{ext_model_path}'
-            ext_model_path += 1
-
-        os.mkdir(final_model_path)
 
     if _cfg.debug:
         logging_flag = logging.DEBUG
@@ -135,32 +104,31 @@ def cli(_cfg: DictConfig) -> None:
         logging_flag = logging.INFO
         verbose = 0
 
-    modified_cfg.model_name = os.path.basename(final_model_path)
-    logger = setup_custom_logging(final_model_path, 'train.log', logging_flag)
+    if _cfg.name_output_dir == '_DEFAULT_':
+        test_dir = os.path.join(project_path, 'DISK_train', f'{datetime.today().strftime("%Y-%m-%d")}_test')
+    else:
+        if _cfg.name_output_dir is None or type(_cfg.name_output_dir) != str:
+            print(f"\n❌ name_output_dir should be a "
+                      f"string. Got {_cfg.name_output_dir}")
+            sys.exit(1)
+        else:
+            test_dir = os.path.join(project_path, 'DISK_train', _cfg.name_output_dir)
+    os.makedirs(test_dir, exist_ok=True)
+
+    logger = setup_custom_logging(test_dir, 'test.log', logging_flag)
 
     ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
 
-    if _cfg.training_epochs is None or type(_cfg.training_epochs) != int:
-        print("\n❌ training_epochs is a required parameter and should be a "
-              f"strictly positive integer. Got {_cfg.training_epochs}")
+    if _cfg.batch_size is None or type(_cfg.batch_size) != int:
+        print("\n❌ batch_size should be an "
+              f"integer. Got {_cfg.batch_size}")
         sys.exit(1)
-    elif _cfg.training_epochs <= 0:
-        print("\n❌ training_epochs is a required parameter and should be a "
-              f"strictly positive integer. Got {_cfg.training_epochs}")
-        sys.exit(1)
-    else:
-        training_epochs = _cfg.training_epochs
-
-    if _cfg.training_batch_size is None or type(_cfg.training_batch_size) != int:
-        print("\n❌ training_batch_size should be an "
-              f"integer. Got {_cfg.training_batch_size}")
-        sys.exit(1)
-    elif _cfg.training_batch_size <= 0:
-        print("\n❌ training_batch_size should be a "
-              f"strictly positive integer. Got {_cfg.training_batch_size}")
+    elif _cfg.batch_size <= 0:
+        print("\n❌ batch_size should be a "
+              f"strictly positive integer. Got {_cfg.batch_size}")
         sys.exit(1)
     else:
-        training_batch_size = _cfg.training_batch_size
+        batch_size = _cfg.batch_size
 
     if _cfg.n_cpus is None or type(_cfg.n_cpus) != int:
         print(f"\n❌ n_cpus should be a positive integer. Got {_cfg.n_cpus}")
@@ -169,46 +137,6 @@ def cli(_cfg: DictConfig) -> None:
         n_cpus = max(0, _cfg.n_cpus)
 
     modified_cfg.n_cpus = n_cpus
-
-    if _cfg.training_learning_rate == '_DEFAULT_':
-        if _cfg.network.type == 'transformer':
-            learning_rate = 0.001
-        else:
-            learning_rate = 0.0001
-    else:
-        if _cfg.training_learning_rate is None or type(_cfg.training_learning_rate) != float:
-            print(f"\n❌ learning_rate should be a positive float. "
-                  f"Got {_cfg.training_learning_rate}")
-            sys.exit(1)
-        else:
-            learning_rate = max(0, _cfg.training_learning_rate)
-
-    modified_cfg.training_learning_rate = learning_rate
-
-    if _cfg.training_seed is None:
-        training_seed = None
-    else:
-        if _cfg.training_seed is None or type(_cfg.training_seed) != int:
-            print(f"\n❌ training_seed should be a positive integer. "
-                  f"Got {_cfg.training_seed}")
-            sys.exit(1)
-        else:
-            training_seed = max(0, _cfg.training_seed)
-
-    if _cfg.print_every == '_DEFAULT_':
-        if training_epochs <= 10:
-            print_every = 1
-        elif training_epochs <= 50:
-            print_every = 2
-        else:
-            print_every = 5
-    else:
-        if _cfg.print_every is None or type(_cfg.print_every) != int:
-            print(f"\n❌ print_every should be an integer. Got {_cfg.print_every}")
-            sys.exit(1)
-        else:
-            print_every = max(1, _cfg.print_every)
-    modified_cfg.print_every = print_every
 
     if _cfg.transforms.add_missing_pad is None or len(_cfg.transforms.add_missing_pad) != 2 or type(
             _cfg.transforms.add_missing_pad[0]) != int or type(
@@ -322,33 +250,6 @@ def cli(_cfg: DictConfig) -> None:
     else:
         original_coordinates = _cfg.test.original_coordinates
 
-    if _cfg.test.suffix is None or type(_cfg.test.suffix) != str:
-        print("\n❌ test.suffix should be a string."
-              f"Got {_cfg.test.suffix}")
-        sys.exit(1)
-    else:
-        suffix = _cfg.test.suffix
-
-    if _cfg.test.name_items is None:
-        print("\n❌ test.name_items should be a dictionary."
-              f"Got {_cfg.test.name_items}")
-        sys.exit(1)
-    else:
-        name_items = _cfg.test.name_items
-
-    if _cfg.test.merge is None or type(_cfg.test.merge) != bool:
-        print("\n❌ test.merge should be a bool."
-              f"Got {_cfg.test.merge}")
-        sys.exit(1)
-    else:
-        merge = _cfg.test.merge
-
-    if _cfg.test.merge_sets_file is None or type(_cfg.test.merge_sets_file) != str:
-        print("\n❌ test.merge_sets_file should be a string."
-              f"Got {_cfg.test.merge_sets_file}")
-        sys.exit(1)
-    else:
-        merge_sets_file = _cfg.test.merge_sets_file
 
     if _cfg.test.n_repeat is None or type(_cfg.test.n_repeat) != int:
         print("\n❌ test.n_repeat should be a string."
@@ -378,58 +279,24 @@ def cli(_cfg: DictConfig) -> None:
     else:
         loss_factor = max(1, _cfg.loss.factor)
 
-    if _cfg.model_scheduler.type is None or type(_cfg.model_scheduler.type) != str \
-            or _cfg.model_scheduler.type != 'lambdalr':
-        print("\n❌ model_scheduler.type should be 'lambdalr'."
-              f"Got {_cfg.model_scheduler.type}")
-        sys.exit(1)
-    else:
-        model_scheduler_type = _cfg.model_scheduler.type
-
-    if _cfg.model_scheduler.steps_epoch is None or type(_cfg.model_scheduler.steps_epoch) != int:
-        print("\n❌ model_scheduler.steps_epoch should be 'lambdalr'."
-              f"Got {_cfg.model_scheduler.steps_epoch}")
-        sys.exit(1)
-    else:
-        model_scheduler_steps_epoch = max(1, _cfg.model_scheduler.steps_epoch)
-
-    if _cfg.model_scheduler.rate is None or type(_cfg.model_scheduler.rate) != float:
-        print("\n❌ model_scheduler.rate should be a float between 0 and 1."
-              f"Got {_cfg.model_scheduler.rate}")
-        sys.exit(1)
-    else:
-        model_scheduler_rate = max(0, min(1, _cfg.model_scheduler.rate))
-
-    os.makedirs(os.path.join(final_model_path, 'config'), exist_ok=True)
-
-    output_config_file = os.path.join(final_model_path, 'config', f'config_train.yaml')
-    copy_config_file(modified_cfg, output_config_file)
-
-    test_dir = os.path.join(final_model_path, f'{datetime.today().strftime("%Y-%m-%d")}_test')
-    os.makedirs(test_dir, exist_ok=True)
-
     os.makedirs(os.path.join(test_dir, 'config'), exist_ok=True)
-    output_config_file = os.path.join(test_dir, 'config', f'config_train.yaml')
+    output_config_file = os.path.join(test_dir, 'config', f'config_test.yaml')
     copy_config_file(modified_cfg, output_config_file)
 
     logger.info(f'✅ Successfully loaded configuration.\n')
 
     add_missing = True
-    main(project_path, final_model_path, dataset_path, dataset_name, test_dir,
-         skeleton_file_path, training_seed,
-         load_model, _cfg.network,
-         training_batch_size, training_epochs, learning_rate,
-         loss_type, loss_mask, loss_factor,
-         model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,
+    main(project_path, model_path_list, dataset_path, dataset_name, test_dir,
+         skeleton_file_path,
+         batch_size, loss_type, loss_mask, loss_factor,
          n_cpus,
-         print_every,
          proba_file, proba_length_file, add_missing_indep_keypoints,
          add_missing_pad, viewinvariant,
          normalize, normalizecube, swap,
-         add_missing, name_items, merge,
+         add_missing,
          original_coordinates, threshold_pck, n_repeat,
-         merge_sets_file, n_plots, plot2d_only_holes,
-         plot3d_size, plot3d_azim, suffix,
+         n_plots, plot2d_only_holes,
+         plot3d_size, plot3d_azim,
          logger, verbose)
 
 

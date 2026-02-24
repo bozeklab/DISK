@@ -17,10 +17,10 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
          proba_file, proba_length_file, indep_keypoints,
          add_missing_pad, viewinvariant, normalize, normalizecube, swap,
          add_missing,
-         test_name_items, test_merge, test_original_coordinates, test_threshold_pck,
-         n_repeat, merge_sets_file,
+         test_original_coordinates, test_threshold_pck,
+         n_repeat,
          total_n_plots, plot2d_only_holes, plot3d_size, plot3d_azim,
-         suffix, logger, verbose=0):
+         logger, verbose=0):
 
     from DISK.main_fillmissing import train_fillmissing
     from DISK.test_fillmissing import test
@@ -45,15 +45,14 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
 
     test(project_dir, test_dir, dataset_path, dataset_name, skeleton_file,
          [model_dir, ], training_batch_size, n_cpus,
-         loss_mask, loss_factor,
+         loss_type, loss_mask, loss_factor,
          proba_file, proba_length_file, indep_keypoints,
          add_missing_pad,
          viewinvariant, normalize, normalizecube, swap, add_missing,
-         test_name_items, test_merge,
          test_original_coordinates, test_threshold_pck, n_repeat,
-         merge_sets_file, total_n_plots, plot2d_only_holes,
+         total_n_plots, plot2d_only_holes,
          plot3d_size, plot3d_azim,
-         logger, suffix=suffix, stride=None, verbose=verbose)
+         logger, suffix='', stride=None, verbose=verbose)
     logger.info(f'✅ Successfully tested DISK model.\n')
 
 
@@ -322,34 +321,6 @@ def cli(_cfg: DictConfig) -> None:
     else:
         original_coordinates = _cfg.test.original_coordinates
 
-    if _cfg.test.suffix is None or type(_cfg.test.suffix) != str:
-        print("\n❌ test.suffix should be a string."
-              f"Got {_cfg.test.suffix}")
-        sys.exit(1)
-    else:
-        suffix = _cfg.test.suffix
-
-    if _cfg.test.name_items is None:
-        print("\n❌ test.name_items should be a dictionary."
-              f"Got {_cfg.test.name_items}")
-        sys.exit(1)
-    else:
-        name_items = _cfg.test.name_items
-
-    if _cfg.test.merge is None or type(_cfg.test.merge) != bool:
-        print("\n❌ test.merge should be a bool."
-              f"Got {_cfg.test.merge}")
-        sys.exit(1)
-    else:
-        merge = _cfg.test.merge
-
-    if _cfg.test.merge_sets_file is None or type(_cfg.test.merge_sets_file) != str:
-        print("\n❌ test.merge_sets_file should be a string."
-              f"Got {_cfg.test.merge_sets_file}")
-        sys.exit(1)
-    else:
-        merge_sets_file = _cfg.test.merge_sets_file
-
     if _cfg.test.n_repeat is None or type(_cfg.test.n_repeat) != int:
         print("\n❌ test.n_repeat should be a string."
               f"Got {_cfg.test.n_repeat}")
@@ -426,10 +397,10 @@ def cli(_cfg: DictConfig) -> None:
          proba_file, proba_length_file, add_missing_indep_keypoints,
          add_missing_pad, viewinvariant,
          normalize, normalizecube, swap,
-         add_missing, name_items, merge,
+         add_missing,
          original_coordinates, threshold_pck, n_repeat,
-         merge_sets_file, n_plots, plot2d_only_holes,
-         plot3d_size, plot3d_azim, suffix,
+         n_plots, plot2d_only_holes,
+         plot3d_size, plot3d_azim,
          logger, verbose)
 
 

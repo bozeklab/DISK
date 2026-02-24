@@ -10,12 +10,12 @@ import time
 def plot_training(df, offset=10, print_every=1):
     x = np.arange(df.shape[0]) * print_every
     fig, axes = plt.subplots(2, 1, sharex='all')
-    axes[0].plot(x[offset:], df[0][offset:], label='train')
-    axes[0].plot(x[offset:], df[2][offset:], label='validation')
+    axes[0].plot(x[offset:], df[0][offset:], 'x-', label='train')
+    axes[0].plot(x[offset:], df[2][offset:], 'x-', label='validation')
     axes[0].legend()
     axes[0].set_title('Loss')
-    axes[1].plot(x[offset:], df[1][offset:])
-    axes[1].plot(x[offset:], df[3][offset:])
+    axes[1].plot(x[offset:], df[1][offset:], 'x-')
+    axes[1].plot(x[offset:], df[3][offset:], 'x-')
     axes[1].set_title('RMSE')
 
 

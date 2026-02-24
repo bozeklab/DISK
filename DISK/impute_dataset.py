@@ -304,12 +304,14 @@ threshold_error_score, total_n_plots, plot_only_holes,
         cfg_model = OmegaConf.load(config_file)
         logger.info(f'Found model at path {checkpoint}')
         model_path = glob(os.path.join(checkpoint, 'model_epoch*'))[0]
+        model_name = os.path.basename(model_path)
     else:
         for path in Path(checkpoint).rglob('model_epoch*'):
             logger.info(f'Found model at path {str(path)}')
             config_file = os.path.join(os.path.dirname(path), 'config', 'config_train.yaml')
             cfg_model = OmegaConf.load(config_file)
             model_path = path
+            model_name = os.path.basename(model_path)
     if cfg_model is None:
         raise ValueError(f'no model found at path {checkpoint}')
     logger.debug(f'Full path to model: {model_path}')
@@ -319,14 +321,7 @@ threshold_error_score, total_n_plots, plot_only_holes,
     # load model
     model_name = ''
     model = construct_NN_model(cfg_model.network, keypoints, data_divider, seq_length, skeleton_file, device)
-    for ini, name_item in enumerate(name_items):
-        val = cfg_model[name_item[0]]
-        for item in name_item[1:]:
-            val = val[item]
-        if ini == 0:
-            model_name = f'{name_item[-1]}-{val}'
-        else:
-            model_name += f'_{name_item[-1]}-{val}'
+
     logger.info(f'Network {model_name} constructed')
 
     load_checkpoint(model, None, model_path, device, logger)
@@ -388,7 +383,7 @@ threshold_error_score, total_n_plots, plot_only_holes,
                     de_out = feed_forward(transformed_data, mask_holes,  # 1 for missing, 0 for non-missing
                                           data_divider, model,
                                           True, 1,
-                                          cfg_model,
+                                          cfg_model.network,
                                           key_padding_mask=lengths, logger=logger)
                     # References for key_padding_mask for transformer
                     # https://pytorch.org/docs/stable/_modules/torch/nn/modules/activation.html#MultiheadAttention
@@ -479,7 +474,7 @@ threshold_error_score, total_n_plots, plot_only_holes,
 
                             plot_save(make_xyz_plot,
                                           title=f'reconstruction_xyz_{data_dict["indices_file"][i]}-{data_dict["indices_pos"][i]}{suffix}',
-                                          only_png=False,
+                                          only_png=True,
                                           outputdir=plot_dir)
 
                             n_plots += 1

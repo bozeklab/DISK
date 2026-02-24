@@ -261,7 +261,7 @@ def feed_forward(data_with_holes, mask_holes, n_dim, model, loss_mask,
     input_tensor_with_holes[:, 1:, :] = input_tensor_with_holes[:, :-1, :].clone()
     if data_full is None or mask_holes is None or criterion_seq is None:
         de_out, uncertainty_estimate = apply_model(model, input_tensor_with_holes, mask_holes, n_dim,
-                                                   loss_mask, loss_factor, cfg_network.network,
+                                                   loss_mask, loss_factor, cfg_network,
                                                    data_full=None, criterion_seq=None, logger=logger)
 
         return de_out, uncertainty_estimate
@@ -269,7 +269,7 @@ def feed_forward(data_with_holes, mask_holes, n_dim, model, loss_mask,
         de_out, uncertainty_estimate, loss, loss_original, list_rmse = apply_model(model, input_tensor_with_holes,
                                                                                    mask_holes, n_dim, loss_mask,
                                                                                    loss_factor,
-                                                                                   cfg_network.network,
+                                                                                   cfg_network,
                                                                                    data_full=data_full,
                                                                                    criterion_seq=criterion_seq,
                                                                                    logger=logger,
@@ -304,7 +304,8 @@ def compute_loss(model, data_loader, n_dim, criterion_seq, loss_mask, loss_facto
         mask_holes = mask_holes[:max_len]
 
         _, _, tl, lo, lr = feed_forward(data_with_holes, mask_holes, n_dim,
-                                        model, loss_mask, loss_factor, cfg_network,
+                                        model, loss_mask, loss_factor,
+                                        cfg_network,
                                         data_full=data_full,
                                         criterion_seq=criterion_seq,
                                         logger=logger)
