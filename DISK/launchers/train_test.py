@@ -39,15 +39,16 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
                       add_missing,
                       logger, verbose=verbose)
 
-    logger.info(f'✅ Successfully trained DISK model.\n')
+    logger.info(f'✅ Successfully trained DISK model {model_dir}.\n')
 
     logger.info(f'\n*********************** TESTING DISK TRAINED MODEL *********************** \n')
 
+    add_missing_pad_for_test = (max(1, add_missing_pad[0]), max(1, add_missing_pad[0]))
     test(project_dir, test_dir, dataset_path, dataset_name, skeleton_file,
          [model_dir, ], training_batch_size, n_cpus,
          loss_type, loss_mask, loss_factor,
          proba_file, proba_length_file, indep_keypoints,
-         add_missing_pad,
+         add_missing_pad_for_test,
          viewinvariant, normalize, normalizecube, swap, add_missing,
          test_original_coordinates, test_threshold_pck, n_repeat,
          total_n_plots, plot2d_only_holes,
@@ -90,7 +91,7 @@ def cli(_cfg: DictConfig) -> None:
               f"  Got {_cfg.dataset_name} {os.path.join(project_path, 'DISK_data', _cfg.dataset_name)}")
         sys.exit(1)
     else:
-        dataset_name = _cfg.dataset_name
+        dataset_name = os.path.basename(_cfg.dataset_name)
 
     dataset_path = os.path.join(project_path, 'DISK_data', dataset_name)
 
@@ -218,35 +219,39 @@ def cli(_cfg: DictConfig) -> None:
     else:
         add_missing_pad = list(_cfg.transforms.add_missing_pad)
 
-    if _cfg.transforms.add_missing_indep_keypoints is None or type(_cfg.transforms.add_missing_indep_keypoints) != bool:
-        print("\n❌ transforms.add_missing_indep_keypoints should be a "
-              f"bool. Got {_cfg.transforms.add_missing_indep_keypoints}")
+    if _cfg.indep_keypoints is None or type(_cfg.indep_keypoints) != bool:
+        print("\n❌ indep_keypoints should be a "
+              f"bool. Got {_cfg.indep_keypoints}")
         sys.exit(1)
     else:
-        add_missing_indep_keypoints = _cfg.transforms.add_missing_indep_keypoints
+        indep_keypoints = _cfg.indep_keypoints
 
-    if _cfg.transforms.add_missing_proba_file_type is None or type(_cfg.transforms.add_missing_proba_file_type) != str:
-        print("\n❌ transforms.add_missing_proba_file_type should be a string within the following ('set_keypoints', "
-              "'set_keypoints_merged', '', )"
-              f"Got {_cfg.transforms.add_missing_proba_file_type}")
+    if _cfg.merge_keypoints is None or type(_cfg.merge_keypoints) != bool:
+        print("\n❌ merge_keypoints should be a "
+              f"bool. Got {_cfg.merge_keypoints}")
         sys.exit(1)
     else:
-        suffix = _cfg.transforms.add_missing_proba_file_type
-        if len(suffix) > 0 and suffix[0] != '_':
-            suffix = '_' + suffix
+        merge_keypoints = _cfg.merge_keypoints
 
-        proba_file = os.path.join(dataset_path, f'proba_missing{suffix}.csv')
-        proba_length_file = os.path.join(dataset_path, f'proba_missing_length{suffix}.csv')
+    suffix = f'_set_keypoints' if not indep_keypoints else ''
+    if indep_keypoints:
+        if merge_keypoints:
+            logger.info(f'️ℹ\n️ merge_keypoints = True is not a valid option when indep_keypoints = True. '
+                        f'merge_keypoints would be considered False')
+            suffix += f'_merged'
 
-        if not os.path.exists(proba_file) or not os.path.exists(proba_length_file):
-            from DISK.create_proba_missing_files import create_proba_missing_files
-            indep_keypoints = False if 'set_keypoints' in suffix else True
-            merge_keypoints = True if ('merged' in suffix and not indep_keypoints) else False
+    proba_file = os.path.join(dataset_path, f'proba_missing{suffix}.csv')
+    proba_length_file = os.path.join(dataset_path, f'proba_missing_length{suffix}.csv')
 
-            create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_file_path,
-                                       logger)
-            logger.info(f'✅ Successfully estimated probabilities of missing keypoints with '
-                        f'{["set_keypoints", "indep_keypoints"][int(indep_keypoints)]}.\n')
+    if not os.path.exists(proba_file) or not os.path.exists(proba_length_file):
+        from DISK.create_proba_missing_files import create_proba_missing_files
+        indep_keypoints = False if 'set_keypoints' in suffix else True
+        merge_keypoints = True if ('merged' in suffix and not indep_keypoints) else False
+
+        create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_file_path,
+                                   logger)
+        logger.info(f'✅ Successfully estimated probabilities of missing keypoints with '
+                    f'{["set_keypoints", "indep_keypoints"][int(indep_keypoints)]}.\n')
 
     if _cfg.transforms.viewinvariant is None or type(_cfg.transforms.viewinvariant) != bool:
         print("\n❌ transforms.viewinvariant should be a "
@@ -394,7 +399,7 @@ def cli(_cfg: DictConfig) -> None:
          model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,
          n_cpus,
          print_every,
-         proba_file, proba_length_file, add_missing_indep_keypoints,
+         proba_file, proba_length_file, indep_keypoints,
          add_missing_pad, viewinvariant,
          normalize, normalizecube, swap,
          add_missing,

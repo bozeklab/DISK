@@ -83,8 +83,11 @@ def test(project_path: str,
         config_file = os.path.join(cf, 'config', 'config_train.yaml')
         if os.path.exists(config_file):
             cfg_model = OmegaConf.load(config_file)
+            try:
+                model_path = glob(os.path.join(cf, 'model_epoch*'))[0] # model_epoch to not take the model from the lastepoch
+            except IndexError:
+                raise Exception(f'No model checkpoint found at path {cf}')
             logger.info(f'Found model at path {cf}')
-            model_path = glob(os.path.join(cf, 'model_epoch*'))[0] # model_epoch to not take the model from the lastepoch
             paths_to_models.append(model_path)
             model_configs.append(cfg_model)
             model_names.append(os.path.basename(cf))

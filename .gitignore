@@ -16,3 +16,5 @@ build/
 dist/
 DISK/_version.py
 *.pypirc
+*.csv
+*.log

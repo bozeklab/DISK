@@ -125,8 +125,18 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
                 set_keypoints = np.unique(df.loc[df['keypoint'] != 'non_missing', 'keypoint'])
                 init_proba = tmp.loc[set_keypoints, 'original'].values.astype('float')
                 init_proba /= np.sum(init_proba)
+
+                # check if one keypoint was never found missing (so not listed in df)
+                # we need to add it manually so the length matches
+                for k in dataset_constants.KEYPOINTS:
+                    if k not in df['keypoint'].values:
+                        set_keypoints = np.append(set_keypoints, k)
+                        init_proba = np.append(init_proba, 0)
+
+                # add non-missing
                 set_keypoints = np.append(set_keypoints, 'non_missing')
                 init_proba = np.append(init_proba, 0)
+
                 df_init_proba = pd.DataFrame(columns=['keypoint', 'proba'], data=np.vstack([set_keypoints, init_proba]).T)
             df_init_proba.to_csv(os.path.join(dataset_path, f'proba_missing{suffix}.csv'), index=False)
 
@@ -238,8 +248,11 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
             if not no_original_missing:
                 pivot_df.loc[pivot_df['original'], 'count'] /= pivot_df.loc[pivot_df['original'], 'count'].sum()
             pivot_df.loc[~pivot_df['original'], 'count'] /= pivot_df.loc[~pivot_df['original'], 'count'].sum()
-            sns.catplot(data=pivot_df, x='count', hue='original', y='keypoint', orient='h', alpha=0.9,
-                        height=max(5, len(keypoints) // 10))
+            try:
+                sns.catplot(data=pivot_df, x='count', hue='original', y='keypoint', orient='h', alpha=0.9,
+                            height=max(5, len(keypoints) // 10))
+            except ValueError:
+                print('catplot error')
             if no_original_missing:
                 plt.axvline(x=1 / len(keypoints), label='original')
 

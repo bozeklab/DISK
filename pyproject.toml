@@ -44,7 +44,9 @@ DISK-check-gpu = "DISK.launchers.check_gpu:cli"
 DISK-create-project = "DISK.launchers.create_project:cli"
 DISK-prepare-data = "DISK.launchers.prepare_data:cli"
 DISK-train = "DISK.launchers.train_test:cli"
+DISK-test = "DISK.launchers.test_compare:cli"
 DISK-impute = "DISK.launchers.impute:cli"
+DISK-restore-default-config = "DISK.launchers.restore_default_config:cli"
 
 
 [project.urls]

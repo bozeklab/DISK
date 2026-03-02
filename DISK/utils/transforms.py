@@ -582,7 +582,7 @@ class AddMissing_LengthProba(Transform):
 
                     ## choose id of missing keypoints
                     rd_kp = np.random.choice(a=self.init_proba_df['keypoint'],
-                                             size=n_missing,
+                                             size=min(n_missing, np.sum(self.init_proba_df['proba'].values != 0)),
                                              p=self.init_proba_df['proba'].values,
                                              replace=False)  # shape: n_missing
 

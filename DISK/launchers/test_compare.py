@@ -137,7 +137,6 @@ def cli(_cfg: DictConfig) -> None:
         n_cpus = max(0, _cfg.n_cpus)
 
     modified_cfg.n_cpus = n_cpus
-
     if _cfg.transforms.add_missing_pad is None or len(_cfg.transforms.add_missing_pad) != 2 or type(
             _cfg.transforms.add_missing_pad[0]) != int or type(
         _cfg.transforms.add_missing_pad[1]) != int:
@@ -147,35 +146,40 @@ def cli(_cfg: DictConfig) -> None:
     else:
         add_missing_pad = list(_cfg.transforms.add_missing_pad)
 
-    if _cfg.transforms.add_missing_indep_keypoints is None or type(_cfg.transforms.add_missing_indep_keypoints) != bool:
-        print("\n❌ transforms.add_missing_indep_keypoints should be a "
-              f"bool. Got {_cfg.transforms.add_missing_indep_keypoints}")
+    if _cfg.transforms.indep_keypoints is None or type(_cfg.transforms.indep_keypoints) != bool:
+        print("\n❌ transforms.indep_keypoints should be a "
+              f"bool. Got {_cfg.transforms.indep_keypoints}")
         sys.exit(1)
     else:
-        add_missing_indep_keypoints = _cfg.transforms.add_missing_indep_keypoints
+        indep_keypoints = _cfg.transforms.indep_keypoints
 
-    if _cfg.transforms.add_missing_proba_file_type is None or type(_cfg.transforms.add_missing_proba_file_type) != str:
-        print("\n❌ transforms.add_missing_proba_file_type should be a string within the following ('set_keypoints', "
-              "'set_keypoints_merged', '', )"
-              f"Got {_cfg.transforms.add_missing_proba_file_type}")
+    if _cfg.transforms.merge_keypoints is None or type(_cfg.transforms.merge_keypoints) != bool:
+        print("\n❌ transforms.merge_keypoints should be a "
+              f"bool. Got {_cfg.transforms.merge_keypoints}")
         sys.exit(1)
     else:
-        suffix = _cfg.transforms.add_missing_proba_file_type
-        if len(suffix) > 0 and suffix[0] != '_':
-            suffix = '_' + suffix
+        merge_keypoints = _cfg.transforms.merge_keypoints
 
-        proba_file = os.path.join(dataset_path, f'proba_missing{suffix}.csv')
-        proba_length_file = os.path.join(dataset_path, f'proba_missing_length{suffix}.csv')
+    suffix = f'_set_keypoints' if not indep_keypoints else ''
+    if indep_keypoints:
+        if merge_keypoints:
+            logger.info(f'️ℹ\n️ merge_keypoints = True is not a valid option when indep_keypoints = True. '
+                        f'merge_keypoints would be considered False')
+            suffix += f'_merged'
 
-        if not os.path.exists(proba_file) or not os.path.exists(proba_length_file):
-            from DISK.create_proba_missing_files import create_proba_missing_files
-            indep_keypoints = False if 'set_keypoints' in suffix else True
-            merge_keypoints = True if ('merged' in suffix and not indep_keypoints) else False
+    proba_file = os.path.join(dataset_path, f'proba_missing{suffix}.csv')
+    proba_length_file = os.path.join(dataset_path, f'proba_missing_length{suffix}.csv')
 
-            create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_file_path,
-                                       logger)
-            logger.info(f'✅ Successfully estimated probabilities of missing keypoints with '
-                        f'{["set_keypoints", "indep_keypoints"][int(indep_keypoints)]}.\n')
+
+    if not os.path.exists(proba_file) or not os.path.exists(proba_length_file):
+        from DISK.create_proba_missing_files import create_proba_missing_files
+        indep_keypoints = False if 'set_keypoints' in suffix else True
+        merge_keypoints = True if ('merged' in suffix and not indep_keypoints) else False
+
+        create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_file_path,
+                                   logger)
+        logger.info(f'✅ Successfully estimated probabilities of missing keypoints with '
+                    f'{["set_keypoints", "indep_keypoints"][int(indep_keypoints)]}.\n')
 
     if _cfg.transforms.viewinvariant is None or type(_cfg.transforms.viewinvariant) != bool:
         print("\n❌ transforms.viewinvariant should be a "
@@ -290,7 +294,7 @@ def cli(_cfg: DictConfig) -> None:
          skeleton_file_path,
          batch_size, loss_type, loss_mask, loss_factor,
          n_cpus,
-         proba_file, proba_length_file, add_missing_indep_keypoints,
+         proba_file, proba_length_file, indep_keypoints,
          add_missing_pad, viewinvariant,
          normalize, normalizecube, swap,
          add_missing,

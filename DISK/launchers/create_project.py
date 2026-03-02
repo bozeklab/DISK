@@ -6,10 +6,14 @@ import shutil
 import yaml
 from datetime import datetime
 
+possible_file_type_values = ('mat_dannce', 'mat_qualisys', 'simple_csv', 'dlc_csv', 'dlc_h5', 'npy', 'df3d_pkl',
+                          'sleap_h5')
 
 def check_file_type(value: str) -> str:
-    assert value in ('mat_dannce', 'mat_qualisys', 'simple_csv', 'dlc_csv', 'npy', 'df3d_pkl', 'sleap_h5')
-    return value
+    if value in possible_file_type_values:
+        return True
+    else:
+        return False
 
 OmegaConf.register_new_resolver("file_type", check_file_type)
 
@@ -35,6 +39,7 @@ def cli(_cfg: DictConfig) -> None:
     )
 
 def check_extension(file_path: str, file_type:str) -> bool:
+
     file_extension = os.path.splitext(file_path)[1]
     if file_type == 'mat_dannce':
         return file_extension == '.mat'
@@ -65,6 +70,11 @@ def main(project_name: str,
     for f in data_file_list:
         if not os.path.exists(f):
             print(f'\n❌ File {f} not found. Please check path.\n')
+            sys.exit(1)
+
+        if not check_file_type(file_type):
+            print(f'\n❌ File_type {file_type} is not correct. Should be one '
+                  f'of {possible_file_type_values}.\n')
             sys.exit(1)
 
         if not check_extension(f, file_type):

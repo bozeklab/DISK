@@ -93,6 +93,12 @@ def cli(_cfg: DictConfig) -> None:
               f"integer. Got {_cfg.fill_gap}")
         sys.exit(1)
     else:
+        if _cfg.fill_gap > 100 or _cfg.fill_gap > length // 2:
+            print(f"\n⚠️️⚠️️⚠️  fill_gap has a value of {_cfg.fill_gap}, "
+                  "which is unusually large. Its value depends on the"
+                  " sampling frequency, but the rule of thumb is that "
+                  "during this duration, no strong / discontinuous movement "
+                  "should be observed.")
         fill_gap = _cfg.fill_gap
 
     data_files = config['data_files']
@@ -107,27 +113,36 @@ def cli(_cfg: DictConfig) -> None:
         if _cfg.sequential is None or type(_cfg.sequential) != bool:
             print("\n❌ sequential should be a "
                   f"bool. Got {_cfg.sequential}")
-        sys.exit(1)
+            sys.exit(1)
+        sequential = _cfg.sequential
 
-    if _cfg.original_freq is None or type(_cfg.original_freq) != int:
-        print("\n❌ original_freq should be an "
-              f"integer. Got {_cfg.original_freq}")
-        sys.exit(1)
+    if _cfg.original_freq == '_DEFAULT_':
+        original_freq = 1
+        subsampling_freq = 1
     else:
-        original_freq = _cfg.original_freq
+        if _cfg.original_freq is None or type(_cfg.original_freq) != int:
+            print("\n❌ original_freq should be an "
+                  f"integer or _DEFAULT_. Got {_cfg.original_freq}")
+            sys.exit(1)
+        else:
+            original_freq = _cfg.original_freq
+
+        if _cfg.subsampling_freq == '_DEFAULT_':
+            subsampling_freq = int(original_freq)
+        else:
+            if _cfg.subsampling_freq is None or type(_cfg.subsampling_freq) != int:
+                print("\n❌ subsampling_freq should be an "
+                      f"integer or _DEFAULT_. Got {_cfg.subsampling_freq}")
+                sys.exit(1)
+            elif _cfg.subsampling_freq > _cfg.original_freq:
+                print("\n❌ subsampling_freq should be _DEFAULT_ or an integer <= to original_freq. "
+                      f"Got subsampling_freq: {_cfg.subsampling_freq} > original_freq: {_cfg.original_freq}")
+                sys.exit(1)
+            else:
+                subsampling_freq = _cfg.subsampling_freq
 
     config['original_freq'] = original_freq
-
-    if _cfg.subsampling_freq is None or type(_cfg.subsampling_freq) != int:
-        print("\n❌ subsampling_freq should be an "
-              f"integer. Got {_cfg.subsampling_freq}")
-        sys.exit(1)
-    elif _cfg.subsampling_freq > _cfg.original_freq:
-        print("\n❌ subsampling_freq should be <= to original_freq. "
-              f"Got subsampling_freq: {_cfg.subsampling_freq} > original_freq: {_cfg.original_freq}")
-        sys.exit(1)
-    else:
-        subsampling_freq = _cfg.subsampling_freq
+    config['subsampling_freq'] = subsampling_freq
 
     if _cfg.dataset_name == '_DEFAULT_':
         if subsampling_freq == 1:
