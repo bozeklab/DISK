@@ -320,7 +320,7 @@ def compute_loss(model, data_loader, n_dim, criterion_seq, loss_mask, loss_facto
     return ave_loss, ave_rmse, loss_original
 
 
-def construct_NN_model(cfg_network, keypoints, divider, seq_length, skeleton, device):
+def construct_NN_model(cfg_network, keypoints, divider, seq_length, skeleton_graph, device):
     """
     :args n_dim: 2 or 3, for 2D or 3D
     """
@@ -335,13 +335,13 @@ def construct_NN_model(cfg_network, keypoints, divider, seq_length, skeleton, de
         model = BiGRU(input_size, output_size, cfg_network=cfg_network, device=device)
 
     elif cfg_network.type == 'ST_GCN':
-        if skeleton_file is None:
+        if skeleton_graph is None:
             raise ValueError('You need to provide a valid skeleton file when using ST_GCN architecture.')
         # ST GCN
-        graph_args = {'num_keypoints': skeleton.num_keypoints,
-                      'center': skeleton.center,
-                      'neighbor_links': skeleton.neighbor_links,
-                      'neighbor_link_colors': skeleton.neighbor_link_colors,
+        graph_args = {'num_keypoints': skeleton_graph.num_keypoints,
+                      'center': skeleton_graph.center,
+                      'neighbor_links': skeleton_graph.neighbor_links,
+                      'neighbor_link_colors': skeleton_graph.neighbor_link_colors,
                       'strategy': 'uniform',
                       'max_hop': 1,
                       'dilation': 1}
