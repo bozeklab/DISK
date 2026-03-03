@@ -59,7 +59,7 @@ class ParentDataset(data.Dataset):
                  file: str,
                  transform: list,
                  outputdir: str,
-                 skeleton_file: str,
+                 skeleton_graph: str,
                  *args,
                  keypoints: list = [],
                  seq_length: int=60,
@@ -85,8 +85,8 @@ class ParentDataset(data.Dataset):
         self.n_keypoints = len(keypoints)
         self.divider = divider
         self.seq_length = seq_length
-        if skeleton_file is not None and skeleton_file != '':
-            self.skeleton_graph = Graph(file=skeleton_file, strategy='uniform', max_hop=1, dilation=1)
+        if skeleton_graph is not None and skeleton_graph != '':
+            self.skeleton_graph = skeleton_graph
         else:
             self.skeleton_graph = None
 
@@ -219,12 +219,12 @@ class SupervisedDataset(ParentDataset):
     def __init__(self,
                  file: str,
                  transform: list = None,
-                 skeleton_file: str = None,
+                 skeleton_graph: str = None,
                  outputdir: str = '',
                  verbose: int = 0,
                  logger: object = None,
                  **kwargs):
-        super(SupervisedDataset, self).__init__(file, transform, outputdir, skeleton_file,
+        super(SupervisedDataset, self).__init__(file, transform, outputdir, skeleton_graph,
                                                 logger=logger,
                                                 verbose=verbose, **kwargs)
 
@@ -272,7 +272,7 @@ class FullLengthDataset(ParentDataset):
     def __init__(self,
                  file: str,
                  transform: list = None,
-                 skeleton_file: str = None,
+                 skeleton_graph: str = None,
                  freq: int = 60,
                  length_sample: int = 120,  # in number of frames
                  stride: int = 2,  # in number of frames, int
@@ -280,7 +280,7 @@ class FullLengthDataset(ParentDataset):
                  verbose=1,
                  **kwargs):
 
-        super(FullLengthDataset, self).__init__(file, transform, outputdir, skeleton_file,
+        super(FullLengthDataset, self).__init__(file, transform, outputdir, skeleton_graph,
                                                 verbose, **kwargs)
         self.time = self.data_dict['time']  # shape (batch, max_len time)
 
@@ -373,7 +373,7 @@ class ImputeDataset(FullLengthDataset):
                  file: str,
                  transform: list = None,
                  freq: int = 60,
-                 skeleton_file: str = None,
+                 skeleton_graph: str = None,
                  length_sample: int = 120,  # in number of frames
                  stride: int = 2,  # in number of frames, int
                  padding: tuple = (1, 1),
@@ -381,7 +381,7 @@ class ImputeDataset(FullLengthDataset):
                  verbose: int = 1, # 0, 1, or 2
                  **kwargs):
         self.padding = padding
-        super(ImputeDataset, self).__init__(file, transform, skeleton_file, freq, length_sample,
+        super(ImputeDataset, self).__init__(file, transform, skeleton_graph, freq, length_sample,
                                             stride, outputdir, verbose, **kwargs)
 
     def get_possible_indices(self):

@@ -7,9 +7,10 @@ import sys
 import yaml
 
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
+from DISK.launchers.train_test import find_proba_files
+from DISK.models.graph import Graph
 
-
-def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton_file,
+def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton_graph,
          training_batch_size,
          loss_type, loss_mask, loss_factor,
          n_cpus,
@@ -25,7 +26,7 @@ def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton
 
     logger.info(f'\n*********************** TESTING DISK TRAINED MODEL *********************** \n')
 
-    test(project_dir, test_dir, dataset_path, dataset_name, skeleton_file,
+    test(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
          model_dirs, training_batch_size, n_cpus,
          loss_type, loss_mask, loss_factor,
          proba_file, proba_length_file, indep_keypoints,
@@ -62,8 +63,13 @@ def cli(_cfg: DictConfig) -> None:
     with open(os.path.join(project_path, 'config_project.yaml'), 'r') as file:
         config = yaml.safe_load(file)
 
-    project_name = config['project_name']
-    skeleton_file_path = config['skeleton']
+    if not ('skeleton' in config.keys() and config['skeleton'] is not None and len(config['skeleton']) == 0):
+        skeleton_graph = None
+    else:
+        skeleton_graph = Graph(len(config['keypoints']),
+                 config['center'],
+                 config['neighbor_links'],
+                 config['neighbor_link_colors'])
 
     if _cfg.dataset_name is None or type(_cfg.dataset_name) != str \
             or not os.path.exists(os.path.join(project_path, 'DISK_data', _cfg.dataset_name)):
@@ -76,7 +82,7 @@ def cli(_cfg: DictConfig) -> None:
 
     dataset_path = os.path.join(project_path, 'DISK_data', dataset_name)
 
-    final_model_path = []
+    model_path_list = []
     if _cfg.model_name_list is None or type(_cfg.model_name_list) != listconfig.ListConfig:
         print("\n❌ model_name_list should be a "
               f"list of strings. Got {_cfg.model_name_list}")
@@ -166,20 +172,22 @@ def cli(_cfg: DictConfig) -> None:
             logger.info(f'️ℹ\n️ merge_keypoints = True is not a valid option when indep_keypoints = True. '
                         f'merge_keypoints would be considered False')
             suffix += f'_merged'
+    proba_files_exist, proba_file, proba_length_file = find_proba_files(dataset_path, suffix)
 
-    proba_file = os.path.join(dataset_path, f'proba_missing{suffix}.csv')
-    proba_length_file = os.path.join(dataset_path, f'proba_missing_length{suffix}.csv')
-
-
-    if not os.path.exists(proba_file) or not os.path.exists(proba_length_file):
+    if not proba_files_exist:
         from DISK.create_proba_missing_files import create_proba_missing_files
         indep_keypoints = False if 'set_keypoints' in suffix else True
         merge_keypoints = True if ('merged' in suffix and not indep_keypoints) else False
 
-        create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_file_path,
+        create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_graph,
                                    logger)
         logger.info(f'✅ Successfully estimated probabilities of missing keypoints with '
                     f'{["set_keypoints", "indep_keypoints"][int(indep_keypoints)]}.\n')
+
+    proba_files_exist, proba_file, proba_length_file = find_proba_files(dataset_path, suffix)
+    if not proba_files_exist:
+        print("\n❌ did not find proba_files matching your criterion.")
+        sys.exit(1)
 
     if _cfg.transforms.viewinvariant is None or type(_cfg.transforms.viewinvariant) != bool:
         print("\n❌ transforms.viewinvariant should be a "
@@ -291,7 +299,7 @@ def cli(_cfg: DictConfig) -> None:
 
     add_missing = True
     main(project_path, model_path_list, dataset_path, dataset_name, test_dir,
-         skeleton_file_path,
+         skeleton_graph,
          batch_size, loss_type, loss_mask, loss_factor,
          n_cpus,
          proba_file, proba_length_file, indep_keypoints,

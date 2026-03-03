@@ -261,7 +261,7 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
     return
 
 
-def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_file,
+def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph,
              checkpoint,
            batch_size,
 threshold_error_score, total_n_plots, plot_only_holes,
@@ -282,15 +282,6 @@ threshold_error_score, total_n_plots, plot_only_holes,
     subsampling_freq = dataset_constants.FREQ
     seq_length = dataset_constants.SEQ_LENGTH
     data_divider = dataset_constants.DIVIDER
-
-    if skeleton_file is not None and skeleton_file != '':
-        skeleton_file_path = os.path.join(project_dir, 'DISK-data', skeleton_file)
-        skeleton_graph = Graph(file=skeleton_file_path)
-        if not os.path.exists(skeleton_file_path):
-            raise ValueError(f'no skeleton file found in', skeleton_file_path)
-    else:
-        skeleton_graph = None
-        skeleton_file_path = None
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logger.info("Device: {}".format(device))
@@ -320,7 +311,7 @@ threshold_error_score, total_n_plots, plot_only_holes,
     logger.info('Loading prediction model...')
     # load model
     model_name = ''
-    model = construct_NN_model(cfg_model.network, keypoints, data_divider, seq_length, skeleton_file, device)
+    model = construct_NN_model(cfg_model.network, keypoints, data_divider, seq_length, skeleton_graph, device)
 
     logger.info(f'Network {model_name} constructed')
 
@@ -357,10 +348,11 @@ threshold_error_score, total_n_plots, plot_only_holes,
          label_type='all',  # don't care, not using
          verbose=verbose,
          padding=missing_pad,
-         skeleton_file=skeleton_file_path,
+         skeleton_graph=skeleton_graph,
          seq_length=seq_length,
          stride=stride,
          freq=subsampling_freq,
+        divider=data_divider,
     logger=logger)
 
     """LOOPING ON DATA"""

@@ -7,9 +7,10 @@ import sys
 import yaml
 
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
+from DISK.models.graph import Graph
 
 
-def main(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_file,
+def main(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph,
              checkpoint,
            batch_size,
 threshold_error_score, total_n_plots, plot_only_holes,
@@ -18,7 +19,7 @@ threshold_error_score, total_n_plots, plot_only_holes,
 
     from DISK.impute_dataset import impute
 
-    impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_file,
+    impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph,
              checkpoint,
            batch_size,
 threshold_error_score, total_n_plots, plot_only_holes,
@@ -55,7 +56,14 @@ def cli(_cfg: DictConfig) -> None:
     with open(os.path.join(project_path, 'config_project.yaml'), 'r') as file:
         config = yaml.safe_load(file)
 
-    skeleton_file_path = config['skeleton']
+    if not ('skeleton' in config.keys() and config['skeleton'] is not None and len(config['skeleton']) == 0):
+        skeleton_graph = None
+    else:
+        skeleton_graph = Graph(len(config['keypoints']),
+                 config['center'],
+                 config['neighbor_links'],
+                 config['neighbor_link_colors'])
+
     file_type = config['file_type']
 
     if _cfg.dataset_name is None or type(_cfg.dataset_name) != str \
@@ -180,7 +188,7 @@ def cli(_cfg: DictConfig) -> None:
     logger.info(f'✅ Successfully loaded configuration.\n')
 
     main(project_path, output_path, impute_plots_dir,
-         file_type, dataset_path, skeleton_file_path,
+         file_type, dataset_path, skeleton_graph,
              model_path,
            batch_size,
 threshold_error_score, n_plots, plot_only_holes,

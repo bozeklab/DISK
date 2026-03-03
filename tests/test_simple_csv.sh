@@ -1,24 +1,29 @@
 #!/bin/bash
 set -e
 
-cd /projects/ag-bozek/france/results_behavior
-source activate env_cuda11.3 || conda activate env_cuda11.3
+## TEST 3D
+DISK-create-project project_path=DISK_simple_csv file_type=simple_csv data_files=[/home/france/mount_cvg/behavior_data/fish_data/fish_fighting_interpolated_head.csv]
 
-yes n | python /home/frose1/DISK/DISK/create_dataset.py dataset_name=test_simple_csv original_freq=60 subsampling_freq=60 length=30 stride=30 discard_beginning=0 discard_end=-1 fill_gap=10 drop_keypoints=[] sequential=true file_type=simple_csv dlc_likelihood_threshold=0.01 input_files=[/projects/ag-bozek/france/behavior_data/fish_data/fish_fighting_interpolated_head.csv]
-python /home/frose1/DISK/DISK/create_proba_missing_files.py dataset_name=test_simple_csv indep_keypoints=True merge_keypoints=False
-python /home/frose1/DISK/DISK/main_fillmissing.py network=transformer hydra.run.dir=outputs/transformer_test_simple_csv dataset.name=test_simple_csv dataset.skeleton_file=null training.epochs=4 training.n_cpus=6 training.print_every=2 feed_data.transforms.add_missing.indep_keypoints=true feed_data.transforms.add_missing.files=[test_simple_csv/proba_missing_uniform.csv,test_simple_csv/proba_missing_length_uniform.csv]
-python /home/frose1/DISK/DISK/test_fillmissing.py hydra.run.dir=outputs/transformer_test_simple_csv/test dataset.name=test_simple_csv dataset.stride=30 dataset.skeleton_file=null feed_data.transforms.add_missing.files=[test_simple_csv/proba_missing_uniform.csv,test_simple_csv/proba_missing_length_uniform.csv] evaluate.checkpoints=[outputs/transformer_test_simple_csv] evaluate.n_repeat=2 evaluate.n_plots=2
-python /home/frose1/DISK/DISK/impute_dataset.py hydra.run.dir=outputs/transformer_test_simple_csv/impute dataset.name=test_simple_csv dataset.skeleton_file=null evaluate.checkpoint=outputs/transformer_test_simple_csv evaluate.n_plots=2 evaluate.path_to_original_files=../behavior_data/fish_data/
+DISK-prepare-data project_path=DISK_simple_csv dataset_name=test_simple_csv indep_keypoints=True merge_keypoints=False original_freq=60 subsampling_freq=60 length=30 stride=30 discard_beginning=0 discard_end=-1 fill_gap=10 drop_keypoints=[] sequential=true
 
+DISK-train network=transformer project_path=DISK_simple_csv dataset_name=test_simple_csv training_epochs=4 n_cpus=0
 
-yes n | python /home/frose1/DISK/DISK/create_dataset.py dataset_name=test_simple_csv_2D original_freq=60 subsampling_freq=60 length=30 stride=30 discard_beginning=0 discard_end=-1 fill_gap=10 drop_keypoints=[] sequential=true file_type=simple_csv dlc_likelihood_threshold=0.01 input_files=[/projects/ag-bozek/france/behavior_data/fish_data/fish_fighting_interpolated_head_2D.csv]
-python /home/frose1/DISK/DISK/create_proba_missing_files.py dataset_name=test_simple_csv_2D indep_keypoints=True merge_keypoints=False
-python /home/frose1/DISK/DISK/main_fillmissing.py network=transformer hydra.run.dir=outputs/transformer_test_simple_csv_2D dataset.name=test_simple_csv_2D dataset.skeleton_file=null training.epochs=4 training.n_cpus=6 training.print_every=2 feed_data.transforms.add_missing.indep_keypoints=true feed_data.transforms.add_missing.files=[test_simple_csv_2D/proba_missing_uniform.csv,test_simple_csv_2D/proba_missing_length_uniform.csv]
-python /home/frose1/DISK/DISK/test_fillmissing.py hydra.run.dir=outputs/transformer_test_simple_csv_2D/test dataset.name=test_simple_csv_2D dataset.stride=30 dataset.skeleton_file=null feed_data.transforms.add_missing.files=[test_simple_csv_2D/proba_missing_uniform.csv,test_simple_csv_2D/proba_missing_length_uniform.csv] evaluate.checkpoints=[outputs/transformer_test_simple_csv_2D] evaluate.n_repeat=2 evaluate.n_plots=2
-python /home/frose1/DISK/DISK/impute_dataset.py hydra.run.dir=outputs/transformer_test_simple_csv_2D/impute dataset.name=test_simple_csv_2D dataset.skeleton_file=null evaluate.checkpoint=outputs/transformer_test_simple_csv_2D evaluate.n_plots=2 evaluate.path_to_original_files=../behavior_data/fish_data/
+DISK-impute project_path=DISK_simple_csv dataset_name=test_simple_csv model_name=test_simple_csv_DISK_2
 
-yes n | python /home/frose1/DISK/DISK/create_dataset.py dataset_name=test_simple_3csv original_freq=60 subsampling_freq=60 length=60 stride=60 discard_beginning=0 discard_end=-1 fill_gap=10 drop_keypoints=[] sequential=false file_type=simple_csv dlc_likelihood_threshold=0.01 input_files=[/projects/ag-bozek/france/behavior_data/fish_data/FishTank20200824_151740_pp.csv,/projects/ag-bozek/france/behavior_data/fish_data/FishTank20200902_160124_pp.csv,/projects/ag-bozek/france/behavior_data/fish_data/FishTank20200903_160946_pp.csv]
-python /home/frose1/DISK/DISK/create_proba_missing_files.py dataset_name=test_simple_3csv indep_keypoints=True merge_keypoints=False
-python /home/frose1/DISK/DISK/main_fillmissing.py network=transformer hydra.run.dir=outputs/transformer_test_simple_3csv dataset.name=test_simple_3csv dataset.skeleton_file=null training.epochs=2 training.n_cpus=6 training.print_every=1 feed_data.transforms.add_missing.indep_keypoints=true feed_data.transforms.add_missing.files=[test_simple_3csv/proba_missing.csv,test_simple_3csv/proba_missing_length.csv]
-python /home/frose1/DISK/DISK/test_fillmissing.py hydra.run.dir=outputs/transformer_test_simple_3csv/test dataset.name=test_simple_3csv dataset.stride=30 dataset.skeleton_file=null feed_data.transforms.add_missing.files=[test_simple_3csv/proba_missing.csv,test_simple_3csv/proba_missing_length.csv] evaluate.checkpoints=[outputs/transformer_test_simple_3csv] evaluate.n_repeat=2 evaluate.n_plots=2
-python /home/frose1/DISK/DISK/impute_dataset.py hydra.run.dir=outputs/transformer_test_simple_3csv/impute dataset.name=test_simple_3csv dataset.skeleton_file=null evaluate.checkpoint=outputs/transformer_test_simple_3csv evaluate.n_plots=2 evaluate.path_to_original_files=../behavior_data/fish_data/
+## TEST 2D
+DISK-create-project project_path=DISK_simple_csv_2D file_type=simple_csv data_files=[/home/france/mount_cvg/behavior_data/fish_data/fish_fighting_interpolated_head_2D.csv]
+
+DISK-prepare-data project_path=DISK_simple_csv_2D dataset_name=test_simple_csv_2D indep_keypoints=True merge_keypoints=False original_freq=60 subsampling_freq=60 length=30 stride=30 discard_beginning=0 discard_end=-1 fill_gap=10 drop_keypoints=[] sequential=true
+
+DISK-train project_path=DISK_simple_csv_2D dataset_name=test_simple_csv_2D training_epochs=3 n_cpus=1
+
+DISK-impute project_path=DISK_simple_csv_2D dataset_name=test_simple_csv_2D model_name=test_simple_csv_2D_DISK
+
+## 3D non sequential
+DISK-create-project project_path=DISK_simple_3csv file_type=simple_csv data_files=[/home/france/mount_cvg/behavior_data/fish_data/Fish_fight_data_v3/FishTank20200824_151740_pp.csv,/home/france/mount_cvg/behavior_data/fish_data/Fish_fight_data_v3/FishTank20200902_160124_pp.csv,/home/france/mount_cvg/behavior_data/fish_data/Fish_fight_data_v3/FishTank20200903_160946_pp.csv]
+
+DISK-prepare-data project_path=DISK_simple_3csv dataset_name=test indep_keypoints=True merge_keypoints=False length=60
+
+DISK-train project_path=DISK_simple_3csv dataset_name=test training_epochs=2 indep_keypoints=true
+
+DISK-impute project_path=DISK_simple_3csv dataset_name=test model_name=

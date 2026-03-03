@@ -7,6 +7,7 @@ import sys
 import yaml
 
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
+from DISK.models.graph import Graph
 
 
 
@@ -14,7 +15,7 @@ from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
 def main(project_path, dataset_path, dataset_name, data_files, file_type,
          length, stride, fill_gap, sequential, original_freq, subsampling_freq,
          dlc_likelihood_threshold, discard_beginning, discard_end,
-         drop_keypoints, indep_keypoints, merge_keypoints, skeleton_file_path,
+         drop_keypoints, indep_keypoints, merge_keypoints, skeleton_graph,
          logger):
 
     from DISK.create_dataset import create_dataset
@@ -44,8 +45,8 @@ def main(project_path, dataset_path, dataset_name, data_files, file_type,
               f'\nTry relaunching DISK-prepare-data with a higher fill_gap value and/or '
               f'lower stride value.\n')
 
-    create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_file_path, logger)
-    logger.info(f'✅ Successfully estimated probabilities of missing keypoints.\n')
+    create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_graph, logger)
+    logger.info(f'✅ Successfully estimated probabilities of missing keypoints for dataset {dataset_name}.\n')
     return keypoints, divider
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config_prepare_data")
@@ -74,9 +75,14 @@ def cli(_cfg: DictConfig) -> None:
     with open(os.path.join(project_path, 'config_project.yaml'), 'r') as file:
         config = yaml.safe_load(file)
 
-    project_name = config['project_name']
-    skeleton_file_path = config['skeleton']
-
+    if not 'skeleton_links' in config.keys() or config['skeleton_links'] is None or len(config['skeleton_links'])\
+            == 0:
+        skeleton_graph = None
+    else:
+        skeleton_graph = Graph(len(config['keypoints']),
+                 config['skeleton_center'],
+                 config['skeleton_links'],
+                 config['skeleton_colors'])
     ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
 
     if _cfg.stride == '_DEFAULT_':
@@ -146,9 +152,9 @@ def cli(_cfg: DictConfig) -> None:
 
     if _cfg.dataset_name == '_DEFAULT_':
         if subsampling_freq == 1:
-            dataset_name = f'{project_name}_{length}_{stride}'
+            dataset_name = f'dataset_{length}_{stride}'
         else:
-            dataset_name = f'{project_name}_{subsampling_freq}Hz_{length}length_{stride}stride'
+            dataset_name = f'dataset_{subsampling_freq}Hz_{length}length_{stride}stride'
     else:
         if _cfg.dataset_name is None or type(_cfg.dataset_name) != str:
             print("\n❌ dataset_name should be a "
@@ -226,7 +232,7 @@ def cli(_cfg: DictConfig) -> None:
     keypoints, divider = main(project_path, dataset_path, dataset_name, data_files, file_type,
          length, stride, fill_gap, sequential, original_freq, subsampling_freq,
          dlc_likelihood_threshold, discard_beginning, discard_end,
-         drop_keypoints, indep_keypoints, merge_keypoints, skeleton_file_path,
+         drop_keypoints, indep_keypoints, merge_keypoints, skeleton_graph,
          logger)
 
     config['keypoints'] = keypoints

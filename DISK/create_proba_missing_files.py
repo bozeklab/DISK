@@ -29,7 +29,7 @@ def create_uniform_proba(min_len, max_len, keypoints):
 
 
 def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints,
-                               skeleton_file_path, logger) -> None:
+                               skeleton_graph, logger) -> None:
     """Check if the artificial missing coordinates match the original coordinates"""
 
     logger.debug(f'[CREATE PROBA MISSING FILES] {project_path}, {dataset_path} {indep_keypoints}, {merge_keypoints}')
@@ -72,7 +72,7 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
             transform=transform,
             dataset_type='supervised',
             root_path=project_path,
-            skeleton_file=skeleton_file_path,
+            skeleton_graph=skeleton_graph,
             logger=logger,
             verbose=0
         )

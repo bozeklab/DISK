@@ -28,14 +28,20 @@ class Graph():
     """
 
     def __init__(self,
-                 file,
+                 num_keypoints,
+                 center,
+                 neighbor_links,
+                 neighbor_link_colors,
                  strategy='uniform',
                  max_hop=1,
                  dilation=1):
         self.max_hop = max_hop
         self.dilation = dilation
 
-        self.get_edge(file)
+        self.get_edge(num_keypoints,
+                 center,
+                 neighbor_links,
+                 neighbor_link_colors,)
         self.hop_dis = get_hop_distance(
             self.num_node, self.edge, max_hop=max_hop)
         self.get_adjacency(strategy)
@@ -43,28 +49,24 @@ class Graph():
     def __str__(self):
         return self.A
 
-    def get_edge(self, file):
-        try:
-            spec = importlib.util.spec_from_file_location("module.name", file)
-            skeleton_inputs = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(skeleton_inputs)
-        except Exception as e:
-            print(e)
-            raise Exception(f'[ERROR IN GRAPH] Problem with skeleton file {file}')
+    def get_edge(self, num_keypoints,
+                 center,
+                 neighbor_links,
+                 neighbor_link_colors,):
 
-        self.num_node = skeleton_inputs.num_keypoints
-        self.center = skeleton_inputs.center
+        self.num_node = num_keypoints
+        self.center = center
         self_link = [(i, i) for i in range(self.num_node)]
 
         self.neighbor_link = []
         self.neighbor_link_color = []
-        for i in range(len(skeleton_inputs.neighbor_links)):
-            if type(skeleton_inputs.neighbor_links[i][0]) == tuple:
-                self.neighbor_link_color.extend([skeleton_inputs.link_colors[i]] * len(skeleton_inputs.neighbor_links[i]))
-                self.neighbor_link.extend(skeleton_inputs.neighbor_links[i])
+        for i in range(len(neighbor_links)):
+            if type(neighbor_links[i][0]) == tuple:
+                self.neighbor_link_color.extend([neighbor_link_colors[i]] * len(neighbor_links[i]))
+                self.neighbor_link.extend(neighbor_links[i])
             else:
-                self.neighbor_link_color.append(skeleton_inputs.link_colors[i])
-                self.neighbor_link.append(skeleton_inputs.neighbor_links[i])
+                self.neighbor_link_color.append(neighbor_link_colors[i])
+                self.neighbor_link.append(neighbor_links[i])
 
         assert len(self.neighbor_link) == len(self.neighbor_link_color)
         logging.info(f'Loaded skeleton with links {self.neighbor_link} and colors {self.neighbor_link_color}')

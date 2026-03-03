@@ -320,7 +320,7 @@ def compute_loss(model, data_loader, n_dim, criterion_seq, loss_mask, loss_facto
     return ave_loss, ave_rmse, loss_original
 
 
-def construct_NN_model(cfg_network, keypoints, divider, seq_length, skeleton_file, device):
+def construct_NN_model(cfg_network, keypoints, divider, seq_length, skeleton, device):
     """
     :args n_dim: 2 or 3, for 2D or 3D
     """
@@ -338,7 +338,10 @@ def construct_NN_model(cfg_network, keypoints, divider, seq_length, skeleton_fil
         if skeleton_file is None:
             raise ValueError('You need to provide a valid skeleton file when using ST_GCN architecture.')
         # ST GCN
-        graph_args = {'file': skeleton_file,
+        graph_args = {'num_keypoints': skeleton.num_keypoints,
+                      'center': skeleton.center,
+                      'neighbor_links': skeleton.neighbor_links,
+                      'neighbor_link_colors': skeleton.neighbor_link_colors,
                       'strategy': 'uniform',
                       'max_hop': 1,
                       'dilation': 1}

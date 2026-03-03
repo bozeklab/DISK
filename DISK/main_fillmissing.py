@@ -25,7 +25,7 @@ from torch import optim
 from torch.nn.utils import clip_grad_norm_
 
 
-def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_file, training_seed,
+def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, training_seed,
                       load_model, cfg_network,
                       training_batch_size, training_epochs, learning_rate,
                       loss_type, loss_mask, loss_factor,
@@ -73,12 +73,6 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_file, train
                                  verbose)
 
     logger.info('Loading datasets')
-    if skeleton_file is not None and skeleton_file != '':
-        skeleton_file_path = os.path.join(project_dir, 'DISK-data', skeleton_file)
-        if not os.path.exists(skeleton_file_path):
-            raise ValueError(f'no skeleton file found in', skeleton_file_path)
-    else:
-        skeleton_file_path = None
 
     train_dataset, val_dataset, test_dataset = load_datasets(
         dataset_path=dataset_path,
@@ -89,7 +83,7 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_file, train
         suffix='_w-0-nans',
         root_path=project_dir,
         outputdir=model_dir,
-        skeleton_file=skeleton_file_path,
+        skeleton_graph=skeleton_graph,
         label_type='all',  # don't care, not using
         verbose=verbose,
         logger=logger
@@ -105,7 +99,7 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_file, train
     # load model
     model = construct_NN_model(cfg_network, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
                                dataset_constants.SEQ_LENGTH,
-                               skeleton_file_path,
+                               skeleton_graph,
                                device)
 
     logger.debug(f'Nb of NN parameters: {np.sum([p.numel() for p in model.parameters() if p.requires_grad])}')

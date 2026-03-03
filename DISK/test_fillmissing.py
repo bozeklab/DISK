@@ -21,7 +21,6 @@ from DISK.utils.utils import read_constant_file, plot_save, compute_interp, find
 from DISK.utils.transforms import init_transforms, reconstruct_before_normalization
 from DISK.utils.train_fillmissing import construct_NN_model, feed_forward_list
 from DISK.utils.coordinates_utils import plot_sequence
-from DISK.models.graph import Graph
 
 import torch
 import torch.nn as nn
@@ -32,7 +31,7 @@ def test(project_path: str,
          output_dir: str,
          dataset_path: str,
          dataset_name:str,
-         skeleton_file,
+         skeleton_graph,
          model_checkpoints: list,
          batch_size,
          n_cpus: int,
@@ -63,15 +62,6 @@ def test(project_path: str,
     logger.debug(f'{project_path}')
 
     dataset_constants = read_constant_file(os.path.join(dataset_path, f'constants.py'))
-
-    if skeleton_file is not None and skeleton_file != '':
-        skeleton_file_path = os.path.join(project_path, 'DISK-data', skeleton_file)
-        skeleton_graph = Graph(file=skeleton_file_path)
-        if not os.path.exists(skeleton_file_path):
-            raise ValueError(f'no skeleton file found in', skeleton_file_path)
-    else:
-        skeleton_graph = None
-        skeleton_file_path = None
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logger.info("Device: {}".format(device))
@@ -116,7 +106,7 @@ def test(project_path: str,
     for imodel, model_cfg in enumerate(model_configs):
         models.append(construct_NN_model(model_cfg.network, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
                                          dataset_constants.SEQ_LENGTH,
-                                         skeleton_file_path,
+                                         skeleton_graph,
                                          device))
 
         logger.info(f'Network {full_name} constructed')
@@ -149,7 +139,7 @@ def test(project_path: str,
             dataset_path=dataset_path,
             transform=transforms,
             outputdir=output_dir,
-            skeleton_file=skeleton_file_path,
+            skeleton_graph=skeleton_graph,
             dataset_type='full_length',
             suffix='_w-0-nans',
             root_path=project_path,
@@ -171,9 +161,13 @@ def test(project_path: str,
         pck_final_threshold = 2 * np.sqrt(dataset_constants.DIVIDER) * test_threshold_pck
 
     pck_name = f'PCK@{test_threshold_pck}'
-    
+
+    if n_cpus == 0:
+        persistent_workers = False
+    else:
+        persistent_workers = True
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False,
-                             num_workers=n_cpus, persistent_workers=True)
+                             num_workers=n_cpus, persistent_workers=persistent_workers)
 
     if loss_type == 'l1':
         criterion_seq = nn.L1Loss(reduction='none')
@@ -576,7 +570,7 @@ def test(project_path: str,
                 plt.close('all')
 
                 th_vals = np.unique(total_rmse.loc[mask, 'mean_uncertainty'])[10:]
-                th_vals = th_vals[::len(th_vals) // 10]
+                th_vals = th_vals[::max(1, len(th_vals) // 10)]
                 for th in th_vals:
                     filtered_id_samples = total_rmse.loc[(total_rmse[metric] <= th) *
                         (total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_names[i_model]),

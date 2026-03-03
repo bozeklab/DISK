@@ -42,6 +42,7 @@ dev = [
 DISK-check-install = "DISK.launchers.check_install:cli"
 DISK-check-gpu = "DISK.launchers.check_gpu:cli"
 DISK-create-project = "DISK.launchers.create_project:cli"
+DISK-add-skeleton = "DISK.launchers.add_skeleton:cli"
 DISK-prepare-data = "DISK.launchers.prepare_data:cli"
 DISK-train = "DISK.launchers.train_test:cli"
 DISK-test = "DISK.launchers.test_compare:cli"

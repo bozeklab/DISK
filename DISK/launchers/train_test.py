@@ -7,9 +7,24 @@ import sys
 import yaml
 
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
+from DISK.models.graph import Graph
+
+def find_proba_files(dataset_path: str, suffix: str):
+    proba_file = os.path.join(dataset_path, f'proba_missing{suffix}.csv')
+    proba_length_file = os.path.join(dataset_path, f'proba_missing_length{suffix}.csv')
+
+    if not os.path.exists(proba_file) or not os.path.exists(proba_length_file):
+        proba_file = os.path.join(dataset_path, f'proba_missing_uniform{suffix}.csv')
+        proba_length_file = os.path.join(dataset_path, f'proba_missing_length_uniform{suffix}.csv')
+
+        if not os.path.exists(proba_file) or not os.path.exists(proba_length_file):
+            return False, None, None
+
+    return True, proba_file, proba_length_file
 
 
-def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_file,
+
+def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_graph,
          training_seed, load_model, cfg_network, training_batch_size,
          training_epochs, learning_rate, loss_type, loss_mask, loss_factor,
          model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,
@@ -26,7 +41,7 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
     from DISK.test_fillmissing import test
 
     logger.info(f'\n*********************** TRAINING DISK *********************** \n')
-    train_fillmissing(project_dir, model_dir, dataset_path, skeleton_file, training_seed,
+    train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, training_seed,
                       load_model, cfg_network,
                       training_batch_size, training_epochs, learning_rate,
                       loss_type, loss_mask, loss_factor,
@@ -44,7 +59,7 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
     logger.info(f'\n*********************** TESTING DISK TRAINED MODEL *********************** \n')
 
     add_missing_pad_for_test = (max(1, add_missing_pad[0]), max(1, add_missing_pad[0]))
-    test(project_dir, test_dir, dataset_path, dataset_name, skeleton_file,
+    test(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
          [model_dir, ], training_batch_size, n_cpus,
          loss_type, loss_mask, loss_factor,
          proba_file, proba_length_file, indep_keypoints,
@@ -54,7 +69,7 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
          total_n_plots, plot2d_only_holes,
          plot3d_size, plot3d_azim,
          logger, suffix='', stride=None, verbose=verbose)
-    logger.info(f'✅ Successfully tested DISK model.\n')
+    logger.info(f'✅ Successfully tested DISK model {model_dir}.\n')
 
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config_train")
@@ -81,8 +96,14 @@ def cli(_cfg: DictConfig) -> None:
     with open(os.path.join(project_path, 'config_project.yaml'), 'r') as file:
         config = yaml.safe_load(file)
 
-    project_name = config['project_name']
-    skeleton_file_path = config['skeleton']
+    if not ('skeleton' in config.keys() and config['skeleton'] is not None and len(config['skeleton']) == 0):
+        skeleton_graph = None
+    else:
+        skeleton_graph = Graph(len(config['keypoints']),
+                 config['center'],
+                 config['neighbor_links'],
+                 config['neighbor_link_colors'])
+
 
     if _cfg.dataset_name is None or type(_cfg.dataset_name) != str \
             or not os.path.exists(os.path.join(project_path, 'DISK_data', _cfg.dataset_name)):
@@ -240,18 +261,22 @@ def cli(_cfg: DictConfig) -> None:
                         f'merge_keypoints would be considered False')
             suffix += f'_merged'
 
-    proba_file = os.path.join(dataset_path, f'proba_missing{suffix}.csv')
-    proba_length_file = os.path.join(dataset_path, f'proba_missing_length{suffix}.csv')
+    proba_files_exist, proba_file, proba_length_file = find_proba_files(dataset_path, suffix)
 
-    if not os.path.exists(proba_file) or not os.path.exists(proba_length_file):
+    if not proba_files_exist:
         from DISK.create_proba_missing_files import create_proba_missing_files
         indep_keypoints = False if 'set_keypoints' in suffix else True
         merge_keypoints = True if ('merged' in suffix and not indep_keypoints) else False
 
-        create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_file_path,
+        create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_graph,
                                    logger)
         logger.info(f'✅ Successfully estimated probabilities of missing keypoints with '
                     f'{["set_keypoints", "indep_keypoints"][int(indep_keypoints)]}.\n')
+
+    proba_files_exist, proba_file, proba_length_file = find_proba_files(dataset_path, suffix)
+    if not proba_files_exist:
+        print("\n❌ did not find proba_files matching your criterion.")
+        sys.exit(1)
 
     if _cfg.transforms.viewinvariant is None or type(_cfg.transforms.viewinvariant) != bool:
         print("\n❌ transforms.viewinvariant should be a "
@@ -392,7 +417,7 @@ def cli(_cfg: DictConfig) -> None:
 
     add_missing = True
     main(project_path, final_model_path, dataset_path, dataset_name, test_dir,
-         skeleton_file_path, training_seed,
+         skeleton_graph, training_seed,
          load_model, _cfg.network,
          training_batch_size, training_epochs, learning_rate,
          loss_type, loss_mask, loss_factor,

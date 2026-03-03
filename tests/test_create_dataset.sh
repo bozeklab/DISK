@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-DISK-create-project working_directory=. project_name=DISK_FL2 file_type=mat_qualisys data_files=[/home/france/mount_cvg/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S1_M1_MC6_FL2_17_04_2019_proc_bij_6_08_19_A.mat,\
+DISK-create-project project_path=DISK_FL2 file_type=mat_qualisys data_files=[/home/france/mount_cvg/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S1_M1_MC6_FL2_17_04_2019_proc_bij_6_08_19_A.mat,\
 /home/france/mount_cvg/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S2_M2_MC6_FL2_17_04_2019_proc-bij_6_08_19_C.mat,\
 /home/france/mount_cvg/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S3_M3_MC6_FL2_17_04_2019_proc_bij_7_08_19_B.mat,\
 /home/france/mount_cvg/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S4_M4_MC7_FL2_17_04_2019_proc_bij_7_08_19_A.mat,\
