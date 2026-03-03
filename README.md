@@ -7,7 +7,7 @@ Rose et al. Deep Imputation for Skeleton data (DISK) for behavioral science. Nat
 
 -------------------------------------------
 
-**Neural network method to impute missing values for 3D skeleton data.**
+**Neural network method to impute missing values for 2D and 3D skeleton data.**
 
 ![Examples of imputations](https://github.com/bozeklab/DISK/blob/main/images/reconstructions_whitebg-1.png?raw=true)
 Example of imputations: blue lines are the original signal, red dots represent the imputation done by a transformer model, and the gray line the linear interpolation.
@@ -59,30 +59,54 @@ Skeleton data are data points corresponding to body parts recorded through time.
 ![Unsupervised training scheme](https://github.com/bozeklab/DISK/blob/main/images/imputation_method_summary_wskeleton.png?raw=true)
 
 Several network backbones are implemented:
+- **Custom Transformer Encoder** (transformer)  -- best performance,
+- Bidirectional Gated Recurrent Unit (GRU) -- 2nd best performance and shorter to train,
 - Temporal Convolutional Neural Network (TCN), 
 - Spatial-Temporal Graph Convolutional Network (ST_GCN), 
-- Separable Time-Space Graph Convolutional Network (STS_GCN),
-- Bidirectional Gated Recurrent Unit (GRU) -- 2nd best performance and shorter to train,
-- **Custom Transformer Encoder** (transformer)  -- best performance.
+- Separable Time-Space Graph Convolutional Network (STS_GCN).
+
 
 These networks have been tested on different animal skeletons and human skeleton (see Datasets section).
 
 ![Performance comparison of the different architectures for tested datasets](https://github.com/bozeklab/DISK/blob/main/images/barplot_newmissing_compare_networks.png?raw=true)
 
 
-The training is done on data with artificially introduced gaps. This process of introducing gaps is controlled by 3 files: 
+The training is done on data with artificially introduced gaps. This process of introducing gaps is controlled by 2 factors: 
 - the probability of a given keypoint to be missing
-- the probability of a given gap length knowing the missing keypoint
-- the number of missing keypoints in a given sample.
-
-These 3 files can be customized, and can contain the estimated missing probabilities computed on the original data. These files can also be designed to train with an uniform probability.
-
+- the probability of a given gap length knowing the missing keypoint.
 
 ## Practical aspects
 
+### DISK commands
+
+There are 4 main commands:
+- DISK-create-project -- creates the folders of the DISK project. Expects a list of input data files.
+- DISK-prepare-data -- prepares the data in a DISK-compatible format from the input file list given when created the DISK project.
+- DISK-train -- train a DISK model to impute the gaps. Include testing and plotting.
+- DISK-impute -- impute on original data using the trained model.
+
+Example of command usage:
+
+```commandline
+DISK-create-project project_path=DISK_demo file_type=simple_csv data_files=[fish_fighting_interpolated_head_2D.csv]
+
+DISK-prepare-data project_path=DISK_demo length=30
+
+DISK-train project_path=DISK_demo dataset_name=dataset_30_15 training_epochs=3
+
+DISK-impute project_path=DISK_demo dataset_name=dataset_30_15 model_name=dataset_30_15_DISK
+```
+
+TODO: make download the csv file!!
+
+### Customize DISK commands in the command line
+
+
+
+
 ### Configuration files and script launching
 
-This repo uses configuration files via the hydra package. 
+This repo uses configuration files (via the hydra package). 
 Maybe not intuitive at the beginning it offers several advantages:
 - all the parameters and input values are visible at once in one file and can be changed by the user
 - hydra package takes care of logging and saving the configuration file for each run allowing to keep track and boost reproducibility
@@ -96,7 +120,7 @@ To launch the scripts,
 - you need to open the respective configuration file and change the appropriate fields according to your goal,
 - then call the script `python main_fillmissing.py`, which will read all the options and parameters set in the partner configuration file.
 
-**NB**: Because hydra is managing the logging, it is important to not copy/cut a trained model without the hidden 
+**NB**: Because hydra is managing the logging, it is important to not copy a trained model without the hidden 
 folder `.hydra/` saved in the same location. In particular, the training config file saved by hydra along the trained 
 model would be used to load the model when using the model for test or imputation.
 

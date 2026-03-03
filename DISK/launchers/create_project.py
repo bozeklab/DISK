@@ -26,8 +26,9 @@ def cli(_cfg: DictConfig) -> None:
         if val is None:
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'
-                  f'\n  > DISK-create-project dir=mydir project_path=test_project input_files=[x,y,'
-                  f'z] file_type=simple_csv\n')
+                  f'\n  > DISK-create-project project_path=test_project input_files=[x,y,'
+                  f'z] file_type=simple_csv\n'
+                  f'# careful no space between input_files inside the brackets, and after/before "="')
             sys.exit(1)
 
     if _cfg['project_path'] is None or type(_cfg['project_path']) != str:
@@ -133,7 +134,7 @@ def main(project_path: str,
 if __name__ == '__main__':
     cli()
     """
-    # hydra syntax:
+    # DISK syntax:
     DISK-create-project project_path=test_project input_files=[x,y,z] file_type=csv
-    # careful no space between input_files inside the brackets
+    # careful no space between input_files inside the brackets, and after/before '='
     """

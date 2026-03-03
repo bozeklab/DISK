@@ -43,6 +43,16 @@ def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton
 def cli(_cfg: DictConfig) -> None:
     modified_cfg = DictConfig(_cfg)
 
+    for key in ('project_path', 'dataset_name', 'model_name_list'):
+        val = _cfg[key]
+        if val is None:
+            print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
+                  f'\n  Expected syntax:'
+                  f'\n  > DISK-test project_path=test_project dataset_name=dataset model_name_list=[model1,model2]\n'
+                  f'# careful no space between model names inside the brackets, and after/before "="')
+
+            sys.exit(1)
+
     ### _CFG PARAMETER CHECK --- REQUIRED PARAMETERS
     if _cfg.project_path is None or type(_cfg.project_path) != str:
         print("\n❌ project_path is a required parameter and should be a "

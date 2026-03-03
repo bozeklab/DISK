@@ -76,6 +76,15 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
 def cli(_cfg: DictConfig) -> None:
     modified_cfg = DictConfig(_cfg)
 
+    for key in ('project_path', 'dataset_name'):
+        val = _cfg[key]
+        if val is None:
+            print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
+                  f'\n  Expected syntax:'
+                  f'\n  > DISK-train project_path=test_project dataset_name=dataset\n'
+                  f'# careful no space after/before "="')
+            sys.exit(1)
+
     ### _CFG PARAMETER CHECK --- REQUIRED PARAMETERS
     if _cfg.project_path is None or type(_cfg.project_path) != str:
         print("\n❌ project_path is a required parameter and should be a "
@@ -162,11 +171,11 @@ def cli(_cfg: DictConfig) -> None:
     ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
 
     if _cfg.training_epochs is None or type(_cfg.training_epochs) != int:
-        print("\n❌ training_epochs is a required parameter and should be a "
+        print("\n❌ training_epochs should be a "
               f"strictly positive integer. Got {_cfg.training_epochs}")
         sys.exit(1)
     elif _cfg.training_epochs <= 0:
-        print("\n❌ training_epochs is a required parameter and should be a "
+        print("\n❌ training_epochs should be a "
               f"strictly positive integer. Got {_cfg.training_epochs}")
         sys.exit(1)
     else:

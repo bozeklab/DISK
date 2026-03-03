@@ -28,7 +28,8 @@ def cli(_cfg: DictConfig) -> None:
         if val is None:
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'
-                  f'\n  > DISK-restore-config project_path=...\n')
+                  f'\n  > DISK-restore-config project_path=...\n'
+                  f'# careful no space after/before "="')
             sys.exit(1)
 
     ## CHECK FILE VALIDITY

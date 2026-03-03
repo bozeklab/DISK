@@ -53,8 +53,15 @@ def main(project_path, dataset_path, dataset_name, data_files, file_type,
 def cli(_cfg: DictConfig) -> None:
     modified_cfg = DictConfig(_cfg)
 
-    ### _CFG PARAMETER CHECK --- REQUIRED PARAMETERS
+    for key in ('length', 'project_path'):
+        val = _cfg[key]
+        if val is None:
+            print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
+                  f'\n  Expected syntax:'
+                  f'\n  > DISK-prepare-data project_path=test_project length=60\n')
+            sys.exit(1)
 
+    ### _CFG PARAMETER CHECK --- REQUIRED PARAMETERS
     if _cfg.length is None or type(_cfg.length) != int:
         print("\n❌ length is a required parameter and should be an integer. "
               f"  Got {_cfg.length}")
