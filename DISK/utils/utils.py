@@ -100,12 +100,12 @@ def read_constant_file(constant_file):
 
 
 def plot_save(plot_fct, save_bool=True, title='', only_png=False, outputdir=''):
-    with plt.style.context('seaborn'): #plt.style.context('dark_background'):
-        plot_fct()
-        if save_bool:
-            plt.savefig(os.path.join(outputdir, title + '.svg'))#, transparent=True)
-            plt.close()
-    with plt.style.context('seaborn'):
+    # with plt.style.context('seaborn'): #plt.style.context('dark_background'):
+    #     plot_fct()
+    #     if save_bool:
+    #         plt.savefig(os.path.join(outputdir, title + '.svg'))#, transparent=True)
+    #         plt.close()
+    with plt.style.context('seaborn-v0_8'):
         plot_fct()
         if save_bool:
             plt.savefig(os.path.join(outputdir, title + '.png'))

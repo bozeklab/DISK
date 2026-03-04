@@ -91,26 +91,27 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
                 out = find_holes(mask_holes[0], dataset_constants.KEYPOINTS, indep=indep_keypoints)
                 original = True
                 for (_, length_nan, keypoint_name) in out:
-                    df.loc[df.shape[0], :] = [i_data, int(length_nan), keypoint_name, original]
+                    df.loc[df.shape[0], :] = [int(i_data), int(length_nan), str(keypoint_name), original]
                 out = find_holes(torch.sum(mask_holes[0], dim=1).view(mask_holes.shape[1], 1),
                                  ['non_missing'], target_val=0)
                 for (_, length_nan, name) in out:
-                    df.loc[df.shape[0], :] = [i_data, int(length_nan), name, original]
+                    df.loc[df.shape[0], :] = [int(i_data), int(length_nan), str(name), original]
                 i_data += 1
             elif not initial and torch.all(mask_original == 1) and torch.any(mask_holes == 1):
                 original = False
 
                 out = find_holes(mask_holes[0], dataset_constants.KEYPOINTS, indep=indep_keypoints)
                 for (_, length_nan, keypoint_name) in out:
-                    df.loc[df.shape[0], :] = [i_data, int(length_nan), keypoint_name, original]
+                    df.loc[df.shape[0], :] = [int(i_data), int(length_nan), str(keypoint_name), original]
                 out = find_holes(torch.sum(mask_holes[0], dim=1).view(mask_holes.shape[1], 1),
                                  ['non_missing'], target_val=0)
                 for (_, length_nan, name) in out:
-                    df.loc[df.shape[0], :] = [i_data, int(length_nan), name, original]
+                    df.loc[df.shape[0], :] = [int(i_data), int(length_nan), str(name), original]
                 i_data += 1
 
         logger.debug(f'Done with the loop(s)')
-        df = df.convert_dtypes()
+        from io import StringIO
+        df = pd.read_csv(StringIO(df.to_csv(index=False)))#df.convert_dtypes()
 
         if initial:
             if len(df[df['original']]) == 0:
@@ -245,6 +246,7 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
         def count_vs_keypoint():
             keypoints = df['keypoint'].unique()
             pivot_df = df.sample(min(df.shape[0] - 1, 5000), replace=False).groupby(['keypoint', 'original'])['index_sample'].agg('count').reset_index().rename({'index_sample': 'count'}, axis=1)
+            pivot_df['count'] = pivot_df['count'].astype(float)
             if not no_original_missing:
                 pivot_df.loc[pivot_df['original'], 'count'] /= pivot_df.loc[pivot_df['original'], 'count'].sum()
             pivot_df.loc[~pivot_df['original'], 'count'] /= pivot_df.loc[~pivot_df['original'], 'count'].sum()

@@ -1,13 +1,14 @@
 #!/bin/bash
 set +e
 
-conda create --name env_impute python=3.9 -y
+conda create --name env_impute python=3.12 -y
 
 #{
 source activate env_impute || conda activate env_impute
 git clone https://github.com/bozeklab/DISK.git cloned-DISK-repo
 cd cloned-DISK-repo
 pip install -e . --quiet
+DISK-check-install
 cd ..
 
 cd datasets

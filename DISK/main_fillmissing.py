@@ -251,7 +251,7 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
     else:
         offset = 10
 
-    with plt.style.context('seaborn'):
+    with plt.style.context('seaborn-v0_8'):
         plot_training(df, offset=offset, print_every=print_every)
         plt.savefig(os.path.join(model_dir, f'loss.svg'))
 
