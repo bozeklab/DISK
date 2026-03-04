@@ -10,23 +10,13 @@ from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
 from DISK.models.graph import Graph
 
 
-def main(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph,
-             checkpoint,
-           batch_size,
-threshold_error_score, total_n_plots, plot_only_holes,
-             missing_pad, name_items, suffix, logger,
-             verbose=0):
+def main(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph, checkpoint, batch_size,
+         threshold_error_score, total_n_plots, plot_only_holes, missing_pad, logger, verbose=0):
 
     from DISK.impute_dataset import impute
 
-    impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph,
-             checkpoint,
-           batch_size,
-threshold_error_score, total_n_plots, plot_only_holes,
-             missing_pad, name_items, suffix=suffix,
-             verbose=verbose,
-             logger=logger
-            )
+    impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph, checkpoint, batch_size,
+           threshold_error_score, total_n_plots, plot_only_holes, missing_pad, verbose=verbose, logger=logger)
 
     logger.info(f'✅ Successfully imputed data with DISK model.\n')
 
@@ -147,14 +137,6 @@ def cli(_cfg: DictConfig) -> None:
     else:
         threshold_error_score = _cfg.threshold_error_score
 
-    if _cfg.threshold_pck is None or type(
-            _cfg.threshold_pck) != float or _cfg.threshold_pck < 0 or _cfg.threshold_pck > 1:
-        print("\n❌ threshold_pck should be a "
-              f"float between 0 and 1. Got {_cfg.threshold_pck}")
-        sys.exit(1)
-    else:
-        threshold_pck = _cfg.threshold_pck
-
     if _cfg.plot_only_holes is None or type(_cfg.plot_only_holes) != bool:
         print("\n❌ plot_only_holes should be a "
               f"bool. Got {_cfg.plot_only_holes}")
@@ -164,27 +146,13 @@ def cli(_cfg: DictConfig) -> None:
 
     if _cfg.missing_pad is None or len(_cfg.missing_pad) != 2 or type(
             _cfg.missing_pad[0]) != int or type(
-        _cfg.missing_pad[1]) != int:
+        _cfg.missing_pad[1]) != int or _cfg.missing_pad[0] < 1 or _cfg.missing_pad[1] < 0:
         print("\n❌ missing_pad should be an "
-              f"a list of two integers. Got {_cfg.missing_pad}")
+              f"a list of two positive integers, the first one strictly positive. "
+              f"Got {_cfg.missing_pad}")
         sys.exit(1)
     else:
         missing_pad = list(_cfg.missing_pad)
-
-
-    if _cfg.suffix is None or type(_cfg.suffix) != str:
-        print("\n❌ suffix should be a string."
-              f"G ot {_cfg.suffix}")
-        sys.exit(1)
-    else:
-        suffix = _cfg.suffix
-
-    if _cfg.name_items is None:
-        print("\n❌.name_items should be a dictionary."
-              f" Got {_cfg.name_items}")
-        sys.exit(1)
-    else:
-        name_items = _cfg.name_items
 
     os.makedirs(os.path.join(output_path, 'config'), exist_ok=True)
 
@@ -196,13 +164,8 @@ def cli(_cfg: DictConfig) -> None:
 
     logger.info(f'✅ Successfully loaded configuration.\n')
 
-    main(project_path, output_path, impute_plots_dir,
-         file_type, dataset_path, skeleton_graph,
-             model_path,
-           batch_size,
-threshold_error_score, n_plots, plot_only_holes,
-             missing_pad, name_items, suffix, logger,
-             verbose=0)
+    main(project_path, output_path, impute_plots_dir, file_type, dataset_path, skeleton_graph, model_path,
+         batch_size, threshold_error_score, n_plots, plot_only_holes, missing_pad, logger, verbose=0)
 
 
 if __name__ == '__main__':

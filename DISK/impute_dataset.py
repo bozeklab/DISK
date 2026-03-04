@@ -261,14 +261,8 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
     return
 
 
-def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph,
-             checkpoint,
-           batch_size,
-threshold_error_score, total_n_plots, plot_only_holes,
-             missing_pad, name_items, suffix='',
-             verbose=0,
-             logger=None
-             ) -> None:
+def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph, checkpoint, batch_size,
+           threshold_error_score, total_n_plots, plot_only_holes, missing_pad, verbose=0, logger=None) -> None:
 
 
     constant_file_path = os.path.join(dataset_path, f'constants.py')
@@ -419,7 +413,7 @@ threshold_error_score, total_n_plots, plot_only_holes,
                                 plot_sequence(transformed_data_np[i, 1:], x_output_np[i, 1:], mask_holes_np[i, 1:].astype('int'), skeleton_graph,
                                               nplots=15,
                                               save_path=os.path.join(plot_dir,
-                                                                     f'traj3D_{data_dict["indices_file"][i]}-{data_dict["indices_pos"][i]}{suffix}'),
+                                                                     f'traj3D_{data_dict["indices_file"][i]}-{data_dict["indices_pos"][i]}'),
                                               size=2, normalized_coordinates=False)
 
                             def make_xyz_plot():
@@ -465,7 +459,7 @@ threshold_error_score, total_n_plots, plot_only_holes,
                                 return
 
                             plot_save(make_xyz_plot,
-                                          title=f'reconstruction_xyz_{data_dict["indices_file"][i]}-{data_dict["indices_pos"][i]}{suffix}',
+                                          title=f'reconstruction_xyz_{data_dict["indices_file"][i]}-{data_dict["indices_pos"][i]}',
                                           only_png=True,
                                           outputdir=plot_dir)
 

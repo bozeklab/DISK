@@ -51,7 +51,13 @@ This step should take up to 10-15 minutes.
 
 For all cases, test if DISK is installed correctly by running in the terminal: `DISK-check-install`
 
-# Description
+## Python troubleshooting
+
+If you have trouble installing Pytorch, check [this page](https://pytorch.org/get-started/previous-versions/) for pytorch version `1.9.1` and your system.
+You can install separately pytorch as a first step using for example `conda install pytorch==1.9.1 cudatoolkit=11.1 -c pytorch -c conda-forge` or `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 cpuonly -c pytorch` for the CPU-only version.
+For OSX, `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 -c pytorch` or `pip install torch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1`. 
+
+# Summary
 
 This code allows to train in an unsupervised way a neural network to learn imputation of missing values.
 Skeleton data are data points corresponding to body parts recorded through time. This code focuses on 3D data.
@@ -75,58 +81,124 @@ The training is done on data with artificially introduced gaps. This process of 
 - the probability of a given keypoint to be missing
 - the probability of a given gap length knowing the missing keypoint.
 
-## Practical aspects
+# Practical aspects
 
-### DISK commands
+## First steps tutorial
+
+The tutorial is available as a Jupyter Notebook and compatible with Google colab: in this github repo in [`notebooks/DISK_tutorial_2025-05.ipynb`](https://github.com/bozeklab/DISK/blob/main/notebooks/DISK_tutorial_2024-05.ipynb)
+with processed datasets and saved checkpoint models available on [zenodo](https://doi.org/10.5281/zenodo.15828939).
+
+Alternatively, the same steps (without the explanations and images) are available as a simple bash script in [`tests/test_tutorial_zenodo.sh`](https://github.com/bozeklab/DISK/blob/main/tests/test_tutorial_zenodo.sh).
+
+
+## DISK commands
 
 There are 4 main commands:
-- DISK-create-project -- creates the folders of the DISK project. Expects a list of input data files.
-- DISK-prepare-data -- prepares the data in a DISK-compatible format from the input file list given when created the DISK project.
-- DISK-train -- train a DISK model to impute the gaps. Include testing and plotting.
-- DISK-impute -- impute on original data using the trained model.
+- **DISK-create-project** -- creates the folders of the DISK project. Expects a list of input data files.
+- **DISK-prepare-data** -- prepares the data in a DISK-compatible format from the input file list given when created the DISK project.
+- **DISK-train** -- train a DISK model to impute the gaps. Include testing and plotting.
+- **DISK-impute** -- impute on original data using the trained model.
 
 Example of command usage:
 
 ```commandline
+# create project folder
 DISK-create-project project_path=DISK_demo file_type=simple_csv data_files=[fish_fighting_interpolated_head_2D.csv]
 
+# prepare a dataset for DISK model with a given sample length
 DISK-prepare-data project_path=DISK_demo length=30
 
+# train a DISK model on the previsouly created dataset
 DISK-train project_path=DISK_demo dataset_name=dataset_30_15 training_epochs=3
 
+# use the trained model to impute gaps
 DISK-impute project_path=DISK_demo dataset_name=dataset_30_15 model_name=dataset_30_15_DISK
 ```
 
 TODO: make download the csv file!!
 
-### Customize DISK commands in the command line
+## Customize DISK commands in the command line
+
+There are usual parameters that you might want to set yourself:
+
+### DISK-prepare-data
+
+At this step, we read the original files, determine the valid portions (without missing data) and crop them in samples of size "length".
+We also estimate the probability of keypoints missing taken independently or in combination
+
+Additional parameters are:
+- *dataset_name* (string)
+- *original_freq* (int, in Hz) -- you can precise the original frequency, will be used for subsampling and plots
+- *subsampling_freq* (in, in Hz) -- needs to be lower than original_freq
+- *stride* (int, between 0 and length) -- by how many timesteps are separated consecutive samples (after subsampling)
+- *fill_gap* (int, default: 0)  -- short gaps under this length will be filled by linear interpolation. This value should be kept small as linear interpolation imprecision grows with length. 
+- *dlc_likelihood_threshold* (float, default: 0.9) -- if using file_type dlc_csv or dlc_h5, DLC prediction likelihoods falling under this threshold will be considered as missing values
+
+To compute the probability of missing keypoints, there are two additional parameters:
+- *indep_keypoints* (bool, default: False) -- if False, look at sets of simultaneous missing keypoints; if True, look at each keypoint independently. 
+- *merge_keypoints* (bool, default: False) -- if True, estimate the probability of n keypoints missing at the same time -- False is preferred unless not enough samples to estimate a good probability
+
+The syntax remains the same:
+```commandline
+DISK-prepare-data project_path=DISK_demo length=30 fill_gap=10 indep_keypoints=True
+```
+
+### DISK-train
+
+At this step, using a created DISK dataset, a DISK model is trained and tested.
+We advise to run the training on a machine with a GPU.
+
+Additional parameters can be set:
+- *model_name* (str)
+- *training_epochs* (int, default: 1500) -- controls the length of training. The longer the better the results might be. A good practice is to look at the loss curve after a training and see if it has stabilized or if it is still decreasing. In the latter case, additional epochs can be beneficial. You can resume a training using the load_model parameter.
+- *load_model* (str) -- name of the model_folder inside the DISK_train folder. To continue the training from a given checkpoint.
+- *training_batch_size* (int, default: 32) -- controls how many samples are loaded in the GPU RAM. Do not touch unless running into out of memory error, then lower this value.
+- *n_cpus* (int, default: 8) -- number of cpus dedicated to DISK. A high number of CPUs will increase the speed of data loading.
+- *network* (str, default: transformer) -- we advise transformer or gru
+
+And as in the previous step, you can choose how to compute the probability of missing keypoints with these two additional parameters:
+- *indep_keypoints* (bool, default: False) -- if False, look at sets of simultaneous missing keypoints; if True, look at each keypoint independently. 
+- *merge_keypoints* (bool, default: False) -- if True, estimate the probability of n keypoints missing at the same time -- False is preferred unless not enough samples to estimate a good probability
+
+The syntax remains the same:
+```commandline
+DISK-train project_path=DISK_demo dataset_name=dataset_30_15 network=gru n_cpus=1
+```
+
+### DISK-impute
+
+At this step, we will use a trained DISK model on a given dataset and impute the real gaps.
+
+Additional parameters can be set:
+- *missing_pad* (list of 2 integers, default: [1, 0]) -- how many points to the left and right of the gap is needed for the DISK model to interpolate. Higher numbers will give better precision but fewer imputed gaps. The left value needs to be >= 1.
+- *n_cpus* (int, default: 1) -- used to load the data
+- *threshold_error_score* (float, default: 0.1) -- threshold used to reject bad imputed samples to have an idea about the value to put, look at plots output of the test script (inside `DISK_train` folder)
+
+## Additional DISK commands
+
+- **DISK-add-skeleton**: prompts the user to enter links between keypoints corresponding to the skeleton. The built skeleton is only used for ST-GCN backbone and plots.
+
+`DISK-add-skeleton project_path=...`
+
+- **DISK-restore-default-config**: restores the original configs inside the config folder
+- **DISK-test**
 
 
+# Detailed usage
 
 
-### Configuration files and script launching
+### More about the configuration files
 
 This repo uses configuration files (via the hydra package). 
 Maybe not intuitive at the beginning it offers several advantages:
 - all the parameters and input values are visible at once in one file and can be changed by the user
 - hydra package takes care of logging and saving the configuration file for each run allowing to keep track and boost reproducibility
 
-There are 3 main scripts and their respective configuration files:
-- `main_fillmissing.py` and `conf/conf_missing.yaml` to train the neural network
-- `test_fillmissing.py` and `conf/conf_test.yaml` to test the neural network on artificially introduced gaps with a test RMSE and plots to check the quality of the model
-- `impute_dataset.py` and `conf/conf_impute.yaml` to use the trained model to impute real missing gaps in the data
 
-To launch the scripts, 
-- you need to open the respective configuration file and change the appropriate fields according to your goal,
-- then call the script `python main_fillmissing.py`, which will read all the options and parameters set in the partner configuration file.
-
-**NB**: Because hydra is managing the logging, it is important to not copy a trained model without the hidden 
-folder `.hydra/` saved in the same location. In particular, the training config file saved by hydra along the trained 
-model would be used to load the model when using the model for test or imputation.
 
 ### Neural network training
 
-We advise to run the training (`main_fillmissing`) on a machine with a GPU.
+We advise to run the training (`DISK-train`) on a machine with a GPU.
 
 Transformer model has the best performance for all the tested datasets.
 However transformer usually benefits from a lower batch size (32 or 64) and is the slowest to train even on GPU.
@@ -136,32 +208,16 @@ GRU is the second best model in terms of performances.
 GRU can be trained with larger batch size (up to 512 if enough GPU memory) and is shorter to train. 
 It can still take hours to train on a middle sized dataset.
 
-
-
-## Python troubleshooting
-
-If you have trouble installing Pytorch, check [this page](https://pytorch.org/get-started/previous-versions/) for pytorch version `1.9.1` and your system.
-You can install separately pytorch as a first step using for example `conda install pytorch==1.9.1 cudatoolkit=11.1 -c pytorch -c conda-forge` or `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 cpuonly -c pytorch` for the CPU-only version.
-For OSX, `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 -c pytorch` or `pip install torch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1`. 
-
-# First steps tutorial
-
-The tutorial is available as a Jupyter Notebook and compatible with Google colab: in this github repo in [`notebooks/DISK_tutorial_2025-05.ipynb`](https://github.com/bozeklab/DISK/blob/main/notebooks/DISK_tutorial_2024-05.ipynb)
-with processed datasets and saved checkpoint models available on [zenodo](https://doi.org/10.5281/zenodo.15828939).
-
-Alternatively, the same steps (without the explanations and images) are available as a simple bash script in [`tests/test_tutorial_zenodo.sh`](https://github.com/bozeklab/DISK/blob/main/tests/test_tutorial_zenodo.sh).
-
-
-# Detailed usage
-
 ## Step 0. File organization 
 
-All the created files will be saved inside the working directory, however we recommend to not save them where the code is but rather in a different folder, for example `results`. To do this, you can launch the script while being in the `results` folder and use the argument `hydra.job.chdir=True`
+All the created files will be saved inside the project directory created with `DISK-create-project`.
 
 ```
-results
+DISK_project_folder
   |
-  |_ datasets
+  |_ config_project.yaml
+  |
+  |_ DISK_data
      |_ dataset_0_freqX_lengthY
          |_ train_dataset.npz
          |_ train_fulllength_dataset.npz
@@ -177,15 +233,25 @@ results
          |_ ...
          |
      |_ ...
-     |_ proba_n_mising_4.txt
      |
-  |_ outputs
+  |_ DISK_train
+     |_DISK_model_0
+         |_
+     |_ DISK_model_1
+     |
+  |_ DISK_impute
+  |
+  |_ example_configs
+     |_config_impute.yaml
+     |_config_prepare_data.yaml
+     |_config_train.yaml
+  
 ```
 
-- In the `datasets` folder will be stored each dataset as a folder, e.g.  `dataset_0_freqX_lengthY`. 
+- In the `DISK_data` folder, will be stored each dataset as a folder, e.g.  `dataset_0_freqX_lengthY`. 
 In this folder `dataset_0_freqX_lengthY`, the dataset files per se (npz files) and the company files like the one with the dataset constants which will be read when using the dataset (`constants.py`).
 
-- In the `datasets` folder will also be stored the files to create the artificial holes, the files with proba_missing in their names (See *Step 2.* below). 
+- In the `DISK_data` folder will also be stored the files to create the artificial holes, the files with proba_missing in their names (See *Step 2.* below). 
 
 ## Step 1. Use an already created dataset or create your training dataset from your own data
 
