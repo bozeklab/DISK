@@ -5,14 +5,14 @@ def main():
     try:
         import DISK
         version = DISK._version.version
-        print("Version Found:", version)
+        print("DISK Version Found:", version)
 
         import hydra
         from omegaconf import DictConfig
 
-        @hydra.main(version_base=None, config_path="../conf", config_name="conf_missing")
+        @hydra.main(version_base=None, config_path="../conf", config_name="config_create_project")
         def test_main(_cfg: DictConfig):
-            print(_cfg)
+            _cfg.keys()
 
         test_main()
         print("✅ DISK is installed successfully.")

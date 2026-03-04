@@ -7,4 +7,6 @@ DISK-prepare-data project_path=DISK_human_mocap length=20
 
 DISK-train project_path=DISK_human_mocap network=gru dataset_name=dataset_20_10  training_epochs=4
 
+DISK-train project_path=DISK_human_mocap network=gru dataset_name=dataset_20_10  training_epochs=4 load_model=dataset_20_10_DISK-GRU
+
 DISK-impute project_path=DISK_human_mocap dataset_name=dataset_20_10  model_name=dataset_20_10_DISK-GRU

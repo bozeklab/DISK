@@ -82,7 +82,7 @@ def cli(_cfg: DictConfig) -> None:
     with open(os.path.join(project_path, 'config_project.yaml'), 'r') as file:
         config = yaml.safe_load(file)
 
-    if not 'skeleton_links' in config.keys() or config['skeleton_links'] is None or len(config['skeleton_links'])\
+    if not 'skeleton' in config.keys() or config['skeleton'] is None or len(config['skeleton'])\
             == 0:
         skeleton_graph = None
     else:

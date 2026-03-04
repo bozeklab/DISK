@@ -1,27 +1,13 @@
 #!/bin/bash
 set +e
 
-if test -d datasets
-then
-  echo "Directory datasets exists"
-else
-  mkdir datasets
-fi
-
-if test -d models
-then
-    echo "Directory models exists"
-else
-  mkdir models
-fi
-
 conda create --name env_impute python=3.9 -y
 
 #{
 source activate env_impute || conda activate env_impute
 git clone https://github.com/bozeklab/DISK.git cloned-DISK-repo
 cd cloned-DISK-repo
-pip install -r DISK/requirements.txt -e . --quiet
+pip install -e . --quiet
 cd ..
 
 cd datasets

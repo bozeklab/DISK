@@ -23,9 +23,18 @@ def find_proba_files(dataset_path: str, suffix: str):
     return True, proba_file, proba_length_file
 
 
+def check_model_dir(model_dir: str):
+    found_checkpoint = False
+    found_training_losses = False
+    for item in os.listdir(model_dir):
+        if item.startswith('model_epoch') and not item.endswith('txt'):
+            found_checkpoint = True
+        if item.startswith('training_losses'):
+            found_training_losses = True
+    return found_checkpoint and found_training_losses
 
 def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_graph,
-         training_seed, load_model, cfg_network, training_batch_size,
+         training_seed, load_model_dir, cfg_network, training_batch_size,
          training_epochs, learning_rate, loss_type, loss_mask, loss_factor,
          model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,
          n_cpus, print_every,
@@ -42,7 +51,7 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
 
     logger.info(f'\n*********************** TRAINING DISK *********************** \n')
     train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, training_seed,
-                      load_model, cfg_network,
+                      load_model_dir, cfg_network,
                       training_batch_size, training_epochs, learning_rate,
                       loss_type, loss_mask, loss_factor,
                       model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,
@@ -105,14 +114,14 @@ def cli(_cfg: DictConfig) -> None:
     with open(os.path.join(project_path, 'config_project.yaml'), 'r') as file:
         config = yaml.safe_load(file)
 
-    if not ('skeleton' in config.keys() and config['skeleton'] is not None and len(config['skeleton']) == 0):
+    if not 'skeleton' in config.keys() or config['skeleton'] is None or len(config['skeleton'])\
+            == 0:
         skeleton_graph = None
     else:
         skeleton_graph = Graph(len(config['keypoints']),
-                 config['center'],
-                 config['neighbor_links'],
-                 config['neighbor_link_colors'])
-
+                 config['skeleton_center'],
+                 config['skeleton_links'],
+                 config['skeleton_colors'])
 
     if _cfg.dataset_name is None or type(_cfg.dataset_name) != str \
             or not os.path.exists(os.path.join(project_path, 'DISK_data', _cfg.dataset_name)):
@@ -126,14 +135,15 @@ def cli(_cfg: DictConfig) -> None:
     dataset_path = os.path.join(project_path, 'DISK_data', dataset_name)
 
     final_model_path = None
-    load_model = None
+    load_model_dir = None
     if _cfg.model_name == '_DEFAULT_':
         if _cfg.load_model is not None and type(_cfg.load_model) == str:
             final_model_path = os.path.join(project_path, 'DISK_train', _cfg.load_model)
-            if not os.path.exists(final_model_path):
+            if not os.path.exists(final_model_path) or not check_model_dir(final_model_path):
                 print(f"\n❌ You provided a load_model entry, but could not find the checkpoint at {final_model_path}.")
                 sys.exit(1)
             model_name = _cfg.load_model
+            load_model_dir = final_model_path
         else:
             if _cfg.network.type == 'transformer':
                 network_name = 'DISK'
@@ -427,7 +437,7 @@ def cli(_cfg: DictConfig) -> None:
     add_missing = True
     main(project_path, final_model_path, dataset_path, dataset_name, test_dir,
          skeleton_graph, training_seed,
-         load_model, _cfg.network,
+         load_model_dir, _cfg.network,
          training_batch_size, training_epochs, learning_rate,
          loss_type, loss_mask, loss_factor,
          model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,

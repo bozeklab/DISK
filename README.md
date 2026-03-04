@@ -17,19 +17,24 @@ DISK allows to use a bigger proportion of experimental data for downstream behav
 ## Table of Contents
 
 - [Installation](#installation)
-- [Description](#description)
-  - [Practical aspects](#practical-aspects)
-    - [Configuration files and script launching](#configuration-files-and-script-launching)
-    - [Neural network training](#neural-network-training)
-- [First steps tutorial](#first-steps-tutorial)
+- [Summary](#summary)
+- [Practical aspects](#practical-aspects)
+  - [First steps tutorial](#first-steps-tutorial)
+  - [DISK main commands](#disk-main-commands)
+  - [Customize DISK commands using the command line](#customize-disk-commands-using-the-command-line)
+  - [Additional DISK commands](#additional-disk-commands)
+
 - [Detailed usage](#detailed-usage)
+  - [Configuration files](#more-about-the-configuration-files)
   - [Step 0. File organization](#step-0-file-organization)
   - [Step 1. Use an already created dataset or create your training dataset from your own data](#step-1-use-an-already-created-dataset-or-create-your-training-dataset-from-your-own-data)
   - [Step 2. Train a model](#step-2-train-a-model)
+  -   - [Neural network training](#neural-network-training)
   - [Step 3. Test trained models](#step-3-test-trained-models)
   - [Step 4. Impute the dataset](#step-4-impute-the-dataset)
 - [Frequently Asked Questions](FAQ.md)
 - [How to cite us](#cite-us)
+- [For DISK Developers](#for-disk-developers)
 
 ----
 
@@ -51,7 +56,7 @@ This step should take up to 10-15 minutes.
 
 For all cases, test if DISK is installed correctly by running in the terminal: `DISK-check-install`
 
-## Python troubleshooting
+### Python troubleshooting
 
 If you have trouble installing Pytorch, check [this page](https://pytorch.org/get-started/previous-versions/) for pytorch version `1.9.1` and your system.
 You can install separately pytorch as a first step using for example `conda install pytorch==1.9.1 cudatoolkit=11.1 -c pytorch -c conda-forge` or `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 cpuonly -c pytorch` for the CPU-only version.
@@ -91,7 +96,7 @@ with processed datasets and saved checkpoint models available on [zenodo](https:
 Alternatively, the same steps (without the explanations and images) are available as a simple bash script in [`tests/test_tutorial_zenodo.sh`](https://github.com/bozeklab/DISK/blob/main/tests/test_tutorial_zenodo.sh).
 
 
-## DISK commands
+## DISK main commands
 
 There are 4 main commands:
 - **DISK-create-project** -- creates the folders of the DISK project. Expects a list of input data files.
@@ -117,7 +122,7 @@ DISK-impute project_path=DISK_demo dataset_name=dataset_30_15 model_name=dataset
 
 TODO: make download the csv file!!
 
-## Customize DISK commands in the command line
+## Customize DISK commands using the command line
 
 There are usual parameters that you might want to set yourself:
 
@@ -127,16 +132,22 @@ At this step, we read the original files, determine the valid portions (without 
 We also estimate the probability of keypoints missing taken independently or in combination
 
 Additional parameters are:
-- *dataset_name* (string)
-- *original_freq* (int, in Hz) -- you can precise the original frequency, will be used for subsampling and plots
-- *subsampling_freq* (in, in Hz) -- needs to be lower than original_freq
-- *stride* (int, between 0 and length) -- by how many timesteps are separated consecutive samples (after subsampling)
-- *fill_gap* (int, default: 0)  -- short gaps under this length will be filled by linear interpolation. This value should be kept small as linear interpolation imprecision grows with length. 
-- *dlc_likelihood_threshold* (float, default: 0.9) -- if using file_type dlc_csv or dlc_h5, DLC prediction likelihoods falling under this threshold will be considered as missing values
+
+| parameter name | type, default | description |
+| --- | --- | --- |
+| dataset_name | string | |
+| original_freq | int, in Hz| you can precise the original frequency, will be used for subsampling and plots |
+| subsampling_freq | in, in Hz | needs to be lower than original_freq |
+| stride | int, between 0 and length | by how many timesteps are separated consecutive samples (after subsampling) |
+| fill_gap | int, default: 0 | short gaps under this length will be filled by linear interpolation. This value should be kept small as linear interpolation imprecision grows with length |
+| dlc_likelihood_threshold | float, default: 0.9 | if using file_type dlc_csv or dlc_h5, DLC prediction likelihoods falling under this threshold will be considered as missing values |
 
 To compute the probability of missing keypoints, there are two additional parameters:
-- *indep_keypoints* (bool, default: False) -- if False, look at sets of simultaneous missing keypoints; if True, look at each keypoint independently. 
-- *merge_keypoints* (bool, default: False) -- if True, estimate the probability of n keypoints missing at the same time -- False is preferred unless not enough samples to estimate a good probability
+
+| parameter name | type, default | description |
+| --- | --- | --- |
+|indep_keypoints | bool, default: False | if False, look at sets of simultaneous missing keypoints; if True, look at each keypoint independently |
+|merge_keypoints | bool, default: False | if True, estimate the probability of n keypoints missing at the same time -- False is preferred unless not enough samples to estimate a good probability |
 
 The syntax remains the same:
 ```commandline
@@ -149,12 +160,15 @@ At this step, using a created DISK dataset, a DISK model is trained and tested.
 We advise to run the training on a machine with a GPU.
 
 Additional parameters can be set:
-- *model_name* (str)
-- *training_epochs* (int, default: 1500) -- controls the length of training. The longer the better the results might be. A good practice is to look at the loss curve after a training and see if it has stabilized or if it is still decreasing. In the latter case, additional epochs can be beneficial. You can resume a training using the load_model parameter.
-- *load_model* (str) -- name of the model_folder inside the DISK_train folder. To continue the training from a given checkpoint.
-- *training_batch_size* (int, default: 32) -- controls how many samples are loaded in the GPU RAM. Do not touch unless running into out of memory error, then lower this value.
-- *n_cpus* (int, default: 8) -- number of cpus dedicated to DISK. A high number of CPUs will increase the speed of data loading.
-- *network* (str, default: transformer) -- we advise transformer or gru
+
+| parameter name | type, default | description |
+| --- | --- | --- |
+| model_name* (str)
+| training_epochs* (int, default: 1500) -- controls the length of training. The longer the better the results might be. A good practice is to look at the loss curve after a training and see if it has stabilized or if it is still decreasing. In the latter case, additional epochs can be beneficial. You can resume a training using the load_model parameter.
+| load_model* (str) -- name of the model_folder inside the DISK_train folder. To continue the training from a given checkpoint.
+| training_batch_size* (int, default: 32) -- controls how many samples are loaded in the GPU RAM. Do not touch unless running into out of memory error, then lower this value.
+| n_cpus* (int, default: 8) -- number of cpus dedicated to DISK. A high number of CPUs will increase the speed of data loading.
+| network* (str, default: transformer) -- we advise transformer or gru
 
 And as in the previous step, you can choose how to compute the probability of missing keypoints with these two additional parameters:
 - *indep_keypoints* (bool, default: False) -- if False, look at sets of simultaneous missing keypoints; if True, look at each keypoint independently. 

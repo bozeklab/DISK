@@ -26,7 +26,7 @@ from torch.nn.utils import clip_grad_norm_
 
 
 def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, training_seed,
-                      load_model, cfg_network,
+                      load_model_dir, cfg_network,
                       training_batch_size, training_epochs, learning_rate,
                       loss_type, loss_mask, loss_factor,
                       model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,
@@ -130,22 +130,22 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
 
     start_epoch = 1
     # Load a saved model
-    if load_model:
-        for item in os.listdir(load_model):
+    if load_model_dir:
+        for item in os.listdir(load_model_dir):
             if item.startswith('model_epoch') and not item.endswith('txt'):
                 # Pull the starting epoch from the file name
                 print('Loading model from', item)
-                start_epoch, loaded_print_every = load_checkpoint(model, optimizer, os.path.join(project_dir, load_model,
+                start_epoch, loaded_print_every = load_checkpoint(model, optimizer, os.path.join(load_model_dir,
                                                                                                  item), device, logger)
                 start_epoch += 1
                 # found a model, so stop looking in the folders
                 break
 
-    if load_model:
+    if load_model_dir:
         file_output = open(os.path.join(model_dir, f'training_losses.txt'), 'a')
-        for item in os.listdir(load_model):
+        for item in os.listdir(load_model_dir):
             if item.startswith('training_losses'):
-                previous_content = open(os.path.join(load_model, item), 'r').readlines()
+                previous_content = open(os.path.join(load_model_dir, item), 'r').readlines()
                 file_output.writelines(previous_content[:(start_epoch - 1) // loaded_print_every])
                 # found a model, stop looking in the folders
                 break
