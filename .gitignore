@@ -4,7 +4,6 @@ outputs/
 models/
 datasets/
 .ipynb_checkpoints/
-DISK/conf
 __pychache__/
 venv/
 *.egg-info/
