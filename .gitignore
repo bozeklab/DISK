@@ -6,9 +6,6 @@ datasets/
 .ipynb_checkpoints/
 DISK/conf
 __pychache__/
-conf/
-.yaml
-.gitignore
 venv/
 *.egg-info/
 .idea/
