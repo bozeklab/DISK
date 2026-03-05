@@ -9,8 +9,9 @@ def main():
 
         import hydra
         from omegaconf import DictConfig
-
-        @hydra.main(version_base=None, config_path="../conf", config_name="config_create_project")
+        import os
+        print(os.getcwd())
+        @hydra.main(version_base=None, config_path="../conf", config_name="conf_create_dataset")
         def test_main(_cfg: DictConfig):
             _cfg.keys()
 
