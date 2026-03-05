@@ -99,13 +99,6 @@ Possible problems during training:
 Azim: controls the azimuthal or horizontal viewing angle of the plot
 Yes for the 3D skeleton plot, which is only available when a skeleton file is input.
 
-### What is *only_holes* in this context ?
-
-`only_holes = True` will only display the imputation in the visualize_validation plots of the missing data. When `False` the network output with the whole sequence and all keypoints will be plot as well.
-
-### And what is the *original_coordinates* option?
-
-The RMSE and the plots are done on the normalized coordinates if `original_coordinates = False`. It helps compare sequences, and different datasets because then the error is roughly proportionate to the skeleton size. With `original_coordinates = True` it will convert it back to the original coordinates (mm or cm depending on the dataset) so conclusions such as "on average the model is making a 0.2mm error" can be drawn.
 
 ### In the following plot, why isn't the transformer model compared with linear interpolation?
 
