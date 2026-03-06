@@ -43,12 +43,12 @@ def _loss(data, de_out, out_distribution, uncertainty_estimate, mask_holes_tenso
                          'It is usually caused by a problem in the gap making (see transforms code and proba_missing files).')
 
     # if mu_sigma
-    if cfg_network.mu_sigma:
+    if cfg_network["mu_sigma"]:
         # NLL loss
         loss = - out_distribution.log_prob(data)
-        if cfg_network.beta_mu_sigma > 0:
+        if cfg_network["beta_mu_sigma"] > 0:
             ### from paper "On the Pitfalls of Heteroscedastic Uncertainty Estimation with Probabilistic Neural Networks"
-            loss *= torch.mean(uncertainty_estimate.detach(), dim=-1) ** cfg_network.beta_mu_sigma
+            loss *= torch.mean(uncertainty_estimate.detach(), dim=-1) ** cfg_network["beta_mu_sigma"]
         # sum over time and keypoints
         loss = torch.sum(loss[:, 1:] * mask_loss[..., 0], dim=(1, 2)) / n_missing_per_sample
         # mean over batch
@@ -103,12 +103,12 @@ def apply_model(model, input_tensor_with_holes, mask_holes, n_dim, loss_mask,
     uncertainty_estimate = None
     out_distribution = None
 
-    if cfg_network.type in ['GRU', 'BiGRU']:
+    if cfg_network['type'] in ['GRU', 'BiGRU']:
         input_tensor_with_holes = input_tensor_with_holes.view(
             (input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], -1))
         de_out, _ = model(input_tensor_with_holes, **kwargs)
 
-        if cfg_network.mu_sigma:
+        if cfg_network["mu_sigma"]:
             de_out, uncertainty_estimate = de_out
             uncertainty_estimate = uncertainty_estimate.view(
                 (input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], -1, n_dim))
@@ -123,12 +123,12 @@ def apply_model(model, input_tensor_with_holes, mask_holes, n_dim, loss_mask,
         de_out = de_out.view(
                 (input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], -1, n_dim))
 
-    elif cfg_network.type == 'ST_GCN':
+    elif cfg_network['type'] == 'ST_GCN':
         inputs = torch.unsqueeze(torch.moveaxis(input_tensor_with_holes, -1, 1), -1)
         de_out = model(inputs, **kwargs)
         de_out = torch.squeeze(torch.moveaxis(de_out, 1, 3), -1)
 
-    elif cfg_network.type == 'TCN':
+    elif cfg_network['type'] == 'TCN':
         inputs = torch.moveaxis(input_tensor_with_holes.view(
             (input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], -1)), 1, 2)
         de_out = model(inputs, **kwargs)
@@ -136,14 +136,14 @@ def apply_model(model, input_tensor_with_holes, mask_holes, n_dim, loss_mask,
         de_out = de_out.view(
                 (input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], -1, n_dim))
 
-    elif cfg_network.type == 'STS_GCN':
+    elif cfg_network['type'] == 'STS_GCN':
         de_out = model(torch.moveaxis(input_tensor_with_holes, 3, 1), **kwargs)
         de_out = torch.moveaxis(de_out, 3, 2)\
             .reshape(input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], -1, n_dim)
 
-    elif cfg_network.type == 'transformer':
+    elif cfg_network['type'] == 'transformer':
         de_out = model(input_tensor_with_holes, mask_holes, **kwargs)
-        if cfg_network.mu_sigma:
+        if cfg_network["mu_sigma"]:
             de_out, uncertainty_estimate = de_out
             uncertainty_estimate = uncertainty_estimate.view(
                 (input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], input_tensor_with_holes.shape[2], -1))
@@ -154,7 +154,7 @@ def apply_model(model, input_tensor_with_holes, mask_holes, n_dim, loss_mask,
             de_out = de_out.view(
                     (input_tensor_with_holes.shape[0], input_tensor_with_holes.shape[1], input_tensor_with_holes.shape[2], -1))
     else:
-        raise ValueError(f'[TRAIN_FILLMISSING][APPLY_MODEL function] model type {cfg_network.type} not understood.')
+        raise ValueError(f'[TRAIN_FILLMISSING][APPLY_MODEL function] model type {cfg_network["type"]} not understood.')
 
     if data_full is None or criterion_seq is None:
         return de_out, uncertainty_estimate
@@ -330,43 +330,43 @@ def construct_NN_model(cfg_network, keypoints, divider, seq_length, skeleton_gra
     dim = divider + int(feed_data_mask)
     output_size = divider * n_keypoints
 
-    if cfg_network.type in ['GRU', 'BiGRU']:
+    if cfg_network['type'] in ['GRU', 'BiGRU']:
         input_size = dim * n_keypoints
         model = BiGRU(input_size, output_size, cfg_network=cfg_network, device=device)
 
-    elif cfg_network.type == 'ST_GCN':
+    elif cfg_network['type'] == 'ST_GCN':
         if skeleton_graph is None:
             raise ValueError('You need to provide a valid skeleton file when using ST_GCN architecture.')
         # ST GCN
-        graph_args = {'num_keypoints': skeleton_graph.num_keypoints,
-                      'center': skeleton_graph.center,
-                      'neighbor_links': skeleton_graph.neighbor_links,
-                      'neighbor_link_colors': skeleton_graph.neighbor_link_colors,
-                      'strategy': 'uniform',
-                      'max_hop': 1,
-                      'dilation': 1}
+        # graph_args = {'num_keypoints': skeleton_graph.num_keypoints,
+        #               'center': skeleton_graph.center,
+        #               'neighbor_links': skeleton_graph.neighbor_links,
+        #               'neighbor_link_colors': skeleton_graph.neighbor_link_colors,
+        #               'strategy': 'uniform',
+        #               'max_hop': 1,
+        #               'dilation': 1}
         edge_importance_weighting = True
-        model = STGCN_Model(dim, cfg_network.num_layers, graph_args, edge_importance_weighting,
-                            dim_start=cfg_network.size_layer, out_channels=divider).to(device)
-    elif cfg_network.type == 'STS_GCN':
+        model = STGCN_Model(dim, cfg_network["num_layers"], skeleton_graph, edge_importance_weighting,
+                            dim_start=cfg_network["size_layer"], out_channels=divider).to(device)
+    elif cfg_network['type'] == 'STS_GCN':
         model = STS_GCN(input_channels=dim, # input_dim
                         output_channels=divider,
                          input_time_frame=seq_length,
                          output_time_frame=seq_length,
                          st_gcnn_dropout=0,
                          joints_to_consider=n_keypoints,
-                         n_gcn_layers=cfg_network.en_num_layers,
-                         n_txcnn_layers=cfg_network.de_num_layers,
-                         txc_kernel_size=(cfg_network.kernel_size, cfg_network.kernel_size),
+                         n_gcn_layers=cfg_network["en_num_layers"],
+                         n_txcnn_layers=cfg_network["de_num_layers"],
+                         txc_kernel_size=(cfg_network["kernel_size"], cfg_network["kernel_size"]),
                          txc_dropout=0.,
-                         size_layer=cfg_network.size_layer).to(device)
+                         size_layer=cfg_network["size_layer"]).to(device)
 
-    elif cfg_network.type == 'TCN':
+    elif cfg_network['type'] == 'TCN':
         model = TemporalConvNet(dim * n_keypoints,
-                                [cfg_network.size_layer for _ in range(cfg_network.num_layers - 1)] + [output_size],
-                                kernel_size=cfg_network.kernel_size, dropout=cfg_network.dropout).to(device)
+                                [cfg_network["size_layer"] for _ in range(cfg_network["num_layers"] - 1)] + [output_size],
+                                kernel_size=cfg_network["kernel_size"], dropout=cfg_network["dropout"]).to(device)
 
-    elif cfg_network.type == 'transformer':
+    elif cfg_network['type'] == 'transformer':
         model = TransformerModel(dim, divider,
                                  max_seq_len=seq_length,
                                  n_keypoints=n_keypoints,
@@ -374,6 +374,6 @@ def construct_NN_model(cfg_network, keypoints, divider, seq_length, skeleton_gra
                                  device=device)
     else:
         raise NotImplementedError(f'The only supported models are GRU, BiGRU, ST_GCN, STS_GCN or TCN. '
-                                  f'Given: {cfg_network.type}')
+                                  f'Given: {cfg_network["type"]}')
 
     return model

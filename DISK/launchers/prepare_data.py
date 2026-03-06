@@ -1,16 +1,11 @@
-import logging
-
-import hydra
-from omegaconf import DictConfig, OmegaConf
 import os
 import sys
 import yaml
+import logging
 
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
 from DISK.models.graph import Graph
-
-
-
+from DISK.utils.config_decorator import config_reader, parse_command_line_args
 
 def main(project_path, dataset_path, dataset_name, data_files, file_type,
          length, stride, fill_gap, sequential, original_freq, subsampling_freq,
@@ -49,12 +44,13 @@ def main(project_path, dataset_path, dataset_name, data_files, file_type,
     logger.info(f'✅ Successfully estimated probabilities of missing keypoints for dataset {dataset_name}.\n')
     return keypoints, divider
 
-@hydra.main(version_base=None, config_path="../conf", config_name="config_prepare_data")
-def cli(_cfg: DictConfig) -> None:
-    modified_cfg = DictConfig(_cfg)
+@config_reader(config_path="../conf/config_prepare_data.yaml")
+def cli(_cfg) -> None:
+    _cfg = parse_command_line_args(_cfg)
+    modified_cfg = dict(_cfg.__dict__)
 
     for key in ('length', 'project_path'):
-        val = _cfg[key]
+        val = _cfg.__dict__[key]
         if val is None:
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'

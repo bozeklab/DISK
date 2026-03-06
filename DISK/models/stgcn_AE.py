@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from DISK.models.graph import Graph
 from DISK.models.st_gcn import st_gcn, rst_gcn
-
+from copy import deepcopy
 
 class STGCN_Model(nn.Module):
     r"""Spatial temporal graph convolutional networks.
@@ -31,7 +31,7 @@ class STGCN_Model(nn.Module):
         super().__init__()
 
         # load graph
-        self.graph = Graph(**graph_args)
+        self.graph = graph_args#Graph(**graph_args)
         enc_A = torch.tensor(self.graph.A, dtype=torch.float32, requires_grad=False)
         self.register_buffer('enc_A', enc_A)
 
@@ -61,7 +61,7 @@ class STGCN_Model(nn.Module):
         # ))
 
         # add reconstruction branch
-        self.rec_graph = Graph(**graph_args)
+        self.rec_graph = deepcopy(graph_args)# Graph(**graph_args)
         rec_A = torch.tensor(self.rec_graph.A, dtype=torch.float32, requires_grad=False)
         self.register_buffer('rec_A', rec_A)
         spatial_kernel_size = self.rec_A.size(0)

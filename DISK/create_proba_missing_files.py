@@ -7,8 +7,6 @@ from glob import glob
 import seaborn as sns
 import torch
 from torch.utils.data import DataLoader
-import hydra
-from omegaconf import DictConfig
 
 from DISK.utils.dataset_utils import load_datasets
 from DISK.utils.utils import read_constant_file, plot_save, find_holes

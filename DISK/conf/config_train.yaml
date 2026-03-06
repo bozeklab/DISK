@@ -1,0 +1,81 @@
+project_path: DISK_project_human
+project_path_type: str
+
+dataset_name: human
+dataset_name_type: str
+dataset_name_help: "output name for the created dataset"
+
+model_name: _DEFAULT_
+model_name_type: str
+
+network: transformer
+
+debug: true
+debug_type: bool
+
+training_epochs: 1500
+training_epochs_type: int
+training_batch_size: 32
+training_batch_size_type: int
+# from experience, learning rate of 0.0001 is better for GRU and 0.001 for transformer
+training_learning_rate: 0.001
+training_learning_rate_type: float
+training_seed:
+training_seed_type: int
+# load can be used to continue a training
+# if a valid path is given, then the saved model will be loaded
+# instead of starting from a random initialization of the weights
+load_model: # example: outputs/2023-09-27_Fishv3_newnewmissing/09-26-47_STGCN_stride60
+n_cpus: 8 # TOCHANGE: if no multiprocessing, put 0
+loss:
+  def: l1
+  mask: true
+  factor: 100
+model_scheduler:
+  def: lambdalr
+  steps_epoch: 500
+  rate: 0.95
+print_every: _DEFAULT_
+# print_every modifies the frequency at which the model infers on the validation set and the frequency at which
+# models can be saved (save when validation loss is better than previous one)
+
+## if mu_sigma is True, then will change the output of the model from a point prediction (one value per keypoint per timepoint)
+## to a probabilistic output where for each keypoint and each timepoint, it will output a mean (mu) and a standard
+## deviation (sigma). The network is trained with a different loss (a different loss profile is expected).
+## Used in this framework to approximate the network imputation error on each sample (cf test_fillmissing.py)
+## Used also to filter the imputations in impute_dataset (cf impute_dataset.py)
+mu_sigma: False # TOCHANGE (True or False)
+beta_mu_sigma: 0.5 # default is 0 for the standard NLL loss
+
+
+transforms:
+  add_missing_pad: [1, 0]
+  viewinvariant: true
+  viewinvariant_type: bool
+  normalize: false
+  normalize_type: bool
+  normalizecube: true
+  normalizecube_type: bool
+  swap: 0.5
+  swap_type: float
+
+indep_keypoints: True
+indep_keypoints_type: bool
+merge_keypoints: False
+merge_keypoints_type: bool
+
+test:
+  n_plots: 5
+  n_plots_type: int
+  threshold_pck: 0.1
+  threshold_pck_type: float
+  plot3d_azim: 60
+  plot3d_azim_type: int
+  plot3d_size: 2
+  plot3d_size_type: float
+  plot2d_only_holes: true
+  plot2d_only_holes_type: bool
+  original_coordinates: true
+  original_coordinates_type: bool
+  n_repeat: 1
+  n_repeat_type: int

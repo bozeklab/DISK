@@ -35,6 +35,7 @@ class Graph():
                  strategy='uniform',
                  max_hop=1,
                  dilation=1):
+        self.num_keypoints = num_keypoints
         self.max_hop = max_hop
         self.dilation = dilation
 
@@ -61,7 +62,7 @@ class Graph():
         self.neighbor_link = []
         self.neighbor_link_color = []
         for i in range(len(neighbor_links)):
-            if type(neighbor_links[i][0]) == tuple:
+            if type(neighbor_links[i][0]) == tuple or type(neighbor_links[i][0]) == list:
                 self.neighbor_link_color.extend([neighbor_link_colors[i]] * len(neighbor_links[i]))
                 self.neighbor_link.extend(neighbor_links[i])
             else:

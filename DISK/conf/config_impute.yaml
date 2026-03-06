@@ -1,0 +1,30 @@
+project_path: DISK_project_human
+project_path_type: str
+
+dataset_name: human
+dataset_name_type: str
+dataset_name_help: "output name for the created dataset"
+
+missing_pad: [1, 1]
+missing_pad_type: IntList
+
+batch_size: 1
+batch_size_type: int
+
+n_cpus: 1
+n_cpus_type: int
+
+model_name:
+model_name_type: str
+
+## threshold used to reject bad imputed samples when the model is of type transformer_proba or GRU_proba
+## to have an idea about the value to put, look at plots output of the test script
+threshold_error_score: 0.1
+n_plots: 5
+## save: boolean to save plots
+
+plot_only_holes: true
+plot_only_holes_type: bool
+
+debug: false
+debug_type: bool

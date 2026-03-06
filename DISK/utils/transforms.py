@@ -607,11 +607,10 @@ class AddMissing_LengthProba(Transform):
                     x_with_holes[start_missing: end_missing, index_rd_kp, :] = missing_values_placeholder
 
             if self.verbose == 2 or verbose_sample:
-                self.logger.info("nb of missing kp:", np.sum(np.sum(np.any(np.isnan(x_with_holes), axis=2),
-                                                                    axis=0) > 0))
+                self.logger.info(f"nb of missing kp: {np.sum(np.sum(np.any(np.isnan(x_with_holes), axis=2), axis=0) > 0)}")
             v = np.sum(np.isnan(x_with_holes[..., 0]))
             if v == 0:
-                self.logger.info("nb of missing values:", v)
+                self.logger.info(f"nb of missing values: {v}")
 
         return x_with_holes, x_supp, kwargs
 

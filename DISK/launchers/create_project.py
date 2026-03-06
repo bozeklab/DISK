@@ -1,10 +1,10 @@
-import hydra
-from omegaconf import DictConfig, OmegaConf
 import os
 import sys
 import shutil
 import yaml
 from datetime import datetime
+
+from DISK.utils.config_decorator import config_reader, parse_command_line_args
 
 possible_file_type_values = ('mat_dannce', 'mat_qualisys', 'simple_csv', 'dlc_csv', 'dlc_h5', 'npy', 'df3d_pkl',
                           'sleap_h5')
@@ -15,14 +15,14 @@ def check_file_type(value: str) -> str:
     else:
         return False
 
-OmegaConf.register_new_resolver("file_type", check_file_type)
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="config_create_project")
-def cli(_cfg: DictConfig) -> None:
+@config_reader(config_path="../conf/config_create_project.yaml")
+def cli(_cfg) -> None:
+    _cfg = parse_command_line_args(_cfg)
 
-    for key in ('project_path', 'data_files', 'file_type'):
-        val = _cfg[key]
+    for key in ('project_path', 'data_files', 'file_format'):
+        val = _cfg.__dict__[key]
         if val is None:
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'
@@ -31,25 +31,28 @@ def cli(_cfg: DictConfig) -> None:
                   f'# careful no space between input_files inside the brackets, and after/before "="')
             sys.exit(1)
 
-    if _cfg['project_path'] is None or type(_cfg['project_path']) != str:
+    if _cfg.project_path is None or type(_cfg.project_path) != str:
         print(f'\n❌ project_path should be string. Got {_cfg.project_path}.')
         sys.exit(1)
     else:
-        if os.path.isabs(_cfg['project_path']):
-            if not os.path.exists(os.path.dirname(_cfg['project_path'])):
+        if os.path.isabs(_cfg.project_path):
+            if not os.path.exists(os.path.dirname(_cfg.project_path)):
                 print(f'\n❌ project_path should be valid path. Got {_cfg.project_path}.')
                 sys.exit(1)
-    project_path = _cfg['project_path']
+    project_path = _cfg.project_path
     ext_project_path = 1
     final_project_path = str(project_path)
     while os.path.exists(final_project_path):
         final_project_path = project_path + f'_{ext_project_path}'
         ext_project_path += 1
 
+    if not os.path.isabs(final_project_path):
+        final_project_path = os.path.join(os.getcwd(), final_project_path)
+
     main(
         project_path=final_project_path,
         data_file_list=_cfg.data_files,
-        file_type=_cfg.file_type,
+        file_type=_cfg.file_format,
     )
 
 def check_extension(file_path: str, file_type:str) -> bool:
@@ -105,7 +108,7 @@ def main(project_path: str,
     os.mkdir(example_configs_folder)
 
     script_directory = os.path.dirname(os.path.abspath(__file__))
-    for config in ('config_prepare_data', 'config_train', 'config_impute'):
+    for config in ('config_prepare_data', 'config_train', 'config_test', 'config_impute'):
         shutil.copy(os.path.join(script_directory, '..', 'conf', f'{config}.yaml'),
                     os.path.join(example_configs_folder, f'{config}.yaml'))
 

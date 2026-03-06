@@ -1,14 +1,12 @@
 import logging
 from datetime import datetime
-import hydra
-from omegaconf import DictConfig, OmegaConf
 import os
 import sys
 import yaml
 
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
 from DISK.models.graph import Graph
-
+from DISK.utils.config_decorator import config_reader, parse_command_line_args
 
 def main(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph, checkpoint, batch_size,
          threshold_error_score, total_n_plots, plot_only_holes, missing_pad, logger, verbose=0):
@@ -22,12 +20,13 @@ def main(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_gr
 
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="config_impute")
-def cli(_cfg: DictConfig) -> None:
-    modified_cfg = DictConfig(_cfg)
+@config_reader(config_path="../conf/config_impute.yaml")
+def cli(_cfg) -> None:
+    _cfg = parse_command_line_args(_cfg)
+    modified_cfg = dict(_cfg.__dict__)
 
     for key in ('project_path', 'dataset_name', 'model_name'):
-        val = _cfg[key]
+        val = _cfg.__dict__[key]
         if val is None:
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'
@@ -99,7 +98,7 @@ def cli(_cfg: DictConfig) -> None:
         logging_flag = logging.INFO
         verbose = 0
 
-    modified_cfg.model_name = os.path.basename(output_path)
+    modified_cfg['model_name'] = os.path.basename(output_path)
     logger = setup_custom_logging(output_path, 'impute.log', logging_flag)
 
     ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
@@ -120,7 +119,7 @@ def cli(_cfg: DictConfig) -> None:
     else:
         n_cpus = max(0, _cfg.n_cpus)
 
-    modified_cfg.n_cpus = n_cpus
+    modified_cfg['n_cpus'] = n_cpus
 
     if _cfg.n_plots is None or type(_cfg.n_plots) != int:
         print("\n❌ n_plots should be a positive integer. "
@@ -165,7 +164,7 @@ def cli(_cfg: DictConfig) -> None:
     logger.info(f'✅ Successfully loaded configuration.\n')
 
     main(project_path, output_path, impute_plots_dir, file_type, dataset_path, skeleton_graph, model_path,
-         batch_size, threshold_error_score, n_plots, plot_only_holes, missing_pad, logger, verbose=0)
+         batch_size, threshold_error_score, n_plots, plot_only_holes, missing_pad, logger, verbose=verbose)
 
 
 if __name__ == '__main__':

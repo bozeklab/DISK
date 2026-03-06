@@ -7,11 +7,10 @@ def main():
         version = DISK._version.version
         print("DISK Version Found:", version)
 
-        import hydra
-        from omegaconf import DictConfig
+        from DISK.utils.config_decorator import config_reader
 
-        @hydra.main(version_base=None, config_path="../conf", config_name="config_create_project")
-        def test_main(_cfg: DictConfig):
+        @config_reader(config_path="../conf/config_create_project.yaml")
+        def test_main(_cfg):
             _cfg.keys()
 
         test_main()

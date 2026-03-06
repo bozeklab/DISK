@@ -11,16 +11,16 @@ class BiGRU(nn.Module):
     def __init__(self, input_size: int, output_size: int, cfg_network: DictConfig, device: str =
     'cpu'):
         super(BiGRU, self).__init__()
-        self.hidden_size = cfg_network.size_layer
+        self.hidden_size = cfg_network['size_layer']
         self.device = device
-        self.num_layers = cfg_network.num_layers
+        self.num_layers = cfg_network['num_layers']
 
-        self.gru = nn.GRU(input_size, self.hidden_size, num_layers=cfg_network.num_layers,
+        self.gru = nn.GRU(input_size, self.hidden_size, num_layers=cfg_network['num_layers'],
                           bidirectional=True, batch_first=True).to(device)
-        self.dropout = nn.Dropout(cfg_network.dropout)
+        self.dropout = nn.Dropout(cfg_network['dropout'])
         self.linear = nn.Linear(self.hidden_size, output_size, bias=True).to(device)
 
-        self.mu_sigma = cfg_network.mu_sigma
+        self.mu_sigma = cfg_network['mu_sigma']
         if self.mu_sigma:
             self.distribution_output = NormalOutput(dim=output_size)
             self.parameter_projection = self.distribution_output.get_parameter_projection(self.hidden_size).to(device)

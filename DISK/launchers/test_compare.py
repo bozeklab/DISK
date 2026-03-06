@@ -1,7 +1,5 @@
 import logging
 from datetime import datetime
-import hydra
-from omegaconf import DictConfig, OmegaConf, listconfig
 import os
 import sys
 import yaml
@@ -9,6 +7,7 @@ import yaml
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
 from DISK.launchers.train_test import find_proba_files
 from DISK.models.graph import Graph
+from DISK.utils.config_decorator import config_reader, parse_command_line_args
 
 def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton_graph,
          training_batch_size,
@@ -39,12 +38,12 @@ def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton
     logger.info(f'✅ Successfully tested DISK model.\n')
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="config_test")
-def cli(_cfg: DictConfig) -> None:
-    modified_cfg = DictConfig(_cfg)
+@config_reader(config_path="../conf/config_test.yaml")
+def cli(_cfg) -> None:
+    modified_cfg = dict(_cfg.__dict__)
 
     for key in ('project_path', 'dataset_name', 'model_name_list'):
-        val = _cfg[key]
+        val = _cfg.__dict__[key]
         if val is None:
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'
@@ -152,29 +151,29 @@ def cli(_cfg: DictConfig) -> None:
     else:
         n_cpus = max(0, _cfg.n_cpus)
 
-    modified_cfg.n_cpus = n_cpus
-    if _cfg.transforms.add_missing_pad is None or len(_cfg.transforms.add_missing_pad) != 2 or type(
-            _cfg.transforms.add_missing_pad[0]) != int or type(
-        _cfg.transforms.add_missing_pad[1]) != int:
-        print("\n❌ transforms.add_missing_pad should be an "
-              f"a list of two integers. Got {_cfg.transforms.add_missing_pad}")
+    modified_cfg['n_cpus'] = n_cpus
+    if _cfg.transforms_add_missing_pad is None or len(_cfg.transforms_add_missing_pad) != 2 or type(
+            _cfg.transforms_add_missing_pad[0]) != int or type(
+        _cfg.transforms_add_missing_pad[1]) != int:
+        print("\n❌ transforms_add_missing_pad should be an "
+              f"a list of two integers. Got {_cfg.transforms_add_missing_pad}")
         sys.exit(1)
     else:
-        add_missing_pad = list(_cfg.transforms.add_missing_pad)
+        add_missing_pad = list(_cfg.transforms_add_missing_pad)
 
-    if _cfg.transforms.indep_keypoints is None or type(_cfg.transforms.indep_keypoints) != bool:
-        print("\n❌ transforms.indep_keypoints should be a "
-              f"bool. Got {_cfg.transforms.indep_keypoints}")
+    if _cfg.transforms_indep_keypoints is None or type(_cfg.transforms_indep_keypoints) != bool:
+        print("\n❌ transforms_indep_keypoints should be a "
+              f"bool. Got {_cfg.transforms_indep_keypoints}")
         sys.exit(1)
     else:
-        indep_keypoints = _cfg.transforms.indep_keypoints
+        indep_keypoints = _cfg.transforms_indep_keypoints
 
-    if _cfg.transforms.merge_keypoints is None or type(_cfg.transforms.merge_keypoints) != bool:
-        print("\n❌ transforms.merge_keypoints should be a "
-              f"bool. Got {_cfg.transforms.merge_keypoints}")
+    if _cfg.transforms_merge_keypoints is None or type(_cfg.transforms_merge_keypoints) != bool:
+        print("\n❌ transforms_merge_keypoints should be a "
+              f"bool. Got {_cfg.transforms_merge_keypoints}")
         sys.exit(1)
     else:
-        merge_keypoints = _cfg.transforms.merge_keypoints
+        merge_keypoints = _cfg.transforms_merge_keypoints
 
     suffix = f'_set_keypoints' if not indep_keypoints else ''
     if indep_keypoints:
@@ -199,35 +198,35 @@ def cli(_cfg: DictConfig) -> None:
         print("\n❌ did not find proba_files matching your criterion.")
         sys.exit(1)
 
-    if _cfg.transforms.viewinvariant is None or type(_cfg.transforms.viewinvariant) != bool:
-        print("\n❌ transforms.viewinvariant should be a "
-              f"bool. Got {_cfg.transforms.viewinvariant}")
+    if _cfg.transforms_viewinvariant is None or type(_cfg.transforms_viewinvariant) != bool:
+        print("\n❌ transforms_viewinvariant should be a "
+              f"bool. Got {_cfg.transforms_viewinvariant}")
         sys.exit(1)
     else:
-        viewinvariant = _cfg.transforms.viewinvariant
+        viewinvariant = _cfg.transforms_viewinvariant
 
-    if _cfg.transforms.normalize is None or type(_cfg.transforms.normalize) != bool:
-        print("\n❌ transforms.normalize should be a "
-              f"bool. Got {_cfg.transforms.normalize}")
+    if _cfg.transforms_normalize is None or type(_cfg.transforms_normalize) != bool:
+        print("\n❌ transforms_normalize should be a "
+              f"bool. Got {_cfg.transforms_normalize}")
         sys.exit(1)
     else:
-        normalize = _cfg.transforms.normalize
+        normalize = _cfg.transforms_normalize
 
-    if _cfg.transforms.normalizecube is None or type(_cfg.transforms.normalizecube) != bool:
-        print("\n❌ transforms.normalizecube should be a "
-              f"bool. Got {_cfg.transforms.normalizecube}")
+    if _cfg.transforms_normalizecube is None or type(_cfg.transforms_normalizecube) != bool:
+        print("\n❌ transforms_normalizecube should be a "
+              f"bool. Got {_cfg.transforms_normalizecube}")
         sys.exit(1)
     else:
-        normalizecube = _cfg.transforms.normalizecube
+        normalizecube = _cfg.transforms_normalizecube
 
-    if _cfg.transforms.swap is None or type(
-            _cfg.transforms.swap) != float or _cfg.transforms.swap < 0 or _cfg.transforms.swap > 1:
-        print("\n❌ transforms.swap should be a float between 0 and 1 "
+    if _cfg.transforms_swap is None or type(
+            _cfg.transforms_swap) != float or _cfg.transforms_swap < 0 or _cfg.transforms_swap > 1:
+        print("\n❌ transforms_swap should be a float between 0 and 1 "
               "(probability of swapping during training). "
-              f"Got {_cfg.transforms.swap}")
+              f"Got {_cfg.transforms_swap}")
         sys.exit(1)
     else:
-        swap = _cfg.transforms.swap
+        swap = _cfg.transforms_swap
 
     if _cfg.test.n_plots is None or type(_cfg.test.n_plots) != int:
         print("\n❌ test.n_plots should be a positive integer. "

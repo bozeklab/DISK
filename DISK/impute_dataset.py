@@ -6,12 +6,10 @@ from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import savemat, loadmat
-import hydra
-from omegaconf import DictConfig, OmegaConf
 import pandas as pd
 import pickle
 import h5py
-from shutil import rmtree
+import yaml
 
 from DISK.utils.dataset_utils import load_datasets
 from DISK.utils.utils import read_constant_file, load_checkpoint
@@ -20,7 +18,6 @@ from DISK.utils.train_fillmissing import construct_NN_model, feed_forward
 from DISK.test_fillmissing import plot_save
 from DISK.create_dataset import chop_coordinates_in_timeseries
 from DISK.utils.coordinates_utils import plot_sequence
-from DISK.models.graph import Graph
 
 import torch
 from torch.utils.data import DataLoader
@@ -286,7 +283,8 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
     config_file = os.path.join(checkpoint, 'config', 'config_train.yaml')
     cfg_model = None
     if os.path.exists(config_file):
-        cfg_model = OmegaConf.load(config_file)
+        with open(config_file, 'r') as file:
+            cfg_model = yaml.safe_load(file)
         logger.info(f'Found model at path {checkpoint}')
         model_path = glob(os.path.join(checkpoint, 'model_epoch*'))[0]
         model_name = os.path.basename(model_path)
@@ -294,7 +292,8 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
         for path in Path(checkpoint).rglob('model_epoch*'):
             logger.info(f'Found model at path {str(path)}')
             config_file = os.path.join(os.path.dirname(path), 'config', 'config_train.yaml')
-            cfg_model = OmegaConf.load(config_file)
+            with open(config_file, 'r') as file:
+                cfg_model = yaml.safe_load(file)
             model_path = path
             model_name = os.path.basename(model_path)
     if cfg_model is None:
@@ -323,9 +322,9 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
                                 impute_dir,
                                 logger,
                                 add_missing=False,
-                                viewinvariant=cfg_model.transforms.viewinvariant,
-                                normalize=cfg_model.transforms.normalize,
-                                normalizecube=cfg_model.transforms.normalizecube,
+                                viewinvariant=cfg_model.transforms_viewinvariant,
+                                normalize=cfg_model.transforms_normalize,
+                                normalizecube=cfg_model.transforms_normalizecube,
                                 swap=0
                                         )
 

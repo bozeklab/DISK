@@ -1,10 +1,9 @@
-import hydra
-from omegaconf import DictConfig, OmegaConf
 import os
 import sys
 import shutil
 import yaml
 from datetime import datetime
+import argparse
 
 def main(project_path: str):
 
@@ -20,25 +19,28 @@ def main(project_path: str):
     print(f'\n✅ Restored default config for DISK project {project_path}\n')
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="config_restore_default_config")
-def cli(_cfg: DictConfig) -> None:
+def cli() -> None:
+    parser = argparse.ArgumentParser(description='')
 
-    for key in ('project_path', ):
-        val = _cfg[key]
-        if val is None:
-            print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
+    parser.add_argument('--project_path', type=str, help='tile output width, in pixels', nargs='?')
+
+    args = parser.parse_args()
+
+    try:
+        project_path = args.project_path
+    except ValueError:
+            print(f'\n❌ No value was passed to parameter {project_path}. This is a required parameter.'
                   f'\n  Expected syntax:'
-                  f'\n  > DISK-restore-config project_path=...\n'
-                  f'# careful no space after/before "="')
+                  f'\n  > DISK-restore-config --project_path path/to/project')
             sys.exit(1)
 
     ## CHECK FILE VALIDITY
-    if not os.path.exists(_cfg.project_path):
-        print(f'\n❌ Path {_cfg.project_path} not found. Please check path.\n')
+    if not os.path.exists(project_path):
+        print(f'\n❌ Path {project_path} not found. Please check path.\n')
         sys.exit(1)
 
     main(
-        project_path=_cfg.project_path,
+        project_path=project_path,
     )
 
 
@@ -46,5 +48,5 @@ if __name__ == '__main__':
     cli()
     """
     # hydra syntax:
-    DISK-restore-config project_path=...
+    DISK-restore-config --project_path path/to/project
     """

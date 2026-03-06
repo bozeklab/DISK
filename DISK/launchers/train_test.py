@@ -1,13 +1,20 @@
 import logging
 from datetime import datetime
-import hydra
-from omegaconf import DictConfig, OmegaConf
 import os
 import sys
 import yaml
 
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
 from DISK.models.graph import Graph
+from DISK.utils.config_decorator import config_reader, parse_command_line_args
+
+possible_network_type_values = ('transformer', 'gru', 'st_gcn', 'sts_gcn', 'tcn')
+
+def check_network_type(value: str) -> str:
+    if value in possible_network_type_values:
+        return True
+    else:
+        return False
 
 def find_proba_files(dataset_path: str, suffix: str):
     proba_file = os.path.join(dataset_path, f'proba_missing{suffix}.csv')
@@ -81,12 +88,13 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
     logger.info(f'✅ Successfully tested DISK model {model_dir}.\n')
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="config_train")
-def cli(_cfg: DictConfig) -> None:
-    modified_cfg = DictConfig(_cfg)
+@config_reader(config_path="../conf/config_train.yaml")
+def cli(_cfg) -> None:
+    _cfg = parse_command_line_args((_cfg))
+    modified_cfg = dict(_cfg.__dict__)
 
     for key in ('project_path', 'dataset_name'):
-        val = _cfg[key]
+        val = _cfg.__dict__[key]
         if val is None:
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'
@@ -120,7 +128,7 @@ def cli(_cfg: DictConfig) -> None:
     else:
         skeleton_graph = Graph(len(config['keypoints']),
                  config['skeleton_center'],
-                 config['skeleton_links'],
+                 config['skeleton'],
                  config['skeleton_colors'])
 
     if _cfg.dataset_name is None or type(_cfg.dataset_name) != str \
@@ -145,10 +153,10 @@ def cli(_cfg: DictConfig) -> None:
             model_name = _cfg.load_model
             load_model_dir = final_model_path
         else:
-            if _cfg.network.type == 'transformer':
+            if _cfg.network == 'transformer':
                 network_name = 'DISK'
             else:
-                network_name = f'DISK-{_cfg.network.type}'
+                network_name = f'DISK-{_cfg.network}'
             model_name = f'{dataset_name}_{network_name}'
     else:
         if _cfg.model_name is None or type(_cfg.model_name) != str:
@@ -175,7 +183,7 @@ def cli(_cfg: DictConfig) -> None:
         logging_flag = logging.INFO
         verbose = 0
 
-    modified_cfg.model_name = os.path.basename(final_model_path)
+    modified_cfg['model_name'] = os.path.basename(final_model_path)
     logger = setup_custom_logging(final_model_path, 'train.log', logging_flag)
 
     ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
@@ -208,7 +216,17 @@ def cli(_cfg: DictConfig) -> None:
     else:
         n_cpus = max(0, _cfg.n_cpus)
 
-    modified_cfg.n_cpus = n_cpus
+    modified_cfg['n_cpus'] = n_cpus
+
+    if not check_network_type(_cfg.network):
+        print(f"\n❌ network {_cfg.network} is not recognized. "
+              f"Should be of type {possible_network_type_values}")
+        sys.exit(1)
+
+    script_directory = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(script_directory, f'../conf/network/{_cfg.network}.yaml'), 'r') as file:
+        network_config = yaml.safe_load(file)
+    modified_cfg['network'] = network_config
 
     if _cfg.training_learning_rate == '_DEFAULT_':
         if _cfg.network.type == 'transformer':
@@ -223,7 +241,7 @@ def cli(_cfg: DictConfig) -> None:
         else:
             learning_rate = max(0, _cfg.training_learning_rate)
 
-    modified_cfg.training_learning_rate = learning_rate
+    modified_cfg['training_learning_rate'] = learning_rate
 
     if _cfg.training_seed is None:
         training_seed = None
@@ -247,17 +265,17 @@ def cli(_cfg: DictConfig) -> None:
             print(f"\n❌ print_every should be an integer. Got {_cfg.print_every}")
             sys.exit(1)
         else:
-            print_every = max(1, _cfg.print_every)
-    modified_cfg.print_every = print_every
+            print_every = max(1, min(_cfg.print_every, training_epochs//10))
+    modified_cfg['print_every'] = print_every
 
-    if _cfg.transforms.add_missing_pad is None or len(_cfg.transforms.add_missing_pad) != 2 or type(
-            _cfg.transforms.add_missing_pad[0]) != int or type(
-        _cfg.transforms.add_missing_pad[1]) != int:
-        print("\n❌ transforms.add_missing_pad should be an "
-              f"a list of two integers. Got {_cfg.transforms.add_missing_pad}")
+    if _cfg.transforms_add_missing_pad is None or len(_cfg.transforms_add_missing_pad) != 2 or type(
+            _cfg.transforms_add_missing_pad[0]) != int or type(
+        _cfg.transforms_add_missing_pad[1]) != int:
+        print("\n❌ transforms_add_missing_pad should be an "
+              f"a list of two integers. Got {_cfg.transforms_add_missing_pad}")
         sys.exit(1)
     else:
-        add_missing_pad = list(_cfg.transforms.add_missing_pad)
+        add_missing_pad = list(_cfg.transforms_add_missing_pad)
 
     if _cfg.indep_keypoints is None or type(_cfg.indep_keypoints) != bool:
         print("\n❌ indep_keypoints should be a "
@@ -297,128 +315,129 @@ def cli(_cfg: DictConfig) -> None:
         print("\n❌ did not find proba_files matching your criterion.")
         sys.exit(1)
 
-    if _cfg.transforms.viewinvariant is None or type(_cfg.transforms.viewinvariant) != bool:
-        print("\n❌ transforms.viewinvariant should be a "
-              f"bool. Got {_cfg.transforms.viewinvariant}")
+    if _cfg.transforms_viewinvariant is None or type(_cfg.transforms_viewinvariant) != bool:
+        print("\n❌ transforms_viewinvariant should be a "
+              f"bool. Got {_cfg.transforms_viewinvariant}")
         sys.exit(1)
     else:
-        viewinvariant = _cfg.transforms.viewinvariant
+        viewinvariant = _cfg.transforms_viewinvariant
 
-    if _cfg.transforms.normalize is None or type(_cfg.transforms.normalize) != bool:
-        print("\n❌ transforms.normalize should be a "
-              f"bool. Got {_cfg.transforms.normalize}")
+    if _cfg.transforms_normalize is None or type(_cfg.transforms_normalize) != bool:
+        print("\n❌ transforms_normalize should be a "
+              f"bool. Got {_cfg.transforms_normalize}")
         sys.exit(1)
     else:
-        normalize = _cfg.transforms.normalize
+        normalize = _cfg.transforms_normalize
 
-    if _cfg.transforms.normalizecube is None or type(_cfg.transforms.normalizecube) != bool:
-        print("\n❌ transforms.normalizecube should be a "
-              f"bool. Got {_cfg.transforms.normalizecube}")
+    if _cfg.transforms_normalizecube is None or type(_cfg.transforms_normalizecube) != bool:
+        print("\n❌ transforms_normalizecube should be a "
+              f"bool. Got {_cfg.transforms_normalizecube}")
         sys.exit(1)
     else:
-        normalizecube = _cfg.transforms.normalizecube
+        normalizecube = _cfg.transforms_normalizecube
 
-    if _cfg.transforms.swap is None or type(
-            _cfg.transforms.swap) != float or _cfg.transforms.swap < 0 or _cfg.transforms.swap > 1:
-        print("\n❌ transforms.swap should be a float between 0 and 1 "
+    if _cfg.transforms_swap is None or type(
+            _cfg.transforms_swap) != float or _cfg.transforms_swap < 0 or _cfg.transforms_swap > 1:
+        print("\n❌ transforms_swap should be a float between 0 and 1 "
               "(probability of swapping during training). "
-              f"Got {_cfg.transforms.swap}")
+              f"Got {_cfg.transforms_swap}")
         sys.exit(1)
     else:
-        swap = _cfg.transforms.swap
+        swap = _cfg.transforms_swap
 
-    if _cfg.test.n_plots is None or type(_cfg.test.n_plots) != int:
+    if _cfg.test_n_plots is None or type(_cfg.test_n_plots) != int:
         print("\n❌ test.n_plots should be a positive integer. "
-              f"Got {_cfg.test.n_plots}")
+              f"Got {_cfg.test_n_plots}")
         sys.exit(1)
     else:
-        n_plots = max(0, _cfg.test.n_plots)
+        n_plots = max(0, _cfg.test_n_plots)
 
-    if _cfg.test.threshold_pck is None or type(
-            _cfg.test.threshold_pck) != float or _cfg.test.threshold_pck < 0 or _cfg.test.threshold_pck > 1:
+    if _cfg.test_threshold_pck is None or type(
+            _cfg.test_threshold_pck) != float or _cfg.test_threshold_pck < 0 or _cfg.test_threshold_pck > 1:
         print("\n❌ test.threshold_pck should be a "
-              f"float between 0 and 1. Got {_cfg.test.threshold_pck}")
+              f"float between 0 and 1. Got {_cfg.test_threshold_pck}")
         sys.exit(1)
     else:
-        threshold_pck = _cfg.test.threshold_pck
+        threshold_pck = _cfg.test_threshold_pck
 
-    if _cfg.test.plot3d_azim is None or type(_cfg.test.plot3d_azim) != int:
+    if _cfg.test_plot3d_azim is None or type(_cfg.test_plot3d_azim) != int:
         print("\n❌ test.plot3d_azim should be an integer."
-              f"Got {_cfg.test.plot3d_azim}")
+              f"Got {_cfg.test_plot3d_azim}")
         sys.exit(1)
     else:
-        plot3d_azim = _cfg.test.plot3d_azim
+        plot3d_azim = _cfg.test_plot3d_azim
 
-    if _cfg.test.plot3d_size is None or type(_cfg.test.plot3d_size) != float:
+    if _cfg.test_plot3d_size is None or type(_cfg.test_plot3d_size) not in [float, int]:
         print("\n❌ test.plot3d_size should be a "
-              f"float. Got {_cfg.test.plot3d_size}")
+              f"float. Got {_cfg.test_plot3d_size}")
         sys.exit(1)
     else:
-        plot3d_size = _cfg.test.plot3d_size
+        plot3d_size = _cfg.test_plot3d_size
 
-    if _cfg.test.plot2d_only_holes is None or type(_cfg.test.plot2d_only_holes) != bool:
+    if _cfg.test_plot2d_only_holes is None or type(_cfg.test_plot2d_only_holes) != bool:
         print("\n❌ test.plot2d_only_holes should be a "
-              f"bool. Got {_cfg.test.plot2d_only_holes}")
+              f"bool. Got {_cfg.test_plot2d_only_holes}")
         sys.exit(1)
     else:
-        plot2d_only_holes = _cfg.test.plot2d_only_holes
+        plot2d_only_holes = _cfg.test_plot2d_only_holes
 
-    if _cfg.test.original_coordinates is None or type(_cfg.test.original_coordinates) != bool:
+    if _cfg.test_original_coordinates is None or type(_cfg.test_original_coordinates) != bool:
         print("\n❌ test.original_coordinates should be a "
-              f"bool. Got {_cfg.test.original_coordinates}")
+              f"bool. Got {_cfg.test_original_coordinates}")
         sys.exit(1)
     else:
-        original_coordinates = _cfg.test.original_coordinates
+        original_coordinates = _cfg.test_original_coordinates
 
-    if _cfg.test.n_repeat is None or type(_cfg.test.n_repeat) != int:
+    if _cfg.test_n_repeat is None or type(_cfg.test_n_repeat) != int:
         print("\n❌ test.n_repeat should be a string."
-              f"Got {_cfg.test.n_repeat}")
+              f"Got {_cfg.test_n_repeat}")
         sys.exit(1)
     else:
-        n_repeat = max(1, _cfg.test.n_repeat)
+        n_repeat = max(1, _cfg.test_n_repeat)
 
-    if _cfg.loss.type is None or type(_cfg.loss.type) != str or not _cfg.loss.type in ['l1', 'l2']:
+    print(_cfg)
+    if _cfg.loss_def is None or type(_cfg.loss_def) != str or not _cfg.loss_def in ['l1', 'l2']:
         print("\n❌ loss.type should be l1 or l2."
-              f"Got {_cfg.loss.type}")
+              f"Got {_cfg.loss_def}")
         sys.exit(1)
     else:
-        loss_type = _cfg.loss.type
+        loss_def = _cfg.loss_def
 
-    if _cfg.loss.mask is None or type(_cfg.loss.mask) != bool:
+    if _cfg.loss_mask is None or type(_cfg.loss_mask) != bool:
         print("\n❌ loss.mask should be a bool."
-              f"Got {_cfg.loss.mask}")
+              f"Got {_cfg.loss_mask}")
         sys.exit(1)
     else:
-        loss_mask = max(1, _cfg.loss.mask)
+        loss_mask = max(1, _cfg.loss_mask)
 
-    if _cfg.loss.factor is None or type(_cfg.loss.factor) != int:
+    if _cfg.loss_factor is None or type(_cfg.loss_factor) != int:
         print("\n❌ loss.factor should be an integer."
-              f"Got {_cfg.loss.factor}")
+              f"Got {_cfg.loss_factor}")
         sys.exit(1)
     else:
-        loss_factor = max(1, _cfg.loss.factor)
+        loss_factor = max(1, _cfg.loss_factor)
 
-    if _cfg.model_scheduler.type is None or type(_cfg.model_scheduler.type) != str \
-            or _cfg.model_scheduler.type != 'lambdalr':
-        print("\n❌ model_scheduler.type should be 'lambdalr'."
-              f"Got {_cfg.model_scheduler.type}")
+    if _cfg.model_scheduler_def is None or type(_cfg.model_scheduler_def) != str \
+            or _cfg.model_scheduler_def != 'lambdalr':
+        print("\n❌ model_scheduler_def should be 'lambdalr'."
+              f"Got {_cfg.model_scheduler_def}")
         sys.exit(1)
     else:
-        model_scheduler_type = _cfg.model_scheduler.type
+        model_scheduler_type = _cfg.model_scheduler_def
 
-    if _cfg.model_scheduler.steps_epoch is None or type(_cfg.model_scheduler.steps_epoch) != int:
-        print("\n❌ model_scheduler.steps_epoch should be 'lambdalr'."
-              f"Got {_cfg.model_scheduler.steps_epoch}")
+    if _cfg.model_scheduler_steps_epoch is None or type(_cfg.model_scheduler_steps_epoch) != int:
+        print("\n❌ model_scheduler_steps_epoch should be 'lambdalr'."
+              f"Got {_cfg.model_scheduler_steps_epoch}")
         sys.exit(1)
     else:
-        model_scheduler_steps_epoch = max(1, _cfg.model_scheduler.steps_epoch)
+        model_scheduler_steps_epoch = max(1, _cfg.model_scheduler_steps_epoch)
 
-    if _cfg.model_scheduler.rate is None or type(_cfg.model_scheduler.rate) != float:
-        print("\n❌ model_scheduler.rate should be a float between 0 and 1."
-              f"Got {_cfg.model_scheduler.rate}")
+    if _cfg.model_scheduler_rate is None or type(_cfg.model_scheduler_rate) != float:
+        print("\n❌ model_scheduler_rate should be a float between 0 and 1."
+              f"Got {_cfg.model_scheduler_rate}")
         sys.exit(1)
     else:
-        model_scheduler_rate = max(0, min(1, _cfg.model_scheduler.rate))
+        model_scheduler_rate = max(0, min(1, _cfg.model_scheduler_rate))
 
     os.makedirs(os.path.join(final_model_path, 'config'), exist_ok=True)
 
@@ -437,9 +456,9 @@ def cli(_cfg: DictConfig) -> None:
     add_missing = True
     main(project_path, final_model_path, dataset_path, dataset_name, test_dir,
          skeleton_graph, training_seed,
-         load_model_dir, _cfg.network,
+         load_model_dir, network_config,
          training_batch_size, training_epochs, learning_rate,
-         loss_type, loss_mask, loss_factor,
+         loss_def, loss_mask, loss_factor,
          model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,
          n_cpus,
          print_every,

@@ -13,8 +13,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import gc
-import hydra
-from omegaconf import DictConfig, OmegaConf
+import yaml
 
 from DISK.utils.dataset_utils import load_datasets
 from DISK.utils.utils import read_constant_file, plot_save, compute_interp, find_holes, load_checkpoint
@@ -72,7 +71,8 @@ def test(project_path: str,
     for cf in model_checkpoints:
         config_file = os.path.join(cf, 'config', 'config_train.yaml')
         if os.path.exists(config_file):
-            cfg_model = OmegaConf.load(config_file)
+            with open(config_file, 'r') as file:
+                cfg_model = yaml.safe_load(file)
             try:
                 model_path = glob(os.path.join(cf, 'model_epoch*'))[0] # model_epoch to not take the model from the lastepoch
             except IndexError:
@@ -86,7 +86,8 @@ def test(project_path: str,
                 logger.info(f'Found model at path {str(path)}')
                 paths_to_models.append(str(path))
                 config_file = os.path.join(os.path.dirname(path), 'config', 'config_train.yaml')
-                cfg_model = OmegaConf.load(config_file)
+                with open(config_file, 'r') as file:
+                    cfg_model = yaml.safe_load(file)
                 model_configs.append(cfg_model)
                 model_names.append(os.path.basename(path))
 

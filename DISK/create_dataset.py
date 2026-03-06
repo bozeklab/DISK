@@ -8,11 +8,6 @@ import pandas as pd
 import pickle
 import h5py
 
-import hydra
-from omegaconf import DictConfig
-
-# from DISK.utils.logging_setup import logging
-
 
 def chop_coordinates_in_timeseries(time_vect: np.array,
                                    coordinates: np.array,

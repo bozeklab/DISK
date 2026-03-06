@@ -8,8 +8,6 @@ import matplotlib.pyplot as plt
 import time
 import random
 import pandas as pd
-import hydra
-from omegaconf import DictConfig
 
 from DISK.utils.dataset_utils import load_datasets
 from DISK.utils.utils import read_constant_file, plot_training, timeSince, load_checkpoint, \

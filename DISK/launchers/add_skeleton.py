@@ -1,8 +1,8 @@
-import hydra
-from omegaconf import DictConfig, OmegaConf
 import sys
 import os
 import yaml
+
+from DISK.utils.config_decorator import config_reader, parse_command_line_args
 
 def create_skeleton(keypoints: list):
 
@@ -45,11 +45,11 @@ def create_skeleton(keypoints: list):
 
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="config_prepare_data")
-def cli(_cfg: DictConfig) -> None:
-
+@config_reader(config_path="../conf/config_prepare_data.yaml")
+def cli(_cfg) -> None:
+    _cfg = parse_command_line_args(_cfg)
     for key in ('project_path', ):
-        val = _cfg[key]
+        val = _cfg.__dict__[key]
         if val is None:
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'
@@ -80,7 +80,7 @@ def cli(_cfg: DictConfig) -> None:
 
     ### CREATE DISK_PROJECT_LOG
     updated_config = config
-    updated_config['center_keypoints'] = center
+    updated_config['skeleton_center'] = center
     updated_config['skeleton'] = neighbor_links
     updated_config['skeleton_colors'] = link_colors
 
@@ -92,6 +92,6 @@ def cli(_cfg: DictConfig) -> None:
 if __name__ == '__main__':
     cli()
     """
-    # hydra syntax:
+    # DISK syntax:
     DISK-create-project dir=mydir project_name=test_project input_files=[x,y,z] file_type=csv
     """

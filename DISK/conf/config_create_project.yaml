@@ -1,0 +1,50 @@
+project_path: DISK_project_human
+project_path_type: str
+
+# type_file should be one of the following: mat_dannce, mat_qualisys,simple_csv, dlc_csv, npy, df3d_pkl, sleap_h5
+file_format: npy
+file_format_type: str
+
+data_files:
+ - /home/france/Downloads/mocap_3djoints_subset/91_26.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_22.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_04.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_29.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_34.npy
+ - /home/france/Downloads/mocap_3djoints_subset/94_15.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_12.npy
+ - /home/france/Downloads/mocap_3djoints_subset/94_07.npy
+ - /home/france/Downloads/mocap_3djoints_subset/94_06.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_07.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_23.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_05.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_33.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_01.npy
+ - /home/france/Downloads/mocap_3djoints_subset/94_08.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_14.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_20.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_27.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_13.npy
+ - /home/france/Downloads/mocap_3djoints_subset/94_14.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_35.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_15.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_25.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_30.npy
+ - /home/france/Downloads/mocap_3djoints_subset/94_04.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_10.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_28.npy
+ - /home/france/Downloads/mocap_3djoints_subset/94_02.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_18.npy
+ - /home/france/Downloads/mocap_3djoints_subset/94_10.npy
+ - /home/france/Downloads/mocap_3djoints_subset/94_01.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_32.npy
+ - /home/france/Downloads/mocap_3djoints_subset/94_03.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_24.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_21.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_08.npy
+ - /home/france/Downloads/mocap_3djoints_subset/94_09.npy
+ - /home/france/Downloads/mocap_3djoints_subset/94_12.npy
+ - /home/france/Downloads/mocap_3djoints_subset/94_11.npy
+ - /home/france/Downloads/mocap_3djoints_subset/94_05.npy
+ - /home/france/Downloads/mocap_3djoints_subset/91_09.npy
+data_files_type: StringList
