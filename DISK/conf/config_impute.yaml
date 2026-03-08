@@ -20,7 +20,10 @@ model_name_type: str
 ## threshold used to reject bad imputed samples when the model is of type transformer_proba or GRU_proba
 ## to have an idea about the value to put, look at plots output of the test script
 threshold_error_score: 0.1
+threshold_error_score_type: float
+
 n_plots: 5
+n_plots_type: int
 ## save: boolean to save plots
 
 plot_only_holes: true

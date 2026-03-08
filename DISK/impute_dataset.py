@@ -87,7 +87,7 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
 
         df = pd.read_csv(file)
 
-        logger.debug(
+        logger.info(
             f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; '
             f'nb of nans in df: {df.loc[time_int, columns].isna().sum().sum()}')
 
@@ -100,7 +100,7 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
 
         df.loc[time_int, columns] = to_replace
 
-        logger.debug(
+        logger.info(
             f'AFTER -- nb of nans in data: {np.sum(np.isnan(data))}; '
             f'nb of nans in df: {df.loc[time_int, columns].isna().sum().sum()}')
 
@@ -158,14 +158,14 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
             if not np.sum(df[('scorer', 'individuals', 'bodyparts', 'coords')].isin(time_int)) == data.shape[0]:
                 raise ValueError('[save_data_original_format][dlc_csv] shape incompatibility')
 
-            logger.debug(f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
+            logger.info(f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
 
             to_replace = np.array(data.reshape((data.shape[0], -1)))
             to_replace[np.isnan(to_replace)] = df.loc[df[('scorer', 'individuals', 'bodyparts', 'coords')].isin(time_int), columns].values[np.isnan(to_replace)]
             df.loc[df[('scorer', 'individuals', 'bodyparts', 'coords')].isin(time_int), columns] = to_replace
 
             # for now replace likelihood with -1 to mark the positions where we modified the coordinate values
-            logger.debug(f'AFTER -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
+            logger.info(f'AFTER -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
             logger.debug(f'modifying values between indices {np.min(time_int)} and {np.max(time_int)}')
         else:
             # single animal
@@ -185,7 +185,7 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
                 # df.loc[df.loc[:, (header, k, 'likelihood')] <= dataset_constants.DLC_LIKELIHOOD_THRESHOLD, (header, k, 'likelihood')] = np.nan
             assert np.sum(df[('scorer', 'bodyparts', 'coords')].isin(time_int)) == data.shape[0]
 
-            logger.debug(f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
+            logger.info(f'BEFORE -- nb of nans in data: {np.sum(np.isnan(data))}; nb of nans in df: {df[columns].isna().sum().sum()}')
 
             to_replace = np.array(data.reshape((data.shape[0], -1)))
             to_replace[np.isnan(to_replace)] = df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time_int), columns].values[np.isnan(to_replace)]
@@ -304,7 +304,7 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
     logger.info('Loading prediction model...')
     # load model
     model_name = ''
-    model = construct_NN_model(cfg_model.network, keypoints, data_divider, seq_length, skeleton_graph, device)
+    model = construct_NN_model(cfg_model['network'], keypoints, data_divider, seq_length, skeleton_graph, device)
 
     logger.info(f'Network {model_name} constructed')
 
@@ -322,9 +322,9 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
                                 impute_dir,
                                 logger,
                                 add_missing=False,
-                                viewinvariant=cfg_model.transforms_viewinvariant,
-                                normalize=cfg_model.transforms_normalize,
-                                normalizecube=cfg_model.transforms_normalizecube,
+                                viewinvariant=cfg_model['transforms_viewinvariant'],
+                                normalize=cfg_model['transforms_normalize'],
+                                normalizecube=cfg_model['transforms_normalizecube'],
                                 swap=0
                                         )
 
@@ -368,7 +368,7 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
                     de_out = feed_forward(transformed_data, mask_holes,  # 1 for missing, 0 for non-missing
                                           data_divider, model,
                                           True, 1,
-                                          cfg_model.network,
+                                          cfg_model['network'],
                                           key_padding_mask=lengths, logger=logger)
                     # References for key_padding_mask for transformer
                     # https://pytorch.org/docs/stable/_modules/torch/nn/modules/activation.html#MultiheadAttention

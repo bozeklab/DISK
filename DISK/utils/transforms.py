@@ -590,11 +590,11 @@ class AddMissing_LengthProba(Transform):
                     length_df = self.length_proba_df.groupby('keypoint').sample(n=1, weights='proba')
                     length_input = np.random.choice(length_df.loc[length_df['keypoint'].isin(rd_kp), 'length'].values, 1)[0]
                     ## verify it's not too long
-                    lengths = np.fmin(length_input, x.shape[0] - buffer - self.pad_after)  # shape: n_missing
+                    lengths = int(np.fmin(length_input, x.shape[0] - buffer - self.pad_after))  # shape: n_missing
 
                     ## chosen first index indep per keypoint
-                    inter_lengths = np.fmin(length_df.loc[length_df['keypoint'] == 'non_missing', 'length'].values,
-                                            x.shape[0] - self.pad_after - buffer - lengths)[0]
+                    inter_lengths = int(np.fmin(length_df.loc[length_df['keypoint'] == 'non_missing', 'length'].values,
+                                            x.shape[0] - self.pad_after - buffer - lengths)[0])
 
                     start_missing = buffer + inter_lengths
                     end_missing = start_missing + lengths

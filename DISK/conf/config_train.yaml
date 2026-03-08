@@ -20,36 +20,40 @@ training_batch_size_type: int
 # from experience, learning rate of 0.0001 is better for GRU and 0.001 for transformer
 training_learning_rate: 0.001
 training_learning_rate_type: float
-training_seed:
+training_seed: _DEFAULT_
 training_seed_type: int
+
 # load can be used to continue a training
 # if a valid path is given, then the saved model will be loaded
 # instead of starting from a random initialization of the weights
 load_model: # example: outputs/2023-09-27_Fishv3_newnewmissing/09-26-47_STGCN_stride60
+
 n_cpus: 8 # TOCHANGE: if no multiprocessing, put 0
+n_cpus_type: int
+
 loss:
   def: l1
+  def_type: str
   mask: true
+  mask_type: bool
   factor: 100
+  factor_type: float
 model_scheduler:
   def: lambdalr
+  def_type: str
   steps_epoch: 500
+  steps_epoch_type: int
   rate: 0.95
+  rate_type: float
 print_every: _DEFAULT_
+print_every_type: int
 # print_every modifies the frequency at which the model infers on the validation set and the frequency at which
 # models can be saved (save when validation loss is better than previous one)
-
-## if mu_sigma is True, then will change the output of the model from a point prediction (one value per keypoint per timepoint)
-## to a probabilistic output where for each keypoint and each timepoint, it will output a mean (mu) and a standard
-## deviation (sigma). The network is trained with a different loss (a different loss profile is expected).
-## Used in this framework to approximate the network imputation error on each sample (cf test_fillmissing.py)
-## Used also to filter the imputations in impute_dataset (cf impute_dataset.py)
-mu_sigma: False # TOCHANGE (True or False)
-beta_mu_sigma: 0.5 # default is 0 for the standard NLL loss
 
 
 transforms:
   add_missing_pad: [1, 0]
+  add_missing_pad_type: IntList
   viewinvariant: true
   viewinvariant_type: bool
   normalize: false

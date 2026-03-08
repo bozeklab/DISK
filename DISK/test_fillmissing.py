@@ -105,7 +105,7 @@ def test(project_path: str,
     models = []
     full_name = ''
     for imodel, model_cfg in enumerate(model_configs):
-        models.append(construct_NN_model(model_cfg.network, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
+        models.append(construct_NN_model(model_cfg['network'], dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
                                          dataset_constants.SEQ_LENGTH,
                                          skeleton_graph,
                                          device))
@@ -221,7 +221,7 @@ def test(project_path: str,
                 de_outs, uncertainty_estimates, _, _ = feed_forward_list(data_with_holes, mask_holes,
                                                                          dataset_constants.DIVIDER, models,
                                                                          loss_mask, loss_factor,
-                                                                         [m.network for m in model_configs],
+                                                                         [m['network'] for m in model_configs],
                                                                           data_full=data_full,
                                                                          criterion_seq=criterion_seq,
                                                                          logger=logger)
@@ -276,7 +276,7 @@ def test(project_path: str,
                 bandexcess = [[]] * n_models
 
                 for i_model in range(n_models):
-                    if model_configs[i_model].network.mu_sigma:
+                    if model_configs[i_model]['network']['mu_sigma']:
                         factor = 2
                         in_ = np.sum((full_data_np <= x_outputs_np[i_model] + uncertainty_estimates_np[i_model] * factor) *
                                      (full_data_np >= x_outputs_np[i_model] - uncertainty_estimates_np[i_model] * factor) *
@@ -323,7 +323,7 @@ def test(project_path: str,
                             total_rmse['id_sample'].append(id_sample)
                             total_rmse['id_hole'].append(id_hole)
                             total_rmse['keypoint'].append(o[2])
-                            total_rmse['method'].append(model_configs[i_model].network.type)
+                            total_rmse['method'].append(model_configs[i_model]['network']['type'])
                             total_rmse['method_param'].append(model_names[i_model])
                             total_rmse['RMSE'].append(mean_rmse)
                             total_rmse['MPJPE'].append(mean_euclidean)
@@ -375,14 +375,14 @@ def test(project_path: str,
                             total_rmse['swap_length'].append(swap_length)
                             total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
                     for i_model in range(n_models):
-                        if model_configs[i_model].network.mu_sigma:
+                        if model_configs[i_model]['network']['mu_sigma']:
                             mean_uncertainty_model = np.sum(uncertainty[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch]
                         else:
                             mean_uncertainty_model = np.nan
                         total_rmse['id_sample'].append(id_sample)
                         total_rmse['id_hole'].append(-1)
                         total_rmse['keypoint'].append('all')
-                        total_rmse['method'].append(model_configs[i_model].network.type)
+                        total_rmse['method'].append(model_configs[i_model]['network']['type'])
                         total_rmse['method_param'].append(model_names[i_model])
                         total_rmse['RMSE'].append(np.sqrt(np.sum(rmse[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch]))
                         total_rmse['MPJPE'].append(np.sum(euclidean_distance[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch])
@@ -446,7 +446,7 @@ def test(project_path: str,
                                         for i_model, xo in enumerate(x_outputs_np):
                                             plot_ = axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[t_mask], xo[i, 1:, j, i_dim][t_mask], 'o',
                                                              label=model_names[i_model], )
-                                            if model_configs[i_model].network.mu_sigma:
+                                            if model_configs[i_model]['network']['mu_sigma']:
                                                 # 3 * std otherwise 1/ we do not see anything,
                                                 # 2/ because the underlying distribution is supposed to be Gaussian
                                                 axes[dataset_constants.DIVIDER * j + i_dim]\
@@ -599,7 +599,7 @@ def test(project_path: str,
             def plot_thresholding():
                 fig, ax1 = plt.subplots(1, 1)
                 for i_model in range(n_models):
-                    if not model_configs[i_model].network.mu_sigma:
+                    if not model_configs[i_model]['network']['mu_sigma']:
                         continue
                     m = model_names[i_model]
                     count = thresholding_df.loc[thresholding_df['method'] == m, 'count'].astype(int)

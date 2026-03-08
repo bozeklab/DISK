@@ -5,7 +5,7 @@ import logging
 
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
 from DISK.models.graph import Graph
-from DISK.utils.config_decorator import config_reader, parse_command_line_args
+from DISK.utils.config_decorator import config_reader, parse_command_line_args, test_boolean_variable
 
 def main(project_path, dataset_path, dataset_name, data_files, file_type,
          length, stride, fill_gap, sequential, original_freq, subsampling_freq,
@@ -40,12 +40,14 @@ def main(project_path, dataset_path, dataset_name, data_files, file_type,
               f'\nTry relaunching DISK-prepare-data with a higher fill_gap value and/or '
               f'lower stride value.\n')
 
+
     create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_graph, logger)
     logger.info(f'✅ Successfully estimated probabilities of missing keypoints for dataset {dataset_name}.\n')
     return keypoints, divider
 
 @config_reader(config_path="../conf/config_prepare_data.yaml")
 def cli(_cfg) -> None:
+    print(_cfg)
     _cfg = parse_command_line_args(_cfg)
     modified_cfg = dict(_cfg.__dict__)
 
@@ -119,11 +121,7 @@ def cli(_cfg) -> None:
         else:
             sequential = False
     else:
-        if _cfg.sequential is None or type(_cfg.sequential) != bool:
-            print("\n❌ sequential should be a "
-                  f"bool. Got {_cfg.sequential}")
-            sys.exit(1)
-        sequential = _cfg.sequential
+        sequential = test_boolean_variable(_cfg.sequential, 'sequential')
 
     if _cfg.original_freq == '_DEFAULT_':
         original_freq = 1
@@ -175,6 +173,8 @@ def cli(_cfg) -> None:
     else:
         logging_flag = logging.INFO
 
+    logging.basicConfig(logging.CRITICAL)
+
     logger = setup_custom_logging(dataset_path, 'prepare_data.log', logging_flag)
 
     if _cfg.dlc_likelihood_threshold is None or type(_cfg.dlc_likelihood_threshold) != float:
@@ -210,20 +210,8 @@ def cli(_cfg) -> None:
     else:
         drop_keypoints = list(_cfg.drop_keypoints)
 
-    if _cfg.indep_keypoints is None or type(_cfg.indep_keypoints) != bool:
-        print("\n❌ indep_keypoints should be a "
-              f"bool. Got {_cfg.indep_keypoints}")
-        sys.exit(1)
-    else:
-        indep_keypoints = _cfg.indep_keypoints
-
-    if _cfg.merge_keypoints is None or type(_cfg.merge_keypoints) != bool:
-        print("\n❌ merge_keypoints should be a "
-              f"bool. Got {_cfg.merge_keypoints}")
-        sys.exit(1)
-    else:
-        merge_keypoints = _cfg.merge_keypoints
-
+    indep_keypoints = test_boolean_variable(_cfg.indep_keypoints, 'indep_keypoints')
+    merge_keypoints = test_boolean_variable(_cfg.merge_keypoints, 'merge_keypoints')
 
     os.makedirs(os.path.join(dataset_path, 'config'), exist_ok=True)
 

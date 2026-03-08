@@ -2,10 +2,10 @@
 set -e
 
 ## not found
-DISK-create-project project_path=DISK_DLC_H5 file_type=dlc_h5 data_files=[/home/france/mount_cvg/results_behavior/dlc_project/videos/21_11_8_one_mouse.top.irDLC_resnet50_moseq_exampleAug21shuffle1_500000.h5,/home/france/mount_cvg/results_behavior/dlc_project/videos/21_12_2_def6a_1.top.irDLC_resnet50_moseq_exampleAug21shuffle1_500000.h5,/home/france/mount_cvg/results_behavior/dlc_project/videos/22_04_26_cage4_0_2.top.irDLC_resnet50_moseq_exampleAug21shuffle1_500000.h5]
+DISK-create-project --project_path DISK_DLC_H5 --file_format dlc_h5 --data_files /home/france/Mounted_dir/behavior_results/dlc_project/videos/21_11_8_one_mouse.top.irDLC_resnet50_moseq_exampleAug21shuffle1_500000.h5 /home/france/Mounted_dir/behavior_results/dlc_project/videos/21_12_2_def6a_1.top.irDLC_resnet50_moseq_exampleAug21shuffle1_500000.h5 /home/france/Mounted_dir/behavior_results/dlc_project/videos/22_04_26_cage4_0_2.top.irDLC_resnet50_moseq_exampleAug21shuffle1_500000.h5
 
-DISK-prepare-data project_path=DISK_DLC_H5 dataset_name=test_dlc_h5 original_freq=60 subsampling_freq=60 length=10 stride=10 discard_beginning=0 discard_end=-1 fill_gap=10 drop_keypoints=[0] sequential=false dlc_likelihood_threshold=0.8
+DISK-prepare-data --project_path DISK_DLC_H5 --dataset_name test_dlc_h5 --original_freq 60 --subsampling_freq 60 --length 10 --stride 10 --discard_beginning 0 --discard_end -1 --fill_gap 10 --drop_keypoints [0] --sequential false --dlc_likelihood_threshold 0.8
 
-DISK-train project_path=DISK_DLC_H5 dataset_name=test_dlc_h5 training_epochs=4 print_every=2 n_cpus=6
+DISK-train --project_path DISK_DLC_H5 --dataset_name test_dlc_h5 --training_epochs 4 --print_every 2 --n_cpus 6
 
-DISK-impute project_path=DISK_DLC_H5 dataset_name=test_dlc_h5 model_name
+DISK-impute --project_path DISK_DLC_H5 --dataset_name test_dlc_h5 --model_name test_dlc_h5_DISK --threshold_error_score 1000

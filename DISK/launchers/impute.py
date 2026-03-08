@@ -98,7 +98,14 @@ def cli(_cfg) -> None:
         logging_flag = logging.INFO
         verbose = 0
 
+    class VoidHandler(logging.Handler):
+        def emit(self, record):
+            pass  # Discard all logs
+
     modified_cfg['model_name'] = os.path.basename(output_path)
+    logging.basicConfig(level=logging_flag, handlers=[VoidHandler()])
+
+
     logger = setup_custom_logging(output_path, 'impute.log', logging_flag)
 
     ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS

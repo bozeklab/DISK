@@ -5,11 +5,11 @@ dataset_name: human
 dataset_name_type: str
 dataset_name_help: "output name for the created dataset"
 
-original_freq: 100
+original_freq: _DEFAULT_
 original_freq_type: int
 original_freq_help: "original frequency of your data in Hz"
 #
-subsampling_freq: 100
+subsampling_freq: _DEFAULT_
 subsampling_freq_type: int
 subsampling_freq_help: "subsampling frequency. subsampling_freq <= original_freq, equal if no subsampling desired otherwise lower"
 

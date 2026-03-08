@@ -3,8 +3,9 @@ import sys
 import shutil
 import yaml
 from datetime import datetime
+from glob import glob
 
-from DISK.utils.config_decorator import config_reader, parse_command_line_args
+from DISK.utils.config_decorator import config_reader, parse_command_line_args, StringList
 
 possible_file_type_values = ('mat_dannce', 'mat_qualisys', 'simple_csv', 'dlc_csv', 'dlc_h5', 'npy', 'df3d_pkl',
                           'sleap_h5')
@@ -14,46 +15,6 @@ def check_file_type(value: str) -> str:
         return True
     else:
         return False
-
-
-
-@config_reader(config_path="../conf/config_create_project.yaml")
-def cli(_cfg) -> None:
-    _cfg = parse_command_line_args(_cfg)
-
-    for key in ('project_path', 'data_files', 'file_format'):
-        val = _cfg.__dict__[key]
-        if val is None:
-            print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
-                  f'\n  Expected syntax:'
-                  f'\n  > DISK-create-project project_path=test_project input_files=[x,y,'
-                  f'z] file_type=simple_csv\n'
-                  f'# careful no space between input_files inside the brackets, and after/before "="')
-            sys.exit(1)
-
-    if _cfg.project_path is None or type(_cfg.project_path) != str:
-        print(f'\n❌ project_path should be string. Got {_cfg.project_path}.')
-        sys.exit(1)
-    else:
-        if os.path.isabs(_cfg.project_path):
-            if not os.path.exists(os.path.dirname(_cfg.project_path)):
-                print(f'\n❌ project_path should be valid path. Got {_cfg.project_path}.')
-                sys.exit(1)
-    project_path = _cfg.project_path
-    ext_project_path = 1
-    final_project_path = str(project_path)
-    while os.path.exists(final_project_path):
-        final_project_path = project_path + f'_{ext_project_path}'
-        ext_project_path += 1
-
-    if not os.path.isabs(final_project_path):
-        final_project_path = os.path.join(os.getcwd(), final_project_path)
-
-    main(
-        project_path=final_project_path,
-        data_file_list=_cfg.data_files,
-        file_type=_cfg.file_format,
-    )
 
 def check_extension(file_path: str, file_type:str) -> bool:
 
@@ -77,25 +38,102 @@ def check_extension(file_path: str, file_type:str) -> bool:
     else:
         return False
 
+@config_reader(config_path="../conf/config_create_project.yaml")
+def cli(_cfg) -> None:
+    _cfg = parse_command_line_args(_cfg)
+
+    for key in ('project_path', 'data_files', 'file_format'):
+        val = _cfg.__dict__[key]
+        if val is None:
+            print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
+                  f'\n  Expected syntax:'
+                  f'\n  > DISK-create-project --project_path test_project --data_files x y '
+                  f'z --file_format simple_csv\n')
+            sys.exit(1)
+
+    ## PROJECT_PATH
+    if _cfg.project_path is None or type(_cfg.project_path) != str:
+        print(f'\n❌ project_path should be string. Got {_cfg.project_path}.')
+        sys.exit(1)
+    else:
+        if os.path.isabs(_cfg.project_path):
+            if not os.path.exists(os.path.dirname(_cfg.project_path)):
+                print(f'\n❌ project_path should be valid path. Got {_cfg.project_path}.')
+                sys.exit(1)
+
+    project_path = _cfg.project_path
+    ext_project_path = 1
+    final_project_path = str(project_path)
+    while os.path.exists(final_project_path):
+        final_project_path = project_path + f'_{ext_project_path}'
+        ext_project_path += 1
+
+    if final_project_path != project_path:
+        print(f'⚠️️ A DISK project with same name {project_path} has been found.\n'
+              f'Writing in {final_project_path} instead.\n')
+
+    if not os.path.isabs(final_project_path):
+        final_project_path = os.path.join(os.getcwd(), final_project_path)
+
+
+    ## FILE_FORMAT
+    if not check_file_type(_cfg.file_format):
+        print(f'\n❌ File_type {_cfg.file_format} is not correct. Should be one '
+              f'of {possible_file_type_values}.\n')
+        sys.exit(1)
+
+    file_format = _cfg.file_format
+
+    ## FILE LIST
+    if _cfg.data_files is None or type(_cfg.data_files) != list:
+        print(f'\n❌ data_files should be a list of valid paths. '
+              f'Got {_cfg.data_files}.')
+        sys.exit(1)
+
+    data_files = []
+    ## CHECK FILE VALIDITY
+    for f in _cfg.data_files:
+        if os.path.isdir(f):
+            possible_files = glob(os.path.join(f, '*'))
+            for ff in possible_files:
+                if not os.path.exists(ff):
+                    print(f'\n❌ File {ff} not found. Please check path.\n')
+                    continue
+
+                if not check_extension(ff, file_format):
+                    print(f'\n❌ File {ff} does not have the correct extension. '
+                          f'Should be of type {file_format}.\n')
+                    continue
+                data_files.append(ff)
+        else:
+            if not os.path.exists(f):
+                print(f'\n❌ File {f} not found. Please check path.\n')
+                continue
+
+            if not check_extension(f, file_format):
+                print(f'\n❌ File {f} does not have the correct extension. '
+                      f'Should be of type {file_format}.\n')
+                continue
+
+        data_files.append(f)
+
+    if len(data_files) == 0:
+        print(f'\n❌ No data files found. Please check given paths. \n')
+        sys.exit(1)
+
+    main(
+        project_path=final_project_path,
+        data_file_list=data_files,
+        file_type=file_format,
+    )
+
+
+
 
 def main(project_path: str,
          data_file_list: list,
          file_type: str):
 
-    ## CHECK FILE VALIDITY
-    for f in data_file_list:
-        if not os.path.exists(f):
-            print(f'\n❌ File {f} not found. Please check path.\n')
-            sys.exit(1)
-
-        if not check_file_type(file_type):
-            print(f'\n❌ File_type {file_type} is not correct. Should be one '
-                  f'of {possible_file_type_values}.\n')
-            sys.exit(1)
-
-        if not check_extension(f, file_type):
-            print(f'\n❌ File {f} does not have the correct extension. Should be of type {file_type}.\n')
-            sys.exit(1)
 
     ## CREATE DISK PROJECT FOLDER
     os.mkdir(project_path)
@@ -108,7 +146,7 @@ def main(project_path: str,
     os.mkdir(example_configs_folder)
 
     script_directory = os.path.dirname(os.path.abspath(__file__))
-    for config in ('config_prepare_data', 'config_train', 'config_test', 'config_impute'):
+    for config in ('config_create_project', 'config_prepare_data', 'config_train', 'config_test', 'config_impute'):
         shutil.copy(os.path.join(script_directory, '..', 'conf', f'{config}.yaml'),
                     os.path.join(example_configs_folder, f'{config}.yaml'))
 

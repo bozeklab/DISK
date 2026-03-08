@@ -2,7 +2,7 @@ from DISK.utils.config_decorator import config_reader, parse_command_line_args
 
 
 # Example function that uses the configuration
-@config_reader(config_path='../conf/conf_create_dataset.yaml')  # Specify your relative path here
+@config_reader(config_path='../conf/config_create_project.yaml')  # Specify your relative path here
 def run_application(config):
     args = parse_command_line_args(config)
     print(args)

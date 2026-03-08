@@ -6,11 +6,11 @@ import yaml
 
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
 from DISK.models.graph import Graph
-from DISK.utils.config_decorator import config_reader, parse_command_line_args
+from DISK.utils.config_decorator import config_reader, parse_command_line_args, test_boolean_variable
 
 possible_network_type_values = ('transformer', 'gru', 'st_gcn', 'sts_gcn', 'tcn')
 
-def check_network_type(value: str) -> str:
+def check_network_type(value: str) -> bool:
     if value in possible_network_type_values:
         return True
     else:
@@ -246,7 +246,9 @@ def cli(_cfg) -> None:
     if _cfg.training_seed is None:
         training_seed = None
     else:
-        if _cfg.training_seed is None or type(_cfg.training_seed) != int:
+        if _cfg.training_seed == '_DEFAULT_':
+            training_seed = None
+        elif type(_cfg.training_seed) != int:
             print(f"\n❌ training_seed should be a positive integer. "
                   f"Got {_cfg.training_seed}")
             sys.exit(1)
@@ -277,19 +279,8 @@ def cli(_cfg) -> None:
     else:
         add_missing_pad = list(_cfg.transforms_add_missing_pad)
 
-    if _cfg.indep_keypoints is None or type(_cfg.indep_keypoints) != bool:
-        print("\n❌ indep_keypoints should be a "
-              f"bool. Got {_cfg.indep_keypoints}")
-        sys.exit(1)
-    else:
-        indep_keypoints = _cfg.indep_keypoints
-
-    if _cfg.merge_keypoints is None or type(_cfg.merge_keypoints) != bool:
-        print("\n❌ merge_keypoints should be a "
-              f"bool. Got {_cfg.merge_keypoints}")
-        sys.exit(1)
-    else:
-        merge_keypoints = _cfg.merge_keypoints
+    indep_keypoints = test_boolean_variable(_cfg.indep_keypoints, 'indep_keypoints')
+    merge_keypoints = test_boolean_variable(_cfg.merge_keypoints, 'merge_keypoints')
 
     suffix = f'_set_keypoints' if not indep_keypoints else ''
     if indep_keypoints:
@@ -315,26 +306,9 @@ def cli(_cfg) -> None:
         print("\n❌ did not find proba_files matching your criterion.")
         sys.exit(1)
 
-    if _cfg.transforms_viewinvariant is None or type(_cfg.transforms_viewinvariant) != bool:
-        print("\n❌ transforms_viewinvariant should be a "
-              f"bool. Got {_cfg.transforms_viewinvariant}")
-        sys.exit(1)
-    else:
-        viewinvariant = _cfg.transforms_viewinvariant
-
-    if _cfg.transforms_normalize is None or type(_cfg.transforms_normalize) != bool:
-        print("\n❌ transforms_normalize should be a "
-              f"bool. Got {_cfg.transforms_normalize}")
-        sys.exit(1)
-    else:
-        normalize = _cfg.transforms_normalize
-
-    if _cfg.transforms_normalizecube is None or type(_cfg.transforms_normalizecube) != bool:
-        print("\n❌ transforms_normalizecube should be a "
-              f"bool. Got {_cfg.transforms_normalizecube}")
-        sys.exit(1)
-    else:
-        normalizecube = _cfg.transforms_normalizecube
+    viewinvariant = test_boolean_variable(_cfg.transforms_viewinvariant, 'transforms_viewinvariant')
+    normalize = test_boolean_variable(_cfg.transforms_normalize, 'transforms_normalize')
+    normalizecube = test_boolean_variable(_cfg.transforms_normalizecube, 'transforms_normalizecube')
 
     if _cfg.transforms_swap is None or type(
             _cfg.transforms_swap) != float or _cfg.transforms_swap < 0 or _cfg.transforms_swap > 1:
@@ -374,19 +348,8 @@ def cli(_cfg) -> None:
     else:
         plot3d_size = _cfg.test_plot3d_size
 
-    if _cfg.test_plot2d_only_holes is None or type(_cfg.test_plot2d_only_holes) != bool:
-        print("\n❌ test.plot2d_only_holes should be a "
-              f"bool. Got {_cfg.test_plot2d_only_holes}")
-        sys.exit(1)
-    else:
-        plot2d_only_holes = _cfg.test_plot2d_only_holes
-
-    if _cfg.test_original_coordinates is None or type(_cfg.test_original_coordinates) != bool:
-        print("\n❌ test.original_coordinates should be a "
-              f"bool. Got {_cfg.test_original_coordinates}")
-        sys.exit(1)
-    else:
-        original_coordinates = _cfg.test_original_coordinates
+    plot2d_only_holes = test_boolean_variable(_cfg.test_plot2d_only_holes, 'test_plot2d_only_holes')
+    original_coordinates = test_boolean_variable(_cfg.test_original_coordinates, 'test_original_coordinates')
 
     if _cfg.test_n_repeat is None or type(_cfg.test_n_repeat) != int:
         print("\n❌ test.n_repeat should be a string."
@@ -403,12 +366,7 @@ def cli(_cfg) -> None:
     else:
         loss_def = _cfg.loss_def
 
-    if _cfg.loss_mask is None or type(_cfg.loss_mask) != bool:
-        print("\n❌ loss.mask should be a bool."
-              f"Got {_cfg.loss_mask}")
-        sys.exit(1)
-    else:
-        loss_mask = max(1, _cfg.loss_mask)
+    loss_mask = test_boolean_variable(_cfg.loss_mask, 'loss_mask')
 
     if _cfg.loss_factor is None or type(_cfg.loss_factor) != int:
         print("\n❌ loss.factor should be an integer."

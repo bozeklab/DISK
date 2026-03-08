@@ -2,6 +2,7 @@ import yaml
 import argparse
 from typing import List, TypeVar, Generic
 import os
+import sys
 
 # Define a type variable to represent the generic type
 I = TypeVar('I', bound=int)
@@ -67,9 +68,75 @@ def config_reader(config_path):
         return wrapper
     return decorator
 
+def test_boolean_variable(var, varname):
+    if var is not None:
+        if type(var) == str:
+            seq = var[0].upper() + var[1:]
+            if eval(seq) not in [True, False]:
+                print("\n❌ sequential should be a "
+                      f"bool. Got {var}")
+                sys.exit(1)
+            else:
+                output = eval(seq)
+        elif type(var) == bool:
+            output = var
+        else:
+            print(f"\n❌ {varname} should be a "
+                  f"bool. Got {var}")
+            sys.exit(1)
+    else:
+        print(f"\n❌ {varname} should be a "
+              f"bool. Got {var}")
+        sys.exit(1)
+    return output
 
-def parse_command_line_args(config):
-    parser = argparse.ArgumentParser(description="Run application with configuration.")
+
+class IntDefault(argparse.Action):
+    """Custom action to handle integer arguments allowing _DEFAULT_."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        if values == '_DEFAULT_':
+            value = 2**8 - 1
+        else:
+            # Convert to integer
+            value = int(values)
+
+        # Set the value in the namespace
+        setattr(namespace, self.dest, value)
+
+class NoAction(argparse.Action):
+
+    def __call__(self, parser, namespace, value, option_string=None):
+        setattr(namespace, self.dest, value)
+
+def single_add_argument(parser, key, value, parent_value, full_name):
+    type_key = f"{key}_type"
+    help_key = f"{key}_help"
+    expected_type = eval(parent_value.get(type_key, 'str'))  # Default to 'str'
+    if expected_type == StringList:
+        nargs = '*'
+        expected_type = str
+    elif expected_type == IntList:
+        nargs = '*'
+        expected_type = int
+    else:
+        nargs = '?'
+    if expected_type == bool:
+        expected_type = str
+        custom_action = 'store'
+    elif expected_type == int:
+        expected_type = str
+        custom_action = IntDefault
+    else:
+        custom_action='store'
+    help_message = parent_value.get(help_key, '')  # Default to 'str'
+    parser.add_argument(f'--{full_name}', type=expected_type, nargs=nargs,
+                        action=custom_action,
+                        help=f'Override {key}. {help_message}', default=value)
+    return parser
+
+def parse_command_line_args(config, desc=''):
+    parser = argparse.ArgumentParser(description=desc)
 
     dict_keys = []
     # Dynamically add arguments based on config keys
@@ -81,45 +148,18 @@ def parse_command_line_args(config):
                 if 'type' in kk or 'help' in kk:
                     continue
                 if type(vv) == dict:
-                    for kkk, vvv in v.items():
+                    for kkk, vvv in vv.items():
                         if 'type' in kkk or 'help' in kkk:
                             continue
 
-                        type_key = f"{kkk}_type"
-                        help_key = f"{kkk}_help"
-                        expected_type = eval(v.get(type_key, 'str'))  # Default to 'str'
-                        if expected_type == StringList:
-                            nargs = '*'
-                        else:
-                            nargs = '?'
-                        help_message = v.get(help_key, '')  # Default to 'str'
-                        parser.add_argument(f'--{k}.{kk}.{kkk}', type=expected_type, nargs=nargs,
-                                            help=f'Override {kkk}. {help_message}', default=vvv)
+                    parser = single_add_argument(parser, kkk, vvv, vv, f'{k}-{kk}-{kkk}')
                 else:
-                    type_key = f"{kk}_type"
-                    help_key = f"{kk}_help"
-                    expected_type = eval(config[k].get(type_key, 'str'))  # Default to 'str'
                     dict_keys.append(k)
-                    if expected_type == StringList:
-                        nargs = '*'
-                    else:
-                        nargs = '?'
-                    help_message = config[k].get(help_key, '')  # Default to 'str'
-                    parser.add_argument(f'--{k}-{kk}', type=expected_type, nargs=nargs,
-                                        help=f'Override {kk}. {help_message}', default=vv)
+                    parser = single_add_argument(parser, kk, vv, v, f'{k}-{kk}')
+
 
         else:
-            type_key = f"{k}_type"
-            help_key = f"{k}_help"
-            expected_type = eval(config.get(type_key, 'str'))  # Default to 'str'
-            if expected_type == StringList:
-                nargs = '*'
-                expected_type = str
-            else:
-                nargs = '?'
-            help_message = config.get(help_key, '')  # Default to 'str'
-            parser.add_argument(f'--{k}', type=expected_type, nargs=nargs,
-                                help=f'Override {k}. {help_message}', default=v)
+             parser = single_add_argument(parser, k, v, config, f'{k}')
 
     args = parser.parse_args()
     return args
