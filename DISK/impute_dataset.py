@@ -191,7 +191,7 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
             to_replace[np.isnan(to_replace)] = df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time_int), columns].values[np.isnan(to_replace)]
             df.loc[df[('scorer', 'bodyparts', 'coords')].isin(time_int), columns] = to_replace
 
-            logger.debug(f'AFTER -- nb of nans in data: {np.sum(np.isnan(to_replace))}; nb of nans in df: {df[columns].isna().sum().sum()}')
+            logger.info(f'AFTER -- nb of nans in data: {np.sum(np.isnan(to_replace))}; nb of nans in df: {df[columns].isna().sum().sum()}')
             logger.debug(f'modifying values between indices {np.min(time_int)} and {np.max(time_int)}')
 
         if file_type == 'dlc_csv':

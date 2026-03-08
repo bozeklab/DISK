@@ -4,10 +4,10 @@ import os
 import sys
 import yaml
 
-from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
+from DISK.utils.logger_setup import setup_custom_logging, copy_config_file, VoidHandler
 from DISK.launchers.train_test import find_proba_files
 from DISK.models.graph import Graph
-from DISK.utils.config_decorator import config_reader, parse_command_line_args
+from DISK.utils.config_decorator import config_reader, parse_command_line_args, test_boolean_variable
 
 def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton_graph,
          training_batch_size,
@@ -40,6 +40,7 @@ def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton
 
 @config_reader(config_path="../conf/config_test.yaml")
 def cli(_cfg) -> None:
+    _cfg = parse_command_line_args(_cfg)
     modified_cfg = dict(_cfg.__dict__)
 
     for key in ('project_path', 'dataset_name', 'model_name_list'):
@@ -92,7 +93,7 @@ def cli(_cfg) -> None:
     dataset_path = os.path.join(project_path, 'DISK_data', dataset_name)
 
     model_path_list = []
-    if _cfg.model_name_list is None or type(_cfg.model_name_list) != listconfig.ListConfig:
+    if _cfg.model_name_list is None or type(_cfg.model_name_list) != list:
         print("\n❌ model_name_list should be a "
               f"list of strings. Got {_cfg.model_name_list}")
         sys.exit(1)
@@ -130,6 +131,7 @@ def cli(_cfg) -> None:
             test_dir = os.path.join(project_path, 'DISK_train', _cfg.name_output_dir)
     os.makedirs(test_dir, exist_ok=True)
 
+    logging.basicConfig(level=logging_flag, handlers=[VoidHandler()])
     logger = setup_custom_logging(test_dir, 'test.log', logging_flag)
 
     ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
@@ -161,19 +163,8 @@ def cli(_cfg) -> None:
     else:
         add_missing_pad = list(_cfg.transforms_add_missing_pad)
 
-    if _cfg.transforms_indep_keypoints is None or type(_cfg.transforms_indep_keypoints) != bool:
-        print("\n❌ transforms_indep_keypoints should be a "
-              f"bool. Got {_cfg.transforms_indep_keypoints}")
-        sys.exit(1)
-    else:
-        indep_keypoints = _cfg.transforms_indep_keypoints
-
-    if _cfg.transforms_merge_keypoints is None or type(_cfg.transforms_merge_keypoints) != bool:
-        print("\n❌ transforms_merge_keypoints should be a "
-              f"bool. Got {_cfg.transforms_merge_keypoints}")
-        sys.exit(1)
-    else:
-        merge_keypoints = _cfg.transforms_merge_keypoints
+    indep_keypoints = test_boolean_variable(_cfg.indep_keypoints, 'indep_keypoints')
+    merge_keypoints = test_boolean_variable(_cfg.merge_keypoints, 'merge_keypoints')
 
     suffix = f'_set_keypoints' if not indep_keypoints else ''
     if indep_keypoints:
@@ -228,77 +219,77 @@ def cli(_cfg) -> None:
     else:
         swap = _cfg.transforms_swap
 
-    if _cfg.test.n_plots is None or type(_cfg.test.n_plots) != int:
-        print("\n❌ test.n_plots should be a positive integer. "
-              f"Got {_cfg.test.n_plots}")
+    if _cfg.test_n_plots is None or type(_cfg.test_n_plots) != int:
+        print("\n❌ test_n_plots should be a positive integer. "
+              f"Got {_cfg.test_n_plots}")
         sys.exit(1)
     else:
-        n_plots = max(0, _cfg.test.n_plots)
+        n_plots = max(0, _cfg.test_n_plots)
 
-    if _cfg.test.threshold_pck is None or type(
-            _cfg.test.threshold_pck) != float or _cfg.test.threshold_pck < 0 or _cfg.test.threshold_pck > 1:
-        print("\n❌ test.threshold_pck should be a "
-              f"float between 0 and 1. Got {_cfg.test.threshold_pck}")
+    if _cfg.test_threshold_pck is None or type(
+            _cfg.test_threshold_pck) != float or _cfg.test_threshold_pck < 0 or _cfg.test_threshold_pck > 1:
+        print("\n❌ test_threshold_pck should be a "
+              f"float between 0 and 1. Got {_cfg.test_threshold_pck}")
         sys.exit(1)
     else:
-        threshold_pck = _cfg.test.threshold_pck
+        threshold_pck = _cfg.test_threshold_pck
 
-    if _cfg.test.plot3d_azim is None or type(_cfg.test.plot3d_azim) != int:
-        print("\n❌ test.plot3d_azim should be an integer."
-              f"Got {_cfg.test.plot3d_azim}")
+    if _cfg.test_plot3d_azim is None or type(_cfg.test_plot3d_azim) != int:
+        print("\n❌ test_plot3d_azim should be an integer."
+              f"Got {_cfg.test_plot3d_azim}")
         sys.exit(1)
     else:
-        plot3d_azim = _cfg.test.plot3d_azim
+        plot3d_azim = _cfg.test_plot3d_azim
 
-    if _cfg.test.plot3d_size is None or type(_cfg.test.plot3d_size) != float:
-        print("\n❌ test.plot3d_size should be a "
-              f"float. Got {_cfg.test.plot3d_size}")
+    if _cfg.test_plot3d_size is None or (type(_cfg.test_plot3d_size) != float and type(_cfg.test_plot3d_size) != int):
+        print("\n❌ test_plot3d_size should be a "
+              f"float. Got {_cfg.test_plot3d_size}")
         sys.exit(1)
     else:
-        plot3d_size = _cfg.test.plot3d_size
+        plot3d_size = _cfg.test_plot3d_size
 
-    if _cfg.test.plot2d_only_holes is None or type(_cfg.test.plot2d_only_holes) != bool:
-        print("\n❌ test.plot2d_only_holes should be a "
-              f"bool. Got {_cfg.test.plot2d_only_holes}")
+    if _cfg.test_plot2d_only_holes is None or type(_cfg.test_plot2d_only_holes) != bool:
+        print("\n❌ test_plot2d_only_holes should be a "
+              f"bool. Got {_cfg.test_plot2d_only_holes}")
         sys.exit(1)
     else:
-        plot2d_only_holes = _cfg.test.plot2d_only_holes
+        plot2d_only_holes = _cfg.test_plot2d_only_holes
 
-    if _cfg.test.original_coordinates is None or type(_cfg.test.original_coordinates) != bool:
-        print("\n❌ test.original_coordinates should be a "
-              f"bool. Got {_cfg.test.original_coordinates}")
+    if _cfg.test_original_coordinates is None or type(_cfg.test_original_coordinates) != bool:
+        print("\n❌ test_original_coordinates should be a "
+              f"bool. Got {_cfg.test_original_coordinates}")
         sys.exit(1)
     else:
-        original_coordinates = _cfg.test.original_coordinates
+        original_coordinates = _cfg.test_original_coordinates
 
 
-    if _cfg.test.n_repeat is None or type(_cfg.test.n_repeat) != int:
-        print("\n❌ test.n_repeat should be a string."
-              f"Got {_cfg.test.n_repeat}")
+    if _cfg.test_n_repeat is None or type(_cfg.test_n_repeat) != int:
+        print("\n❌ test_n_repeat should be a string."
+              f"Got {_cfg.test_n_repeat}")
         sys.exit(1)
     else:
-        n_repeat = max(1, _cfg.test.n_repeat)
+        n_repeat = max(1, _cfg.test_n_repeat)
 
-    if _cfg.loss.type is None or type(_cfg.loss.type) != str or not _cfg.loss.type in ['l1', 'l2']:
-        print("\n❌ loss.type should be l1 or l2."
-              f"Got {_cfg.loss.type}")
+    if _cfg.loss_def is None or type(_cfg.loss_def) != str or not _cfg.loss_def in ['l1', 'l2']:
+        print("\n❌ loss_def should be l1 or l2."
+              f"Got {_cfg.loss_def}")
         sys.exit(1)
     else:
-        loss_type = _cfg.loss.type
+        loss_def = _cfg.loss_def
 
-    if _cfg.loss.mask is None or type(_cfg.loss.mask) != bool:
-        print("\n❌ loss.mask should be a bool."
-              f"Got {_cfg.loss.mask}")
+    if _cfg.loss_mask is None or type(_cfg.loss_mask) != bool:
+        print("\n❌ loss_mask should be a bool."
+              f"Got {_cfg.loss_mask}")
         sys.exit(1)
     else:
-        loss_mask = max(1, _cfg.loss.mask)
+        loss_mask = max(1, _cfg.loss_mask)
 
-    if _cfg.loss.factor is None or type(_cfg.loss.factor) != int:
-        print("\n❌ loss.factor should be an integer."
-              f"Got {_cfg.loss.factor}")
+    if _cfg.loss_factor is None or type(_cfg.loss_factor) != int:
+        print("\n❌ loss_factor should be an integer."
+              f"Got {_cfg.loss_factor}")
         sys.exit(1)
     else:
-        loss_factor = max(1, _cfg.loss.factor)
+        loss_factor = max(1, _cfg.loss_factor)
 
     os.makedirs(os.path.join(test_dir, 'config'), exist_ok=True)
     output_config_file = os.path.join(test_dir, 'config', f'config_test.yaml')
@@ -309,7 +300,7 @@ def cli(_cfg) -> None:
     add_missing = True
     main(project_path, model_path_list, dataset_path, dataset_name, test_dir,
          skeleton_graph,
-         batch_size, loss_type, loss_mask, loss_factor,
+         batch_size, loss_def, loss_mask, loss_factor,
          n_cpus,
          proba_file, proba_length_file, indep_keypoints,
          add_missing_pad, viewinvariant,

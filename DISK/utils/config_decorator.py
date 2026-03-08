@@ -94,15 +94,29 @@ def test_boolean_variable(var, varname):
 class IntDefault(argparse.Action):
     """Custom action to handle integer arguments allowing _DEFAULT_."""
 
-    def __call__(self, parser, namespace, values, option_string=None):
-        if values == '_DEFAULT_':
-            value = 2**8 - 1
+    def __call__(self, parser, namespace, orig_value, option_string=None):
+        if orig_value == '_DEFAULT_':
+            value = '_DEFAULT_'
         else:
             # Convert to integer
-            value = int(values)
+            value = int(orig_value)
 
         # Set the value in the namespace
         setattr(namespace, self.dest, value)
+
+class FloatDefault(argparse.Action):
+    """Custom action to handle integer arguments allowing _DEFAULT_."""
+
+    def __call__(self, parser, namespace, orig_value, option_string=None):
+        if orig_value == '_DEFAULT_':
+            value = '_DEFAULT_'
+        else:
+            # Convert to integer
+            value = float(orig_value)
+
+        # Set the value in the namespace
+        setattr(namespace, self.dest, value)
+
 
 class NoAction(argparse.Action):
 
@@ -121,12 +135,16 @@ def single_add_argument(parser, key, value, parent_value, full_name):
         expected_type = int
     else:
         nargs = '?'
+
     if expected_type == bool:
         expected_type = str
         custom_action = 'store'
     elif expected_type == int:
         expected_type = str
         custom_action = IntDefault
+    elif expected_type == float:
+        expected_type = str
+        custom_action = FloatDefault
     else:
         custom_action='store'
     help_message = parent_value.get(help_key, '')  # Default to 'str'
@@ -156,7 +174,6 @@ def parse_command_line_args(config, desc=''):
                 else:
                     dict_keys.append(k)
                     parser = single_add_argument(parser, kk, vv, v, f'{k}-{kk}')
-
 
         else:
              parser = single_add_argument(parser, k, v, config, f'{k}')

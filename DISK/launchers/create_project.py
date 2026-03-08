@@ -176,6 +176,6 @@ if __name__ == '__main__':
     cli()
     """
     # DISK syntax:
-    DISK-create-project project_path=test_project input_files=[x,y,z] file_type=csv
+    DISK-create-project --project_path test_project --data_files x y z --file_format csv
     # careful no space between input_files inside the brackets, and after/before '='
     """

@@ -1,7 +1,7 @@
-project_path: DISK_project_human
+project_path:
 project_path_type: str
 
-dataset_name: human
+dataset_name:
 dataset_name_type: str
 dataset_name_help: "output name for the created dataset"
 
@@ -10,7 +10,7 @@ model_name_type: str
 
 network: transformer
 
-debug: true
+debug: false
 debug_type: bool
 
 training_epochs: 1500
@@ -18,7 +18,7 @@ training_epochs_type: int
 training_batch_size: 32
 training_batch_size_type: int
 # from experience, learning rate of 0.0001 is better for GRU and 0.001 for transformer
-training_learning_rate: 0.001
+training_learning_rate: _DEFAULT_
 training_learning_rate_type: float
 training_seed: _DEFAULT_
 training_seed_type: int

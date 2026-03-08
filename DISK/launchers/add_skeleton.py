@@ -48,6 +48,7 @@ def create_skeleton(keypoints: list):
 @config_reader(config_path="../conf/config_prepare_data.yaml")
 def cli(_cfg) -> None:
     _cfg = parse_command_line_args(_cfg)
+
     for key in ('project_path', ):
         val = _cfg.__dict__[key]
         if val is None:

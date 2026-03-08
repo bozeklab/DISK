@@ -1,0 +1,63 @@
+project_path:
+project_path_type: str
+
+dataset_name:
+dataset_name_type: str
+dataset_name_help: "output name for the created dataset"
+
+model_name_list: _DEFAULT_
+model_name_list_type: StringList
+
+name_output_dir: _DEFAULT_
+name_output_dir_type: str
+
+debug: false
+debug_type: bool
+
+batch_size: 32
+batch_size_type: int
+
+n_cpus: 8 # TOCHANGE: if no multiprocessing, put 0
+n_cpus_type: int
+
+
+transforms:
+  add_missing_pad: [1, 0]
+  add_missing_pad_type: IntList
+  viewinvariant: true
+  viewinvariant_type: bool
+  normalize: false
+  normalize_type: bool
+  normalizecube: true
+  normalizecube_type: bool
+  swap: 0.5
+  swap_type: float
+
+indep_keypoints: True
+indep_keypoints_type: bool
+merge_keypoints: False
+merge_keypoints_type: bool
+
+test:
+  n_plots: 5
+  n_plots_type: int
+  threshold_pck: 0.1
+  threshold_pck_type: float
+  plot3d_azim: 60
+  plot3d_azim_type: int
+  plot3d_size: 2
+  plot3d_size_type: float
+  plot2d_only_holes: true
+  plot2d_only_holes_type: bool
+  original_coordinates: true
+  original_coordinates_type: bool
+  n_repeat: 1
+  n_repeat_type: int
+
+loss:
+  def: l1
+  def_type: str
+  mask: true
+  mask_type: bool
+  factor: 100
+  factor_type: float

@@ -4,7 +4,7 @@ import os
 import sys
 import yaml
 
-from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
+from DISK.utils.logger_setup import setup_custom_logging, copy_config_file, VoidHandler
 from DISK.models.graph import Graph
 from DISK.utils.config_decorator import config_reader, parse_command_line_args, test_boolean_variable
 
@@ -184,6 +184,8 @@ def cli(_cfg) -> None:
         verbose = 0
 
     modified_cfg['model_name'] = os.path.basename(final_model_path)
+
+    logging.basicConfig(level=logging_flag, handlers=[VoidHandler()])
     logger = setup_custom_logging(final_model_path, 'train.log', logging_flag)
 
     ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
@@ -229,7 +231,7 @@ def cli(_cfg) -> None:
     modified_cfg['network'] = network_config
 
     if _cfg.training_learning_rate == '_DEFAULT_':
-        if _cfg.network.type == 'transformer':
+        if _cfg.network == 'transformer':
             learning_rate = 0.001
         else:
             learning_rate = 0.0001

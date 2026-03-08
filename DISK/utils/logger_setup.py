@@ -5,6 +5,10 @@ import os
 import yaml
 
 
+class VoidHandler(logging.Handler):
+    def emit(self, record):
+        pass  # Discard all logs
+
 def setup_custom_logging(log_directory, log_filename, flag=logging.INFO):
     # Create the log directory if it doesn't exist
     os.makedirs(log_directory, exist_ok=True)

@@ -559,17 +559,17 @@ class AddMissing_LengthProba(Transform):
 
                     ## choose length for the keypoint set
                     length_df = self.length_proba_df.loc[self.length_proba_df['keypoint'] == rd_kp, :].sample(n=1, weights='proba')
-                    length_input = length_df['length'].values[0]
+                    length_input = int(length_df['length'].values[0])
                     ## verify it's not too long
                     length_input = min(length_input, x.shape[0] - buffer - self.pad_after)
 
                     ## chosen first index indep per keypoint
-                    inter_lengths = np.fmin(self.length_proba_df.loc[self.length_proba_df['keypoint'] == 'non_missing', :].sample(n=1, weights='proba')['length'].values[0],
-                                            x.shape[0] - self.pad_after - length_input - buffer)
+                    inter_lengths = int(np.fmin(self.length_proba_df.loc[self.length_proba_df['keypoint'] == 'non_missing', :].sample(n=1, weights='proba')['length'].values[0],
+                                            x.shape[0] - self.pad_after - length_input - buffer))
 
                     start_missing = buffer + inter_lengths
                     end_missing = start_missing + length_input
-                    buffer = end_missing
+                    buffer = int(end_missing)
 
                     for missing_kp_index in rd_kp.split(' '):
                         x_with_holes[start_missing: end_missing, self.list_keypoints.index(missing_kp_index), :] = missing_values_placeholder

@@ -4,7 +4,7 @@ import os
 import sys
 import yaml
 
-from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
+from DISK.utils.logger_setup import setup_custom_logging, copy_config_file, VoidHandler
 from DISK.models.graph import Graph
 from DISK.utils.config_decorator import config_reader, parse_command_line_args
 
@@ -98,13 +98,8 @@ def cli(_cfg) -> None:
         logging_flag = logging.INFO
         verbose = 0
 
-    class VoidHandler(logging.Handler):
-        def emit(self, record):
-            pass  # Discard all logs
-
     modified_cfg['model_name'] = os.path.basename(output_path)
     logging.basicConfig(level=logging_flag, handlers=[VoidHandler()])
-
 
     logger = setup_custom_logging(output_path, 'impute.log', logging_flag)
 

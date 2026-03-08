@@ -1,7 +1,7 @@
-project_path: DISK_project_human
+project_path:
 project_path_type: str
 
-dataset_name: human
+dataset_name: _DEFAULT_
 dataset_name_type: str
 dataset_name_help: "output name for the created dataset"
 
@@ -13,24 +13,24 @@ subsampling_freq: _DEFAULT_
 subsampling_freq_type: int
 subsampling_freq_help: "subsampling frequency. subsampling_freq <= original_freq, equal if no subsampling desired otherwise lower"
 
-length: 20 # in number of timepoints at subsampling_freq
+length:  # in number of timepoints at subsampling_freq
 # a good rule of thumb is to put stride to length or length/2
 length_type: int
-stride: 10 # in number of timepoints at subsampling_freq
+stride: _DEFAULT_ # in number of timepoints at subsampling_freq
 stride_type: int
 
 discard_beginning: 0 # if not used, should be set t 0
 discard_beginning_type: int
 discard_end: 0  # if not used, should be set to 0
 discard_end_type: int
-fill_gap: 10  # linear interpolation under the provided length, done before resampling
+fill_gap: 0  # linear interpolation under the provided length, done before resampling
 fill_gap_type: int
 
 drop_keypoints: [] # should be a list with formatting like the input_files entry
 drop_keypoints_type: StringList
 # if no name was given to keypoints just add the index of the keypoint as an integer
 
-sequential: true
+sequential: _DEFAULT_
 sequential_type: bool
 
 
@@ -40,7 +40,7 @@ dlc_likelihood_threshold_type: float
 debug: false
 debug_type: bool
 
-indep_keypoints: True
+indep_keypoints: False
 indep_keypoints_help: "if False, look at sets of simultaneous missing keypoints; if True, look at each keypoint independently"
 indep_keypoints_type: bool
 merge_keypoints: False

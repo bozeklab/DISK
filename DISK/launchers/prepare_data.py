@@ -3,7 +3,7 @@ import sys
 import yaml
 import logging
 
-from DISK.utils.logger_setup import setup_custom_logging, copy_config_file
+from DISK.utils.logger_setup import setup_custom_logging, copy_config_file, VoidHandler
 from DISK.models.graph import Graph
 from DISK.utils.config_decorator import config_reader, parse_command_line_args, test_boolean_variable
 
@@ -56,7 +56,7 @@ def cli(_cfg) -> None:
         if val is None:
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'
-                  f'\n  > DISK-prepare-data project_path=test_project length=60\n')
+                  f'\n  > DISK-prepare-data --project_path test_project --length 60\n')
             sys.exit(1)
 
     ### _CFG PARAMETER CHECK --- REQUIRED PARAMETERS
@@ -173,7 +173,7 @@ def cli(_cfg) -> None:
     else:
         logging_flag = logging.INFO
 
-    logging.basicConfig(logging.CRITICAL)
+    logging.basicConfig(level=logging_flag, handlers=[VoidHandler()])
 
     logger = setup_custom_logging(dataset_path, 'prepare_data.log', logging_flag)
 
