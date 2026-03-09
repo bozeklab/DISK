@@ -41,9 +41,9 @@ def main(project_path, dataset_path, dataset_name, data_files, file_type,
               f'lower stride value.\n')
 
 
-    create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_graph, logger)
+    no_original_missing, indep_keypoints, merge_keypoints, suffix = create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_graph, logger)
     logger.info(f'✅ Successfully estimated probabilities of missing keypoints for dataset {dataset_name}.\n')
-    return keypoints, divider
+    return keypoints, divider, no_original_missing, indep_keypoints, merge_keypoints, suffix
 
 @config_reader(config_path="../conf/config_prepare_data.yaml")
 def cli(_cfg) -> None:
@@ -230,7 +230,7 @@ def cli(_cfg) -> None:
 
     logger.info(f'✅ Successfully loaded configuration.\n')
 
-    keypoints, divider = main(project_path, dataset_path, dataset_name, data_files, file_type,
+    keypoints, divider, no_original_missing, indep_keypoints, merge_keypoints, suffix = main(project_path, dataset_path, dataset_name, data_files, file_type,
          length, stride, fill_gap, sequential, original_freq, subsampling_freq,
          dlc_likelihood_threshold, discard_beginning, discard_end,
          drop_keypoints, indep_keypoints, merge_keypoints, skeleton_graph,
@@ -238,6 +238,7 @@ def cli(_cfg) -> None:
 
     config['keypoints'] = keypoints
     config['divider'] = divider
+    config['original_missing'] = not no_original_missing
 
     with open(os.path.join(project_path, 'config_project.yaml'), 'w') as file:
         yaml.dump(config, file)

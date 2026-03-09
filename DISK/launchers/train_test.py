@@ -56,7 +56,7 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
     from DISK.main_fillmissing import train_fillmissing
     from DISK.test_fillmissing import test
 
-    logger.info(f'\n*********************** TRAINING DISK *********************** \n')
+    logger.info(f'*********************** TRAINING DISK *********************** \n')
     train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, training_seed,
                       load_model_dir, cfg_network,
                       training_batch_size, training_epochs, learning_rate,
@@ -72,7 +72,7 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
 
     logger.info(f'✅ Successfully trained DISK model {model_dir}.\n')
 
-    logger.info(f'\n*********************** TESTING DISK TRAINED MODEL *********************** \n')
+    logger.info(f'*********************** TESTING DISK TRAINED MODEL *********************** \n')
 
     add_missing_pad_for_test = (max(1, add_missing_pad[0]), max(1, add_missing_pad[0]))
     test(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
@@ -281,32 +281,55 @@ def cli(_cfg) -> None:
     else:
         add_missing_pad = list(_cfg.transforms_add_missing_pad)
 
-    indep_keypoints = test_boolean_variable(_cfg.indep_keypoints, 'indep_keypoints')
-    merge_keypoints = test_boolean_variable(_cfg.merge_keypoints, 'merge_keypoints')
+    if config['original_missing']:
+        indep_keypoints = test_boolean_variable(_cfg.indep_keypoints, 'indep_keypoints')
+        merge_keypoints = test_boolean_variable(_cfg.merge_keypoints, 'merge_keypoints')
 
-    suffix = f'_set_keypoints' if not indep_keypoints else ''
-    if indep_keypoints:
-        if merge_keypoints:
-            logger.info(f'️ℹ\n️ merge_keypoints = True is not a valid option when indep_keypoints = True. '
-                        f'merge_keypoints would be considered False')
-            suffix += f'_merged'
+        suffix = f'_set_keypoints' if not indep_keypoints else ''
+        if indep_keypoints:
+            if merge_keypoints:
+                logger.info(f'️ℹ\n️ merge_keypoints = True is not a valid option when indep_keypoints = True. '
+                            f'merge_keypoints would be considered False')
+                suffix += f'_merged'
 
-    proba_files_exist, proba_file, proba_length_file = find_proba_files(dataset_path, suffix)
+        proba_files_exist, proba_file, proba_length_file = find_proba_files(dataset_path, suffix)
 
-    if not proba_files_exist:
-        from DISK.create_proba_missing_files import create_proba_missing_files
-        indep_keypoints = False if 'set_keypoints' in suffix else True
-        merge_keypoints = True if ('merged' in suffix and not indep_keypoints) else False
+        if not proba_files_exist:
+            from DISK.create_proba_missing_files import create_proba_missing_files
+            indep_keypoints = False if 'set_keypoints' in suffix else True
+            merge_keypoints = True if ('merged' in suffix and not indep_keypoints) else False
 
-        create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_graph,
-                                   logger)
-        logger.info(f'✅ Successfully estimated probabilities of missing keypoints with '
-                    f'{["set_keypoints", "indep_keypoints"][int(indep_keypoints)]}.\n')
+            create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_graph,
+                                       logger)
+            logger.info(f'✅ Successfully estimated probabilities of missing keypoints with '
+                        f'{["set_keypoints", "indep_keypoints"][int(indep_keypoints)]}.\n')
 
-    proba_files_exist, proba_file, proba_length_file = find_proba_files(dataset_path, suffix)
-    if not proba_files_exist:
-        print("\n❌ did not find proba_files matching your criterion.")
-        sys.exit(1)
+        proba_files_exist, proba_file, proba_length_file = find_proba_files(dataset_path, suffix)
+        if not proba_files_exist:
+            print("\n❌ did not find proba_files matching your criterion.")
+            sys.exit(1)
+
+    else:
+        indep_keypoints = True
+        merge_keypoints = False
+        suffix = '_uniform'
+
+        proba_files_exist, proba_file, proba_length_file = find_proba_files(dataset_path, suffix)
+
+        if not proba_files_exist:
+            from DISK.create_proba_missing_files import create_proba_missing_files
+            indep_keypoints = False if 'set_keypoints' in suffix else True
+            merge_keypoints = True if ('merged' in suffix and not indep_keypoints) else False
+
+            create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_graph,
+                                       logger)
+            logger.info(f'✅ Successfully estimated probabilities of missing keypoints with '
+                        f'{["set_keypoints", "indep_keypoints"][int(indep_keypoints)]}.\n')
+
+        proba_files_exist, proba_file, proba_length_file = find_proba_files(dataset_path, suffix)
+        if not proba_files_exist:
+            print("\n❌ did not find proba_files matching your criterion.")
+            sys.exit(1)
 
     viewinvariant = test_boolean_variable(_cfg.transforms_viewinvariant, 'transforms_viewinvariant')
     normalize = test_boolean_variable(_cfg.transforms_normalize, 'transforms_normalize')

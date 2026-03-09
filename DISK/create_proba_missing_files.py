@@ -27,7 +27,7 @@ def create_uniform_proba(min_len, max_len, keypoints):
 
 
 def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints,
-                               skeleton_graph, logger) -> None:
+                               skeleton_graph, logger) -> (bool, bool, bool, str):
     """Check if the artificial missing coordinates match the original coordinates"""
 
     logger.debug(f'[CREATE PROBA MISSING FILES] {project_path}, {dataset_path} {indep_keypoints}, {merge_keypoints}')
@@ -40,7 +40,7 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
     suffix = f'_set_keypoints' if not indep_keypoints else ''
     if indep_keypoints:
         if merge_keypoints:
-            logger.info(f'️ℹ\n️ merge_keypoints = True is not a valid option when indep_keypoints = True. '
+            logger.info(f'️ℹ merge_keypoints = True is not a valid option when indep_keypoints = True. '
                          f'merge_keypoints would be considered False')
             suffix += f'_merged'
     no_original_missing = False
@@ -114,11 +114,14 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
         if initial:
             if len(df[df['original']]) == 0:
                 no_original_missing = True
+                indep_keypoints = True
+                merge_keypoints = False
+
                 ## no missing datapoints in the original files
                 logger.info(f'ℹ️ No Missing keypoints in the original files. Create uniform missing proba.')
                 proba_df, df_init_proba = create_uniform_proba(1, dataset_constants.SEQ_LENGTH - 1,
                                                                dataset_constants.KEYPOINTS)
-                suffix = f'_uniform{suffix}'
+                suffix = f'_uniform'
             else:
                 tmp = df.loc[df['original'], ['keypoint', 'original']].groupby('keypoint').count()
                 set_keypoints = np.unique(df.loc[df['keypoint'] != 'non_missing', 'keypoint'])
@@ -138,6 +141,7 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
 
                 df_init_proba = pd.DataFrame(columns=['keypoint', 'proba'], data=np.vstack([set_keypoints, init_proba]).T)
             df_init_proba.to_csv(os.path.join(dataset_path, f'proba_missing{suffix}.csv'), index=False)
+
 
         if (not indep_keypoints) and merge_keypoints:
             """
@@ -263,3 +267,4 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
         logger.debug(f'Done with initial = {initial}')
 
 
+    return no_original_missing, indep_keypoints, merge_keypoints, suffix

@@ -54,6 +54,10 @@ def cli(_cfg) -> None:
     with open(os.path.join(project_path, 'config_project.yaml'), 'r') as file:
         config = yaml.safe_load(file)
 
+    if not config['original_missing']:
+        print(f'ℹ️ No Missing keypoints in the original files. DISK will NOT impute.')
+        sys.exit(0)
+
     if not ('skeleton' in config.keys() and config['skeleton'] is not None and len(config['skeleton']) == 0):
         skeleton_graph = None
     else:

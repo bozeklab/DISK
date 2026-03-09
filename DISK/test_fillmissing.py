@@ -512,9 +512,7 @@ def test(project_path: str,
             n_keypoints = np.sum(mask)
 
             sns.catplot(data=total_rmse.loc[mask, :], kind='bar', y='keypoint',
-                        hue='method_param', x=metric)
-            fg = plt.gcf()
-            fg.set_size_inches(15, 35)
+                        hue='method_param', x=metric, height=max(5, n_keypoints // 8))
             plt.tight_layout()
 
 
