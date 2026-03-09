@@ -403,7 +403,7 @@ def test(project_path: str,
                     potential_indices = np.where(n_missing > 0)[0]
                     np.random.seed(0)
                     for i in np.random.choice(potential_indices,  #full_data_np.shape[0],
-                                              min(len(potential_indices), n_plots),
+                                              min(len(potential_indices), total_n_plots),
                                               replace=False):
                         if skeleton_graph is not None:
                             for i_model, xo in enumerate(x_outputs_np):
@@ -509,9 +509,14 @@ def test(project_path: str,
 
         def barplot_RMSE_keypoint():
             mask = (total_rmse['keypoint'] != 'all')
-            sns.catplot(data=total_rmse.loc[mask, :], kind='bar', x='keypoint',
-                        hue='method_param', y=metric)
+            n_keypoints = np.sum(mask)
+
+            sns.catplot(data=total_rmse.loc[mask, :], kind='bar', y='keypoint',
+                        hue='method_param', x=metric)
+            fg = plt.gcf()
+            fg.set_size_inches(15, 35)
             plt.tight_layout()
+
 
         for metric in [pck_name, 'RMSE', 'MPJPE']:
             plot_save(barplot_RMSE_keypoint,
