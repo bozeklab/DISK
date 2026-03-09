@@ -127,6 +127,7 @@ def single_add_argument(parser, key, value, parent_value, full_name):
     type_key = f"{key}_type"
     help_key = f"{key}_help"
     expected_type = eval(parent_value.get(type_key, 'str'))  # Default to 'str'
+    custom_action = 'store'
     if expected_type == StringList:
         nargs = '*'
         expected_type = str
@@ -136,17 +137,16 @@ def single_add_argument(parser, key, value, parent_value, full_name):
     else:
         nargs = '?'
 
-    if expected_type == bool:
-        expected_type = str
-        custom_action = 'store'
-    elif expected_type == int:
-        expected_type = str
-        custom_action = IntDefault
-    elif expected_type == float:
-        expected_type = str
-        custom_action = FloatDefault
-    else:
-        custom_action='store'
+        if expected_type == bool:
+            expected_type = str
+            custom_action = 'store'
+        elif expected_type == int:
+            expected_type = str
+            custom_action = IntDefault
+        elif expected_type == float:
+            expected_type = str
+            custom_action = FloatDefault
+
     help_message = parent_value.get(help_key, '')  # Default to 'str'
     parser.add_argument(f'--{full_name}', type=expected_type, nargs=nargs,
                         action=custom_action,

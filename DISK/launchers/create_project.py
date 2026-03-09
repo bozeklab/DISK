@@ -38,13 +38,57 @@ def check_extension(file_path: str, file_type:str) -> bool:
     else:
         return False
 
+
+
+
+def main(project_path: str,
+         data_file_list: list,
+         file_type: str):
+
+
+    ## CREATE DISK PROJECT FOLDER
+    os.mkdir(project_path)
+    os.mkdir(os.path.join(project_path, 'DISK_data'))
+    os.mkdir(os.path.join(project_path, 'DISK_train'))
+    os.mkdir(os.path.join(project_path, 'DISK_impute'))
+
+    ### COPY EXAMPLE CONFIGS IN SUBDIRECTORY
+    example_configs_folder = os.path.join(project_path, 'example_configs')
+    os.mkdir(example_configs_folder)
+
+    script_directory = os.path.dirname(os.path.abspath(__file__))
+    for config in ('config_create_project', 'config_prepare_data', 'config_train', 'config_test', 'config_impute'):
+        shutil.copy(os.path.join(script_directory, '..', 'conf', f'{config}.yaml'),
+                    os.path.join(example_configs_folder, f'{config}.yaml'))
+
+    ### CREATE DISK_PROJECT_LOG
+    default_config = {
+        'project_path': project_path,
+        'data_files': list(data_file_list),
+        'file_type': file_type,
+        'creation_date': datetime.today().strftime('%Y-%m-%d'),
+    }
+
+    output_file = os.path.join(project_path, 'config_project.yaml')
+
+    # Save the default configuration to a YAML file
+    with open(output_file, 'w') as file:
+        yaml.dump(default_config, file)
+
+    if project_path != project_path:
+        print(f'\n✅ A DISK project under the specified name already exists.'
+              f'\n  Created DISK project {project_path}\n')
+    else:
+        print(f'\n✅ Created DISK project {project_path}\n')
+
+
 @config_reader(config_path="../conf/config_create_project.yaml")
 def cli(_cfg) -> None:
     _cfg = parse_command_line_args(_cfg)
 
     for key in ('project_path', 'data_files', 'file_format'):
         val = _cfg.__dict__[key]
-        if val is None:
+        if val is None or val == '_DEFAULT_':
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'
                   f'\n  > DISK-create-project --project_path test_project --data_files x y '
@@ -115,7 +159,7 @@ def cli(_cfg) -> None:
                       f'Should be of type {file_format}.\n')
                 continue
 
-        data_files.append(f)
+            data_files.append(f)
 
     if len(data_files) == 0:
         print(f'\n❌ No data files found. Please check given paths. \n')
@@ -126,50 +170,6 @@ def cli(_cfg) -> None:
         data_file_list=data_files,
         file_type=file_format,
     )
-
-
-
-
-def main(project_path: str,
-         data_file_list: list,
-         file_type: str):
-
-
-    ## CREATE DISK PROJECT FOLDER
-    os.mkdir(project_path)
-    os.mkdir(os.path.join(project_path, 'DISK_data'))
-    os.mkdir(os.path.join(project_path, 'DISK_train'))
-    os.mkdir(os.path.join(project_path, 'DISK_impute'))
-
-    ### COPY EXAMPLE CONFIGS IN SUBDIRECTORY
-    example_configs_folder = os.path.join(project_path, 'example_configs')
-    os.mkdir(example_configs_folder)
-
-    script_directory = os.path.dirname(os.path.abspath(__file__))
-    for config in ('config_create_project', 'config_prepare_data', 'config_train', 'config_test', 'config_impute'):
-        shutil.copy(os.path.join(script_directory, '..', 'conf', f'{config}.yaml'),
-                    os.path.join(example_configs_folder, f'{config}.yaml'))
-
-    ### CREATE DISK_PROJECT_LOG
-    default_config = {
-        'project_path': project_path,
-        'data_files': list(data_file_list),
-        'file_type': file_type,
-        'creation_date': datetime.today().strftime('%Y-%m-%d'),
-    }
-
-    output_file = os.path.join(project_path, 'config_project.yaml')
-
-    # Save the default configuration to a YAML file
-    with open(output_file, 'w') as file:
-        yaml.dump(default_config, file)
-
-    if project_path != project_path:
-        print(f'\n✅ A DISK project under the specified name already exists.'
-              f'\n  Created DISK project {project_path}\n')
-    else:
-        print(f'\n✅ Created DISK project {project_path}\n')
-
 
 
 if __name__ == '__main__':

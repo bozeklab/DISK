@@ -39,8 +39,6 @@ def setup_custom_logging(log_directory, log_filename, flag=logging.INFO):
     for handler in logger.handlers:
         handler.flush()
 
-    logger.info('Hey')
-
     return logger
 
 

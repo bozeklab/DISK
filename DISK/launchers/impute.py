@@ -27,7 +27,7 @@ def cli(_cfg) -> None:
 
     for key in ('project_path', 'dataset_name', 'model_name'):
         val = _cfg.__dict__[key]
-        if val is None:
+        if val is None or val == '_DEFAULT_':
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'
                   f'\n  > DISK-impute project_path=test_project dataset_name=dataset model_name=model\n'

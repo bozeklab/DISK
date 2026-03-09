@@ -47,13 +47,12 @@ def main(project_path, dataset_path, dataset_name, data_files, file_type,
 
 @config_reader(config_path="../conf/config_prepare_data.yaml")
 def cli(_cfg) -> None:
-    print(_cfg)
     _cfg = parse_command_line_args(_cfg)
     modified_cfg = dict(_cfg.__dict__)
 
     for key in ('length', 'project_path'):
         val = _cfg.__dict__[key]
-        if val is None:
+        if val is None or val == '_DEFAULT_':
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'
                   f'\n  > DISK-prepare-data --project_path test_project --length 60\n')
@@ -88,8 +87,8 @@ def cli(_cfg) -> None:
                  config['skeleton_center'],
                  config['skeleton_links'],
                  config['skeleton_colors'])
-    ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
 
+    ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
     if _cfg.stride == '_DEFAULT_':
         stride = max(length // 2, 1)
     else:
@@ -99,9 +98,11 @@ def cli(_cfg) -> None:
             sys.exit(1)
         stride = max(_cfg.stride, 1)
 
-    if _cfg.fill_gap is None or type(_cfg.fill_gap) != int:
+    if _cfg.fill_gap == '_DEFAULT_':
+        fill_gap = 0
+    elif _cfg.fill_gap is None or type(_cfg.fill_gap) != int:
         print("\n❌ fill_gap is a required parameter and should be an "
-              f"integer. Got {_cfg.fill_gap}")
+          f"integer. Got {_cfg.fill_gap}")
         sys.exit(1)
     else:
         if _cfg.fill_gap > 100 or _cfg.fill_gap > length // 2:
@@ -177,7 +178,9 @@ def cli(_cfg) -> None:
 
     logger = setup_custom_logging(dataset_path, 'prepare_data.log', logging_flag)
 
-    if _cfg.dlc_likelihood_threshold is None or type(_cfg.dlc_likelihood_threshold) != float:
+    if _cfg.dlc_likelihood_threshold == '_DEFAULT':
+        dlc_likelihood_threshold = 0.9
+    elif _cfg.dlc_likelihood_threshold is None or type(_cfg.dlc_likelihood_threshold) != float:
         print("\n❌ dlc_likelihood_threshold should be a "
               f"float. Got {_cfg.dlc_likelihood_threshold}")
         sys.exit(1)
@@ -189,21 +192,28 @@ def cli(_cfg) -> None:
                     f'Any coordinate with a likelihood under {_cfg.dlc_likelihood_threshold} will be considered '
               f'missing.\n')
 
-    if _cfg.discard_beginning is None or type(_cfg.discard_beginning) != int:
+    if _cfg.discard_beginning == '_DEFAULT_':
+        discard_beginning = 0
+    elif _cfg.discard_beginning is None or type(_cfg.discard_beginning) != int:
         print("\n❌ discard_beginning should be an "
               f"integer. Got {_cfg.discard_beginning}")
         sys.exit(1)
     else:
         discard_beginning = _cfg.discard_beginning
 
-    if _cfg.discard_end is None or type(_cfg.discard_end) != int:
+    if _cfg.discard_end == '_DEFAULT_':
+        discard_end = -1
+    elif _cfg.discard_end is None or type(_cfg.discard_end) != int:
         print("\n❌ discard_end should be an "
               f"integer. Got {_cfg.discard_end}")
         sys.exit(1)
     else:
         discard_end = _cfg.discard_end
 
-    if _cfg.drop_keypoints is None:
+
+    if _cfg.drop_keypoints == '_DEFAULT_':
+        drop_keypoints = []
+    elif _cfg.drop_keypoints is None:
         print("\n❌ drop_keypoints should be a (empty)"
               f"list. Got {_cfg.drop_keypoints}")
         sys.exit(1)

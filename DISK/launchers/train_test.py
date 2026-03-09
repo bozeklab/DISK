@@ -95,7 +95,7 @@ def cli(_cfg) -> None:
 
     for key in ('project_path', 'dataset_name'):
         val = _cfg.__dict__[key]
-        if val is None:
+        if val is None or val == '_DEFAULT_':
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'
                   f'\n  > DISK-train project_path=test_project dataset_name=dataset\n'
@@ -157,7 +157,7 @@ def cli(_cfg) -> None:
                 network_name = 'DISK'
             else:
                 network_name = f'DISK-{_cfg.network}'
-            model_name = f'{dataset_name}_{network_name}'
+            model_name = f'{network_name}_{dataset_name}'
     else:
         if _cfg.model_name is None or type(_cfg.model_name) != str:
             print("\n❌ model_name should be a "
@@ -360,7 +360,6 @@ def cli(_cfg) -> None:
     else:
         n_repeat = max(1, _cfg.test_n_repeat)
 
-    print(_cfg)
     if _cfg.loss_def is None or type(_cfg.loss_def) != str or not _cfg.loss_def in ['l1', 'l2']:
         print("\n❌ loss.type should be l1 or l2."
               f"Got {_cfg.loss_def}")

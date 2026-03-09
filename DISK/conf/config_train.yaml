@@ -63,7 +63,7 @@ transforms:
   swap: 0.5
   swap_type: float
 
-indep_keypoints: True
+indep_keypoints: False
 indep_keypoints_type: bool
 merge_keypoints: False
 merge_keypoints_type: bool
