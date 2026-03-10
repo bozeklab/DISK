@@ -3,10 +3,13 @@ from datetime import datetime
 import os
 import sys
 import yaml
+import torch
 
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file, VoidHandler
 from DISK.models.graph import Graph
 from DISK.utils.config_decorator import config_reader, parse_command_line_args, test_boolean_variable
+from DISK.main_fillmissing import train_fillmissing
+from DISK.test_fillmissing import test
 
 possible_network_type_values = ('transformer', 'gru', 'st_gcn', 'sts_gcn', 'tcn')
 
@@ -53,22 +56,23 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
          total_n_plots, plot2d_only_holes, plot3d_size, plot3d_azim,
          logger, verbose=0):
 
-    from DISK.main_fillmissing import train_fillmissing
-    from DISK.test_fillmissing import test
-
     logger.info(f'*********************** TRAINING DISK *********************** \n')
-    train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, training_seed,
-                      load_model_dir, cfg_network,
-                      training_batch_size, training_epochs, learning_rate,
-                      loss_type, loss_mask, loss_factor,
-                      model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,
-                      n_cpus,
-                      print_every,
-                      proba_file, proba_length_file, indep_keypoints,
-                      add_missing_pad, viewinvariant,
-                      normalize, normalizecube, swap,
-                      add_missing,
-                      logger, verbose=verbose)
+    try:
+        train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, training_seed,
+                          load_model_dir, cfg_network,
+                          training_batch_size, training_epochs, learning_rate,
+                          loss_type, loss_mask, loss_factor,
+                          model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,
+                          n_cpus,
+                          print_every,
+                          proba_file, proba_length_file, indep_keypoints,
+                          add_missing_pad, viewinvariant,
+                          normalize, normalizecube, swap,
+                          add_missing,
+                          logger, verbose=verbose)
+    except torch.OutOfMemoryError:
+        print(f"\n❌ CUDA (GPU) out of memory. Try reducing the --training_batch_size. Got {training_batch_size}")
+        sys.exit(1)
 
     logger.info(f'✅ Successfully trained DISK model {model_dir}.\n')
 
@@ -90,7 +94,7 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
 
 @config_reader(config_path="../conf/config_train.yaml")
 def cli(_cfg) -> None:
-    _cfg = parse_command_line_args((_cfg))
+    _cfg = parse_command_line_args(_cfg)
     modified_cfg = dict(_cfg.__dict__)
 
     for key in ('project_path', 'dataset_name'):
@@ -98,8 +102,7 @@ def cli(_cfg) -> None:
         if val is None or val == '_DEFAULT_':
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'
-                  f'\n  > DISK-train project_path=test_project dataset_name=dataset\n'
-                  f'# careful no space after/before "="')
+                  f'\n  > DISK-train --project_path test_project --dataset_name dataset')
             sys.exit(1)
 
     ### _CFG PARAMETER CHECK --- REQUIRED PARAMETERS
@@ -122,15 +125,6 @@ def cli(_cfg) -> None:
     with open(os.path.join(project_path, 'config_project.yaml'), 'r') as file:
         config = yaml.safe_load(file)
 
-    if not 'skeleton' in config.keys() or config['skeleton'] is None or len(config['skeleton'])\
-            == 0:
-        skeleton_graph = None
-    else:
-        skeleton_graph = Graph(len(config['keypoints']),
-                 config['skeleton_center'],
-                 config['skeleton'],
-                 config['skeleton_colors'])
-
     if _cfg.dataset_name is None or type(_cfg.dataset_name) != str \
             or not os.path.exists(os.path.join(project_path, 'DISK_data', _cfg.dataset_name)):
         print("\n❌ dataset_name is a required parameter and should be the name "
@@ -142,39 +136,54 @@ def cli(_cfg) -> None:
 
     dataset_path = os.path.join(project_path, 'DISK_data', dataset_name)
 
-    final_model_path = None
-    load_model_dir = None
-    if _cfg.model_name == '_DEFAULT_':
-        if _cfg.load_model is not None and type(_cfg.load_model) == str:
-            final_model_path = os.path.join(project_path, 'DISK_train', _cfg.load_model)
-            if not os.path.exists(final_model_path) or not check_model_dir(final_model_path):
-                print(f"\n❌ You provided a load_model entry, but could not find the checkpoint at {final_model_path}.")
-                sys.exit(1)
-            model_name = _cfg.load_model
-            load_model_dir = final_model_path
+    final_load_model_path = None
+    if _cfg.load_model is not None and type(_cfg.load_model) == str:
+        final_load_model_path = os.path.join(project_path, 'DISK_train', _cfg.load_model)
+        if not os.path.exists(final_load_model_path) or not check_model_dir(final_load_model_path):
+            print(f"\n❌ You provided a load_model entry, but could not find the checkpoint at {final_load_model_path}.")
+            sys.exit(1)
+
+    if final_load_model_path is not None:
+        if _cfg.model_name == '_DEFAULT_':
+            model_name = os.path.basename(final_load_model_path)
+            final_model_path = os.path.join(project_path, 'DISK_train', model_name)
         else:
+            model_name = _cfg.model_name
+            model_path = os.path.join(project_path, 'DISK_train', model_name)
+            if model_path == final_load_model_path:
+                final_model_path = model_path
+            else:
+                final_model_path = str(model_path)
+                ext_model_path = 1
+                while os.path.exists(final_model_path):
+                    final_model_path = model_path + f'_{ext_model_path}'
+                    ext_model_path += 1
+
+                os.mkdir(final_model_path)
+    else:
+        if _cfg.model_name == '_DEFAULT_':
             if _cfg.network == 'transformer':
                 network_name = 'DISK'
             else:
                 network_name = f'DISK-{_cfg.network}'
             model_name = f'{network_name}_{dataset_name}'
-    else:
-        if _cfg.model_name is None or type(_cfg.model_name) != str:
-            print("\n❌ model_name should be a "
-                  f"string. Got {_cfg.model_name}")
-            sys.exit(1)
         else:
-            model_name = _cfg.model_name
+            if _cfg.model_name is None or type(_cfg.model_name) != str:
+                print("\n❌ model_name should be a "
+                      f"string. Got {_cfg.model_name}")
+                sys.exit(1)
+            else:
+                model_name = _cfg.model_name
 
-    if final_model_path is None:
-        ext_model_path = 1
         model_path = os.path.join(project_path, 'DISK_train', model_name)
         final_model_path = str(model_path)
+        ext_model_path = 1
         while os.path.exists(final_model_path):
             final_model_path = model_path + f'_{ext_model_path}'
             ext_model_path += 1
 
         os.mkdir(final_model_path)
+    modified_cfg['model_name'] = os.path.basename(final_model_path)
 
     if _cfg.debug:
         logging_flag = logging.DEBUG
@@ -183,13 +192,38 @@ def cli(_cfg) -> None:
         logging_flag = logging.INFO
         verbose = 0
 
-    modified_cfg['model_name'] = os.path.basename(final_model_path)
-
-    logging.basicConfig(level=logging_flag)#, handlers=[VoidHandler()])
+    logging.basicConfig(level=logging_flag, handlers=[VoidHandler()])
     logger = setup_custom_logging(final_model_path, 'train.log', logging_flag)
 
-    ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
+    if final_load_model_path is not None:
+        if final_load_model_path == final_model_path:
+            logger.info(f"\n️⚠️ Loading model from and saving in {final_load_model_path}. Is it the desired behavior? [y/n]")
+            y_n = input('> ')
+            while y_n not in ['y', 'n', 'Y', 'N', 'yes', 'no', 'Yes', 'YES', 'No', 'NO']:
+                y_n = input ('Retype y or n: ')
+            if y_n in ['y', 'Y', 'yes', 'Yes', 'YES']:
+                pass
+            else:
+                logger.info(f"\n️⚠️ If you want to save the output in a different folder, then the correct command is:\n"
+                            f"DISK-train ... --load_model my_existing_model --model_name a_new_name ...")
+                exit(0)
+        else:
+            logger.info(f"\nℹ️ Loading model {final_load_model_path}, saving in {final_model_path}.\n")
+    else:
+        logger.info(f"\nℹ️ Model folder is {final_model_path}.")
 
+
+    if not 'skeleton' in config.keys() or config['skeleton'] is None or len(config['skeleton'])\
+            == 0:
+        skeleton_graph = None
+    else:
+        skeleton_graph = Graph(len(config['keypoints']),
+                             config['skeleton_center'],
+                             config['skeleton'],
+                             config['skeleton_colors'],
+                               logger=logger)
+
+    ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
     if _cfg.training_epochs is None or type(_cfg.training_epochs) != int:
         print("\n❌ training_epochs should be a "
               f"strictly positive integer. Got {_cfg.training_epochs}")
@@ -426,7 +460,7 @@ def cli(_cfg) -> None:
     output_config_file = os.path.join(final_model_path, 'config', f'config_train.yaml')
     copy_config_file(modified_cfg, output_config_file)
 
-    test_dir = os.path.join(final_model_path, f'{datetime.today().strftime("%Y-%m-%d")}_test')
+    test_dir = os.path.join(final_model_path, f'{datetime.today().strftime("%Y-%m-%d_%H-%M")}_test')
     os.makedirs(test_dir, exist_ok=True)
 
     os.makedirs(os.path.join(test_dir, 'config'), exist_ok=True)
@@ -438,7 +472,7 @@ def cli(_cfg) -> None:
     add_missing = True
     main(project_path, final_model_path, dataset_path, dataset_name, test_dir,
          skeleton_graph, training_seed,
-         load_model_dir, network_config,
+         final_load_model_path, network_config,
          training_batch_size, training_epochs, learning_rate,
          loss_def, loss_mask, loss_factor,
          model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,

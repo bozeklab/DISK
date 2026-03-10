@@ -58,14 +58,6 @@ def cli(_cfg) -> None:
         print(f'ℹ️ No Missing keypoints in the original files. DISK will NOT impute.')
         sys.exit(0)
 
-    if not ('skeleton' in config.keys() and config['skeleton'] is not None and len(config['skeleton']) == 0):
-        skeleton_graph = None
-    else:
-        skeleton_graph = Graph(len(config['keypoints']),
-                 config['center'],
-                 config['neighbor_links'],
-                 config['neighbor_link_colors'])
-
     file_type = config['file_type']
 
     if _cfg.dataset_name is None or type(_cfg.dataset_name) != str \
@@ -106,6 +98,14 @@ def cli(_cfg) -> None:
     logging.basicConfig(level=logging_flag, handlers=[VoidHandler()])
 
     logger = setup_custom_logging(output_path, 'impute.log', logging_flag)
+
+    if not ('skeleton' in config.keys() and config['skeleton'] is not None and len(config['skeleton']) == 0):
+        skeleton_graph = None
+    else:
+        skeleton_graph = Graph(len(config['keypoints']),
+                 config['center'],
+                 config['neighbor_links'],
+                 config['neighbor_link_colors'], logger=logger)
 
     ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
     if _cfg.batch_size is None or type(_cfg.batch_size) != int:

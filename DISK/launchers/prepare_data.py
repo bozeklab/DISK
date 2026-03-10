@@ -79,15 +79,6 @@ def cli(_cfg) -> None:
     with open(os.path.join(project_path, 'config_project.yaml'), 'r') as file:
         config = yaml.safe_load(file)
 
-    if not 'skeleton' in config.keys() or config['skeleton'] is None or len(config['skeleton'])\
-            == 0:
-        skeleton_graph = None
-    else:
-        skeleton_graph = Graph(len(config['keypoints']),
-                 config['skeleton_center'],
-                 config['skeleton'],
-                 config['skeleton_colors'])
-
     ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
     if _cfg.stride == '_DEFAULT_':
         stride = max(length // 2, 1)
@@ -175,8 +166,16 @@ def cli(_cfg) -> None:
         logging_flag = logging.INFO
 
     logging.basicConfig(level=logging_flag, handlers=[VoidHandler()])
-
     logger = setup_custom_logging(dataset_path, 'prepare_data.log', logging_flag)
+
+    if not 'skeleton' in config.keys() or config['skeleton'] is None or len(config['skeleton'])\
+            == 0:
+        skeleton_graph = None
+    else:
+        skeleton_graph = Graph(len(config['keypoints']),
+                 config['skeleton_center'],
+                 config['skeleton'],
+                 config['skeleton_colors'], logger=logger)
 
     if _cfg.dlc_likelihood_threshold == '_DEFAULT':
         dlc_likelihood_threshold = 0.9

@@ -1,6 +1,4 @@
 import numpy as np
-import importlib.util
-import logging
 
 #######################################################################################################################
 ### Adapted from: https://github.com/yysijie/st-gcn
@@ -34,7 +32,8 @@ class Graph():
                  neighbor_link_colors,
                  strategy='uniform',
                  max_hop=1,
-                 dilation=1):
+                 dilation=1,
+                 logger=None):
         self.num_keypoints = num_keypoints
         self.max_hop = max_hop
         self.dilation = dilation
@@ -46,6 +45,8 @@ class Graph():
         self.hop_dis = get_hop_distance(
             self.num_node, self.edge, max_hop=max_hop)
         self.get_adjacency(strategy)
+
+        self.logger = logger
 
     def __str__(self):
         return self.A
@@ -70,7 +71,7 @@ class Graph():
                 self.neighbor_link.append(neighbor_links[i])
 
         assert len(self.neighbor_link) == len(self.neighbor_link_color)
-        logging.info(f'Loaded skeleton with links {self.neighbor_link} and colors {self.neighbor_link_color}')
+        self.logger.info(f'Loaded skeleton with links {self.neighbor_link} and colors {self.neighbor_link_color}')
 
         self.edge = self_link + self.neighbor_link
 

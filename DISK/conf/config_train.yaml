@@ -1,54 +1,45 @@
+### REQUIRED PARAMETERS
+### _type and _help should not be changed
+### If mistakes / erasures with the config files, they can be reinitialized by the command: DISK-restore-config
+
 project_path:
 project_path_type: str
+project_path_help: "relative or absolute path to the DISK project folder. Should exist (it is create by the command DISK-create-project)"
 
 dataset_name:
 dataset_name_type: str
 dataset_name_help: "output name for the created dataset"
 
+
+### OPTIONAL PARAMETERS
+
 model_name: _DEFAULT_
 model_name_type: str
+model_name_help: "desired folder name for the DISK model"
 
 network: transformer
-
-debug: false
-debug_type: bool
+network_type: str
+network_help: "Can be of the following types: transformer, gpu, st_gcn, sts_gcn, tcn. We recommend transformer and for a lighter architecture GRU (2nd best performance)"
 
 training_epochs: 1500
 training_epochs_type: int
+training_epochs_help: "number of epochs to train the model"
+
 training_batch_size: 32
 training_batch_size_type: int
-# from experience, learning rate of 0.0001 is better for GRU and 0.001 for transformer
-training_learning_rate: _DEFAULT_
-training_learning_rate_type: float
-training_seed: _DEFAULT_
-training_seed_type: int
+training_batch_size_help: "number of simultaneous samples loaded into the GPU memory. Depends on the number of keypoints and sequence length. If out of memory error, reduce the training_batch_size"
 
-# load can be used to continue a training
-# if a valid path is given, then the saved model will be loaded
-# instead of starting from a random initialization of the weights
-load_model: # example: outputs/2023-09-27_Fishv3_newnewmissing/09-26-47_STGCN_stride60
+load_model:
+load_model_type: str
+load_model_help: "used to continue a training. Needs to be a valid to a model folder. Will use the same folder to write outputs except if model_name is changed"
 
-n_cpus: 8 # TOCHANGE: if no multiprocessing, put 0
+n_cpus: 8
 n_cpus_type: int
+n_cpus_help: "number of CPUs used for the job. When having access to a GPU the CPUs take care of the data loading and data transforms."
 
-loss:
-  def: l1
-  def_type: str
-  mask: true
-  mask_type: bool
-  factor: 100
-  factor_type: float
-model_scheduler:
-  def: lambdalr
-  def_type: str
-  steps_epoch: 500
-  steps_epoch_type: int
-  rate: 0.95
-  rate_type: float
 print_every: _DEFAULT_
 print_every_type: int
-# print_every modifies the frequency at which the model infers on the validation set and the frequency at which
-# models can be saved (save when validation loss is better than previous one)
+print_every_help: "print_every modifies the frequency at which the model infers on the validation set and the frequency at which models can be saved (save when validation loss is better than previous one)"
 
 
 transforms:
@@ -83,3 +74,33 @@ test:
   original_coordinates_type: bool
   n_repeat: 1
   n_repeat_type: int
+
+
+### DEV PARAMETERS
+
+training_seed: _DEFAULT_
+training_seed_type: int
+training_seed_help: "make the training reproducible"
+
+training_learning_rate: _DEFAULT_
+training_learning_rate_type: float
+training_learning_rate_help: "from experience, learning rate of 0.0001 is better for GRU and 0.001 for transformer"
+
+loss:
+  def: l1
+  def_type: str
+  mask: true
+  mask_type: bool
+  factor: 100
+  factor_type: float
+
+model_scheduler:
+  def: lambdalr
+  def_type: str
+  steps_epoch: 500
+  steps_epoch_type: int
+  rate: 0.95
+  rate_type: float
+
+debug: false
+debug_type: bool

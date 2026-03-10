@@ -225,13 +225,6 @@ def test(project_path: str,
                 data_with_holes_np = data_with_holes.detach().cpu().numpy()
                 mask_holes_np = mask_holes.detach().cpu().numpy().astype(bool)
                 data_with_holes_np[mask_holes_np] = np.nan
-
-                if test_original_coordinates:
-                    full_data_np = reconstruct_before_normalization(full_data_np, data_dict, transforms)
-                    data_with_holes_np = reconstruct_before_normalization(data_with_holes_np, data_dict, transforms)
-                    # if swap_bool:
-                    #     data_swapped_np = reconstruct_before_normalization(data_swapped_np, data_dict, transforms)
-
                 """Linear interpolation"""
 
                 ### put everything we need in numpy
@@ -242,13 +235,26 @@ def test(project_path: str,
                 n_missing = np.sum(mask_holes_np, axis=(1, 2))  ## (batch,)
 
                 x_outputs_np = [out.detach().cpu().numpy() for out in de_outs]
+                # List(number of models) of tensors of size (batch, time, keypoints, 3D) if mu_sigma GRU or transformer model
+                uncertainty_estimates_np = [unc if unc is None else unc.detach().cpu().numpy() for unc in
+                                            uncertainty_estimates]
+
+                swap_samples, swap_times, swap_keypoints = np.where(~np.isclose(data_with_holes_np[..., 0], full_data_np[..., 0],
+                                                                                atol=1.e-6, equal_nan=True) * ~mask_holes_np)
+
                 if test_original_coordinates:
+                    full_data_np = reconstruct_before_normalization(full_data_np, data_dict, transforms)
+                    data_with_holes_np = reconstruct_before_normalization(data_with_holes_np, data_dict, transforms)
+
+                    max_uncertainty_margin_orig = [reconstruct_before_normalization(out + unc, data_dict, transforms)
+                                                   for out, unc in zip(x_outputs_np, uncertainty_estimates_np)]
+
                     x_outputs_np = [reconstruct_before_normalization(out, data_dict, transforms)
                                for out in x_outputs_np]
 
-                # List(number of models) of tensors of size (batch, time, keypoints, 3D) if mu_sigma GRU or transformer model
-                ## TODO: need to scale this in case of original coordinates!!
-                uncertainty_estimates_np = [unc if unc is None else unc.detach().cpu().numpy() for unc in uncertainty_estimates]
+                    uncertainty_estimates_np = [y - out for out, y in zip(x_outputs_np, max_uncertainty_margin_orig)]
+
+
                 uncertainty = [unc if unc is None else np.sum(np.sqrt((unc ** 2) * reshaped_mask_holes), axis=3)
                                for unc in uncertainty_estimates_np]  # sum on the XYZ dimension, output shape (batch, time, keypoint)
 
@@ -288,8 +294,6 @@ def test(project_path: str,
                             np.abs(np.abs(x_outputs_np[i_model] - full_data_np) - uncertainty_estimates_np[i_model] * factor) * reshaped_mask_holes,
                             axis=(1, 2, 3))
                         bandexcess[i_model] = be[n_missing > 0] / be[n_missing > 0]
-
-                swap_samples, swap_times, swap_keypoints = np.where(~np.isclose(data_with_holes_np[..., 0], full_data_np[..., 0], atol=1.e-3, equal_nan=True) * ~mask_holes_np)
 
                 for i_sample_in_batch in range(data_with_holes_np.shape[0]):
                     # if swap_bool:

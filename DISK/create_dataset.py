@@ -1,4 +1,3 @@
-import logging
 import os
 import tqdm
 import shutil
@@ -13,7 +12,8 @@ def chop_coordinates_in_timeseries(time_vect: np.array,
                                    coordinates: np.array,
                                    stride: int = 1,
                                    length: int = 1,
-                                   th_std: float = 0):
+                                   th_std: float = 0,
+                                   logger: str = ''):
     """
 
     :param time_vect: 1D numpy array
@@ -38,7 +38,7 @@ def chop_coordinates_in_timeseries(time_vect: np.array,
     lengths = []
     times = []
     if len(good_segments) == 0:
-        logging.debug('No long enough segments.')
+        logger.debug('No long enough segments.')
     for index_good_segment in good_segments:
         data = coordinates[breakpoints[index_good_segment] + 1: breakpoints[index_good_segment + 1]]
 
@@ -77,7 +77,7 @@ def find_hole_nan(mask):
     return out  # returns a list of tuples (start, length_nan, keypoint_name)
 
 
-def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
+def open_and_extract_data(f, file_type, dlc_likelihood_threshold, logger):
     """
     :args f: (str) path to data file
 
@@ -134,7 +134,7 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
             data = np.array(np.load(f))
         except ValueError:
             data = np.array(np.load(f, allow_pickle=True))
-        logging.info(f'[WARNING][CREATE_DATASET][OPEN_AND_EXTRACT_DATA function][NPY INPUT FILES] keypoints cannot be '
+        logger.info(f'[WARNING][CREATE_DATASET][OPEN_AND_EXTRACT_DATA function][NPY INPUT FILES] keypoints cannot be '
                f'loaded from input files. '
                      f'Expected behavior: the columns correspond to the keypoints and are in fixed order')
         # WARNING - here no information about keypoint, so we expect that the columns match for every file
@@ -145,7 +145,7 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
         with open(f, 'rb') as openedf:
             pkl_content = pickle.load(openedf)
         data = pkl_content['points3d']
-        logging.info(f'[WARNING][CREATE_DATASET][OPEN_AND_EXTRACT_DATA function][PKL INPUT FILES] keypoints cannot be '
+        logger.info(f'[WARNING][CREATE_DATASET][OPEN_AND_EXTRACT_DATA function][PKL INPUT FILES] keypoints cannot be '
                f'loaded from input files. '
                      f'Expected behavior: the columns correspond to the keypoints and are in fixed order')
         keypoints = [f'{i:02d}' for i in range(data.shape[1])]
@@ -238,7 +238,7 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold):
         # EDIT: Make sure that the keypoints are in the same order
         new_order = np.argsort(keypoints)
         keypoints = [keypoints[n] for n in new_order]
-        logging.debug(f'{new_order}, {keypoints}')
+        logger.debug(f'{new_order}, {keypoints}')
         data = data[:, new_order]
 
     elif file_type == 'sleap_h5':
@@ -330,7 +330,7 @@ def create_dataset(dataset_path, data_files, file_type, sample_length, stride, f
     # and we want to count the number of effective files
     for i_file, f in tqdm.tqdm(enumerate(data_files), desc='Loading data files'):
         logger.debug(f'[CREATE_DATASET] {f}')
-        data, keypoints = open_and_extract_data(f, file_type, dlc_likelihood_threshold)
+        data, keypoints = open_and_extract_data(f, file_type, dlc_likelihood_threshold, logger=logger)
 
         # shape (keypoints, coordinates + residual, timepoints)
         begin = discard_beginning * original_freq if discard_beginning > 0 else 0
@@ -415,7 +415,8 @@ def create_dataset(dataset_path, data_files, file_type, sample_length, stride, f
                                                                                new_data[indices_ttv[i_partition]: indices_ttv[i_partition + 1]],
                                                                                length=sample_length,
                                                                                stride=stride,
-                                                                               th_std=0)
+                                                                               th_std=0,
+                                                                               logger=logger)
 
                     # NB: times gives the beginning of the sample in the raw indices
                     if len(chopped_data) > 0:
@@ -445,7 +446,8 @@ def create_dataset(dataset_path, data_files, file_type, sample_length, stride, f
                                                 new_data,
                                                 length=sample_length,
                                                 stride=stride,
-                                                th_std=0
+                                                th_std=0,
+                                                logger=logger
                                             )
 
                 # NB: times gives the beginning of the sample in the raw indices

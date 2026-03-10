@@ -3,11 +3,14 @@ from datetime import datetime
 import os
 import sys
 import yaml
+import torch
 
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file, VoidHandler
 from DISK.launchers.train_test import find_proba_files
 from DISK.models.graph import Graph
 from DISK.utils.config_decorator import config_reader, parse_command_line_args, test_boolean_variable
+from DISK.test_fillmissing import test
+
 
 def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton_graph,
          training_batch_size,
@@ -21,20 +24,22 @@ def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton
          total_n_plots, plot2d_only_holes, plot3d_size, plot3d_azim,
          logger, verbose=0):
 
-    from DISK.test_fillmissing import test
+    logger.info(f'*********************** TESTING DISK TRAINED MODEL *********************** \n')
+    try:
+        test(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
+             model_dirs, training_batch_size, n_cpus,
+             loss_type, loss_mask, loss_factor,
+             proba_file, proba_length_file, indep_keypoints,
+             add_missing_pad,
+             viewinvariant, normalize, normalizecube, swap, add_missing,
+             test_original_coordinates, test_threshold_pck, n_repeat,
+             total_n_plots, plot2d_only_holes,
+             plot3d_size, plot3d_azim,
+             logger, suffix='', stride=None, verbose=verbose)
+    except torch.OutOfMemoryError:
+        print(f"\n❌ CUDA (GPU) out of memory. Try reducing the --training_batch_size. Got {training_batch_size}")
+        sys.exit(1)
 
-    logger.info(f'\n*********************** TESTING DISK TRAINED MODEL *********************** \n')
-
-    test(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
-         model_dirs, training_batch_size, n_cpus,
-         loss_type, loss_mask, loss_factor,
-         proba_file, proba_length_file, indep_keypoints,
-         add_missing_pad,
-         viewinvariant, normalize, normalizecube, swap, add_missing,
-         test_original_coordinates, test_threshold_pck, n_repeat,
-         total_n_plots, plot2d_only_holes,
-         plot3d_size, plot3d_azim,
-         logger, suffix='', stride=None, verbose=verbose)
     logger.info(f'✅ Successfully tested DISK model.\n')
 
 
@@ -72,14 +77,6 @@ def cli(_cfg) -> None:
     # Load the YAML configuration file
     with open(os.path.join(project_path, 'config_project.yaml'), 'r') as file:
         config = yaml.safe_load(file)
-
-    if not ('skeleton' in config.keys() and config['skeleton'] is not None and len(config['skeleton']) == 0):
-        skeleton_graph = None
-    else:
-        skeleton_graph = Graph(len(config['keypoints']),
-                 config['center'],
-                 config['neighbor_links'],
-                 config['neighbor_link_colors'])
 
     if _cfg.dataset_name is None or type(_cfg.dataset_name) != str \
             or not os.path.exists(os.path.join(project_path, 'DISK_data', _cfg.dataset_name)):
@@ -121,7 +118,7 @@ def cli(_cfg) -> None:
         verbose = 0
 
     if _cfg.name_output_dir == '_DEFAULT_':
-        test_dir = os.path.join(project_path, 'DISK_train', f'{datetime.today().strftime("%Y-%m-%d")}_test')
+        test_dir = os.path.join(project_path, 'DISK_train', f'{datetime.today().strftime("%Y-%m-%d_%H-%M")}_test')
     else:
         if _cfg.name_output_dir is None or type(_cfg.name_output_dir) != str:
             print(f"\n❌ name_output_dir should be a "
@@ -133,6 +130,16 @@ def cli(_cfg) -> None:
 
     logging.basicConfig(level=logging_flag, handlers=[VoidHandler()])
     logger = setup_custom_logging(test_dir, 'test.log', logging_flag)
+
+
+    if not ('skeleton' in config.keys() and config['skeleton'] is not None and len(config['skeleton']) == 0):
+        skeleton_graph = None
+    else:
+        skeleton_graph = Graph(len(config['keypoints']),
+                             config['center'],
+                             config['neighbor_links'],
+                             config['neighbor_link_colors'],
+                               logger=logger)
 
     ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
 
