@@ -139,7 +139,6 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
                 # found a model, so stop looking in the folders
                 break
 
-    if load_model_dir:
         file_output = open(os.path.join(model_dir, f'training_losses.txt'), 'a')
         if model_dir != load_model_dir:
             for item in os.listdir(load_model_dir):

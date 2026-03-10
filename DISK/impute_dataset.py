@@ -348,6 +348,9 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
         divider=data_divider,
     logger=logger)
 
+    if len(train_dataset) == 0 and len(val_dataset) == 0 and len(test_dataset) == 0:
+        return False
+
     """LOOPING ON DATA"""
     with torch.no_grad():
         for subset, dataset in {'test': test_dataset, 'val': val_dataset, 'train': train_dataset}.items():
@@ -380,8 +383,8 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
                     transformed_data_np = transformed_data.detach().cpu().numpy()
                     untransformed_data_np = reconstruct_before_normalization(transformed_data_np, data_dict, transforms)
 
-                    x_output_np = de_out[0].detach().cpu().numpy()
-                    x_output_np = reconstruct_before_normalization(x_output_np, data_dict, transforms)
+                    x_output = de_out[0].detach().cpu().numpy()
+                    x_output_np = reconstruct_before_normalization(x_output, data_dict, transforms)
 
                     mask_holes_np = mask_holes.detach().cpu().numpy()
 
@@ -389,9 +392,10 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
                         # for proba models
                         reshaped_mask_holes = np.repeat(mask_holes_np, data_divider, axis=-1)\
                                               .reshape(x_output_np.shape)
+                        uncertainty_estimates_np = reconstruct_before_normalization(de_out[1].detach().cpu().numpy() + x_output, data_dict, transforms)
                         uncertainty = np.sum(
-                        np.sqrt((de_out[1].detach().cpu().numpy() ** 2) * reshaped_mask_holes),
-                        axis=3)  # sum on the keypoint on dimension, shape (batch, time, keypoint)
+                                            np.sqrt((uncertainty_estimates_np - x_output_np ** 2) * reshaped_mask_holes),
+                                            axis=3)  # sum on the keypoint on dimension, shape (batch, time, keypoint)
                     else:
                         uncertainty = None
 
@@ -513,3 +517,4 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
                 np.savez(os.path.join(dataset_path, f'{subset}_dataset_imputed.npz'), X=np.stack(new_dataset, axis=0),
                          y=np.stack(new_y), lengths=np.stack(new_lengths))
 
+    return True

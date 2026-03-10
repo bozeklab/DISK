@@ -13,10 +13,11 @@ def main(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_gr
 
     from DISK.impute_dataset import impute
 
-    impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph, checkpoint, batch_size,
-           threshold_error_score, total_n_plots, plot_only_holes, missing_pad, verbose=verbose, logger=logger)
-
-    logger.info(f'✅ Successfully imputed data with DISK model.\n')
+    if impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph, checkpoint, batch_size,
+           threshold_error_score, total_n_plots, plot_only_holes, missing_pad, verbose=verbose, logger=logger):
+        logger.info(f'✅ Successfully imputed data with DISK model.\n')
+    else:
+        logger.info(f'❌ Could not find segments imputable by the DISK model.\n')
 
 
 
