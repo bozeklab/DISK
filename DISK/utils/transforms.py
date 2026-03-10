@@ -14,6 +14,9 @@ def init_transforms(
                     add_missing=True, verbose=0):
     transforms = []
 
+    if swap > 0:
+        transforms.append(Swap2Kp(proba=swap, divider=divider, verbose=0, outputdir=outputdir))
+
     if add_missing:
         length_proba_df = pd.read_csv(proba_length_file)
 
@@ -43,8 +46,7 @@ def init_transforms(
         transforms.append(Normalize(proba=1, divider=divider, verbose=0, outputdir=outputdir))
     if normalizecube:
         transforms.append(NormalizeCube(proba=1, divider=divider, verbose=0, outputdir=outputdir))
-    if swap > 0:
-        transforms.append(Swap2Kp(proba=swap, divider=divider, verbose=0, outputdir=outputdir))
+
 
     return transforms
 
@@ -235,8 +237,8 @@ class ViewInvariant(Transform):
         if np.all(np.isnan(x)):
             x_prime = np.array(x)
             self.logger.debug(f'[ViewInvariant] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
-            x_supp_prime = [np.array(xs) for xs in x_supp]
-            return x_prime, tuple(x_supp_prime), kwargs
+            x_supp_prime = np.array(x_supp)
+            return x_prime, x_supp_prime, kwargs
 
         barycenter, A, index_vect, angle = self.compute_transform(x)
 
@@ -244,9 +246,7 @@ class ViewInvariant(Transform):
         # x and x_prime is with holes if any
         x_prime = self.apply_transform(x, barycenter, angle)
         # x_supp_prime has no holes if any, if not, not used
-        x_supp_prime = []
-        for xx in x_supp:
-            x_supp_prime.append(self.apply_transform(xx, barycenter, angle))
+        x_supp_prime = self.apply_transform(x_supp, barycenter, angle)
 
         if (kwargs['verbose_sample'] or self.verbose == 2) and kwargs['skeleton_graph'] is not None:
             ### visualization for debugging puposes
@@ -263,7 +263,7 @@ class ViewInvariant(Transform):
         if np.all(np.isnan(x_prime)):
             self.logger.debug('[ViewInvariant] all nan in x_prime')
 
-        return x_prime, tuple(x_supp_prime), kwargs
+        return x_prime, x_supp_prime, kwargs
 
     def untransform(self, x, *args, **kwargs):
         ## then un-View Invariant
@@ -326,8 +326,8 @@ class NormalizeCube(Transform):
         if np.all(np.isnan(x)):
             x_prime = np.array(x)
             self.logger.debug(f'[NormalizeCube] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
-            x_supp_prime = [np.array(xs) for xs in x_supp]
-            return x_prime, tuple(x_supp_prime), kwargs
+            x_supp_prime = np.array(x_supp)
+            return x_prime, x_supp_prime, kwargs
 
         """Compute the transform"""
         # x of shape (time points, keypoints,  3)
@@ -342,12 +342,9 @@ class NormalizeCube(Transform):
         """Apply the transform"""
         x_prime = 2 * (x - ((max_ + min_) / 2)) / amplitude  # normalizes between -1 and 1
 
-        x_supp_prime = []
-        for xx in x_supp:
-            yy = 2 * (xx - ((max_ + min_) / 2)) / amplitude  # normalizes between -1 and 1
-            x_supp_prime.append(yy)
+        x_supp_prime = 2 * (x_supp - ((max_ + min_) / 2)) / amplitude  # normalizes between -1 and 1
 
-        return x_prime, tuple(x_supp_prime), kwargs
+        return x_prime, x_supp_prime, kwargs
 
     def untransform(self, x, *args, **kwargs):
         if torch.is_tensor(kwargs['min_sample']):
@@ -406,12 +403,9 @@ class Normalize(Transform):
 
         """Apply the transform"""
         x_prime = 2 * (x - min_) / (max_ - min_) - 1  # normalizes between -1 and 1
-        x_supp_prime = []
-        for xx in x_supp:
-            yy = 2 * (xx - min_) / (max_ - min_) - 1  # normalizes between -1 and 1
-            x_supp_prime.append(yy)
+        x_supp_prime = 2 * (x_supp - min_) / (max_ - min_) - 1  # normalizes between -1 and 1
 
-        return x_prime, tuple(x_supp_prime), kwargs
+        return x_prime, x_supp_prime, kwargs
 
     def untransform(self, x, *args, **kwargs):
         if torch.is_tensor(kwargs['min_sample']):
@@ -481,18 +475,21 @@ class Swap2Kp(Transform):
         x_prime[start_index: start_index + length, rd_kps[0]] = np.array(x[start_index: start_index + length, rd_kps[1]])
         x_prime[start_index: start_index + length, rd_kps[1]] = np.array(x[start_index: start_index + length, rd_kps[0]])
 
-        if len(x_supp) > 1:
-            raise Warning('[TRANSFORMS][]SWAP2KP] x_supp is longer than expected')
-        elif len(x_supp) > 0:
-            x_supp_prime = [x_supp[0]]
-            yy = np.array(x_supp[0])
-            yy[start_index: start_index + length, rd_kps[0]] = np.array(x_supp[0][start_index: start_index + length, rd_kps[1]])
-            yy[start_index: start_index + length, rd_kps[1]] = np.array(x_supp[0][start_index: start_index + length, rd_kps[0]])
-            x_supp_prime.append(yy)
-        else:
-            x_supp_prime = []
+        # if len(x_supp) > 1:
+        #     raise Warning('[TRANSFORMS][SWAP2KP] x_supp is longer than expected')
+        # elif len(x_supp) > 0:
+        #     x_supp_prime = [x_supp[0]]
+        #     yy = np.array(x_supp[0])
+        #     yy[start_index: start_index + length, rd_kps[0]] = np.array(x_supp[0][start_index: start_index + length, rd_kps[1]])
+        #     yy[start_index: start_index + length, rd_kps[1]] = np.array(x_supp[0][start_index: start_index + length, rd_kps[0]])
+        #     x_supp_prime.append(yy)
+        # else:
+        #     x_supp_prime = []
+        #
+        # if np.sum(x == 0) != 0 or np.sum(x_prime == 0) != 0 or np.sum(x_supp_prime[-1] == 0) != 0:
+        #     print('SWAP TRANSFORM', x.shape, len(x_supp), np.sum(x == 0), np.sum(x_prime == 0), np.sum(x_supp_prime[-1] == 0))
 
-        return x_prime, tuple(x_supp_prime), kwargs
+        return x_prime, x_supp, kwargs #tuple(x_supp_prime), kwargs
 
     def untransform(self, x, *args, **kwargs):
         if 'swap_kp' in kwargs:
@@ -530,17 +527,20 @@ class AddMissing_LengthProba(Transform):
 
         super().__init__(**kwargs)
 
-    def __call__(self, x, *args, x_supp=(), verbose_sample=False, **kwargs):
+    def __str__(self):
+        return 'AddMissing_LengthProba'
+
+    def __call__(self, x, *args, x_supp=(), **kwargs):
         # x of shape (time points, keypoints, 3 or 4)
         x_with_holes = np.array(x)
 
         if np.max(np.sum(np.any(np.isnan(x), axis=2), axis=1)) > 0:
-            if self.verbose == 2 or verbose_sample:
+            if self.verbose == 2 or kwargs['verbose_sample']:
                 self.logger.info('[AddMissing Transform] There is already a missing keypoint in the sequence. Not '
                                 'adding '
                            'more')
         else:
-            # missing value place holder
+            # missing value placeholder
             missing_values_placeholder = np.nan
 
 
@@ -606,7 +606,7 @@ class AddMissing_LengthProba(Transform):
                         index_rd_kp = self.list_keypoints.index(rd_kp)
                     x_with_holes[start_missing: end_missing, index_rd_kp, :] = missing_values_placeholder
 
-            if self.verbose == 2 or verbose_sample:
+            if self.verbose == 2 or kwargs['verbose_sample']:
                 self.logger.info(f"nb of missing kp: {np.sum(np.sum(np.any(np.isnan(x_with_holes), axis=2), axis=0) > 0)}")
             v = np.sum(np.isnan(x_with_holes[..., 0]))
             if v == 0:
@@ -623,20 +623,9 @@ def transform_x(x, transformations, **kwargs):
     :param kwargs:
     :return:
     '''
-    if isinstance(transformations[0], AddMissing_LengthProba):
-        x_supp = (np.copy(x),)  # the supp sample is the one without holes, but other reflection, normalization, ...
-        # will be computed on x and applied both on x_gt and x
-        x, _, _ = transformations[0](x, **kwargs)  # the main sample is the one with holes
-        # in the case, where no hole is added, x is original x, and x_gt is None
-    else:
-        x_supp = ()
-        x, x_supp, kwargs = transformations[0](x, x_supp=x_supp, **kwargs)
-
-    for t in transformations[1:]:
-        if isinstance(t, Swap2Kp):
-            x, x_supp, kwargs = t(x, x_supp=x_supp, **kwargs)
-        else:
-            x, x_supp, kwargs = t(x, x_supp=x_supp, **kwargs)
+    x_supp = np.copy(x) # the supp sample is the one without holes and without swap, but other reflection, normalization, ...
+    for t in transformations:
+        x, x_supp, kwargs = t(x, x_supp=x_supp, **kwargs)
 
     return x, x_supp, kwargs
 

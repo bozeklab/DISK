@@ -192,17 +192,17 @@ class ParentDataset(data.Dataset):
             output['VI_angle'] = torch_angle
             output['VI_barycenter'] = torch_barycenter
 
-        if x_supp is not None and len(x_supp) > 0:
+        if x_supp is not None:
             # normally sequence without additional holes but after the other transforms
-            output['x_supp'] = torch.from_numpy(x_supp[0]).type(torch.float)
+            output['x_supp'] = torch.from_numpy(x_supp).type(torch.float)
             # can be none or the original sample without holes
             ## FR: maybe not the best, but haven't found any better yet
-            if len(x_supp) == 2:
-                output['x_swap'] = torch.from_numpy(x_supp[1]).type(torch.float)
-                output['swap'] = sample['swap']
-            else:
-                output['x_swap'] = torch.from_numpy(np.zeros_like(x_supp[0])).type(torch.float)
-                output['swap'] = sample['swap']
+            # if len(x_supp) == 2:
+            #     output['x_swap'] = torch.from_numpy(x_supp[1]).type(torch.float)
+            #     output['swap'] = sample['swap']
+            # else:
+            #     output['x_swap'] = torch.from_numpy(np.zeros_like(x_supp[0])).type(torch.float)
+            output['swap'] = sample['swap']
 
         if 'i_file' in sample.keys():
             output['indices_file'] = sample['i_file']

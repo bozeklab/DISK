@@ -183,18 +183,13 @@ def test(project_path: str,
     if not os.path.isdir(visualize_val_outputdir):
         os.mkdir(visualize_val_outputdir)
 
-    swap_bool = swap > 0
     mean_RMSE = []
     for i_repeat in range(n_repeat):
         suffix = suffix + f'_repeat-{i_repeat}'
         """RMSE computation"""
-        total_rmse = {'id_sample': [], 'id_hole':[], 'keypoint':[], 'method':[], 'method_param':[],
-                      'RMSE':[], 'MPJPE':[], pck_name:[], 'mean_uncertainty':[], 'length_hole':[],
-                      }
-        if swap_bool:
-            total_rmse['swap_kp_id'] = []
-            total_rmse['swap_length'] = []
-            total_rmse['average_dist_bw_swap_kp'] = []
+        total_rmse = {'id_sample': [], 'id_hole': [], 'keypoint': [], 'method': [], 'method_param': [], 'RMSE': [],
+                      'MPJPE': [], pck_name: [], 'mean_uncertainty': [], 'length_hole': [], 'swap_kp_id': [],
+                      'swap_length': [], 'average_dist_bw_swap_kp': []}
 
         id_sample = 0
         n_plots = 0
@@ -211,8 +206,8 @@ def test(project_path: str,
                 data_with_holes = data_dict['X'].to(device)  # shape (timepoints, n_keypoints, 2 or 3 or 4)
                 data_full = data_dict['x_supp'].to(device)
                 mask_holes = data_dict['mask_holes'].to(device)
-                if swap_bool:
-                    data_swapped_np = data_dict['x_swap'].detach().cpu().numpy()
+                # if swap_bool:
+                #     data_swapped_np = data_dict['x_swap'].detach().cpu().numpy()
                     #if 'x_swap' in data_dict \
                     #                  else np.zeros((_cfg.evaluate.batch_size, data_dict['X'].shape[1], dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER)) * np.nan
                 assert not torch.any(torch.isnan(data_with_holes))
@@ -228,15 +223,16 @@ def test(project_path: str,
 
                 full_data_np = data_full.detach().cpu().clone().numpy()
                 data_with_holes_np = data_with_holes.detach().cpu().numpy()
+                mask_holes_np = mask_holes.detach().cpu().numpy().astype(bool)
+                data_with_holes_np[mask_holes_np] = np.nan
 
                 if test_original_coordinates:
                     full_data_np = reconstruct_before_normalization(full_data_np, data_dict, transforms)
                     data_with_holes_np = reconstruct_before_normalization(data_with_holes_np, data_dict, transforms)
-                    if swap_bool:
-                        data_swapped_np = reconstruct_before_normalization(data_swapped_np, data_dict, transforms)
+                    # if swap_bool:
+                    #     data_swapped_np = reconstruct_before_normalization(data_swapped_np, data_dict, transforms)
 
                 """Linear interpolation"""
-                mask_holes_np = mask_holes.detach().cpu().numpy()
 
                 ### put everything we need in numpy
                 indices_sample = data_dict['index'].detach().cpu().numpy()
@@ -293,23 +289,21 @@ def test(project_path: str,
                             axis=(1, 2, 3))
                         bandexcess[i_model] = be[n_missing > 0] / be[n_missing > 0]
 
+                swap_samples, swap_times, swap_keypoints = np.where(~np.isclose(data_with_holes_np[..., 0], full_data_np[..., 0], atol=1.e-3, equal_nan=True) * ~mask_holes_np)
+
                 for i_sample_in_batch in range(data_with_holes_np.shape[0]):
-                    if swap_bool:
-                        swapped_kp_ids = np.unique(
-                            np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[
-                                1])
-                        swap_times = np.unique(
-                            np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[
-                                0])
-                        swap_length = np.max(swap_times) - np.min(swap_times) + 1
+                    # if swap_bool:
+                    if i_sample_in_batch in swap_samples:
+                        swap_length = np.max(swap_times[swap_samples == i_sample_in_batch]) - np.min(swap_times[swap_samples == i_sample_in_batch]) + 1
+
                         # Euclidean distance between keypoints that are swapped during the swap
-                        logger.debug(
-                            f'[DEBUG] {data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids].shape} should be (Tbis, 2, 3) -- ')
-                        swap_dist = np.mean(np.sqrt(np.sum((data_swapped_np[i_sample_in_batch, swap_times][:,
-                                                            swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times][:,
-                                                                              swapped_kp_ids]) ** 2, axis=-1)))
-                        logger.debug(
-                        f'{np.sum((data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times][:, swapped_kp_ids])**2, axis=-1).shape} should be (T, 2)')
+
+                        swap_dist = np.mean(np.sqrt(np.sum((data_with_holes_np[i_sample_in_batch, swap_times[swap_samples == i_sample_in_batch]][:,
+                                                            swap_keypoints[swap_samples == i_sample_in_batch]] - full_data_np[i_sample_in_batch, swap_times[swap_samples == i_sample_in_batch]][:,
+                                                                              swap_keypoints[swap_samples == i_sample_in_batch]]) ** 2, axis=-1)))
+                    else:
+                        swap_length = 0
+                        swap_dist = 0
 
                     ## gives the length of a hole, one keypoint at a time, a sample can have multiple holes one after the other:
                     id_hole = 0
@@ -330,10 +324,9 @@ def test(project_path: str,
                             total_rmse[pck_name].append(mean_pck)
                             total_rmse['mean_uncertainty'].append(np.nan)
                             total_rmse['length_hole'].append(o[1])
-                            if swap_bool:
-                                total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
-                                total_rmse['swap_length'].append(swap_length)
-                                total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
+                            total_rmse['swap_kp_id'].append(tuple(np.unique(swap_keypoints[swap_samples == i_sample_in_batch])))
+                            total_rmse['swap_length'].append(swap_length)
+                            total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
 
                         if np.min(add_missing_pad) > 0:
                             mean_rmse_linear = np.sqrt(np.mean(rmse_linear_interp[slice_]))
@@ -350,10 +343,9 @@ def test(project_path: str,
                             total_rmse[pck_name].append(mean_pck_linear)
                             total_rmse['mean_uncertainty'].append(np.nan)
                             total_rmse['length_hole'].append(o[1])
-                            if swap_bool:
-                                total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
-                                total_rmse['swap_length'].append(swap_length)
-                                total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
+                            total_rmse['swap_kp_id'].append(tuple(np.unique(swap_keypoints[swap_samples == i_sample_in_batch])))
+                            total_rmse['swap_length'].append(swap_length)
+                            total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
                         id_hole += 1
 
                     ## the sample as a whole, not hole by hole
@@ -370,10 +362,9 @@ def test(project_path: str,
                             n_missing[i_sample_in_batch])
                         total_rmse['mean_uncertainty'].append(np.nan)
                         total_rmse['length_hole'].append(n_missing[i_sample_in_batch])
-                        if swap_bool:
-                            total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
-                            total_rmse['swap_length'].append(swap_length)
-                            total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
+                        total_rmse['swap_kp_id'].append(tuple(np.unique(swap_keypoints[swap_samples == i_sample_in_batch])))
+                        total_rmse['swap_length'].append(swap_length)
+                        total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
                     for i_model in range(n_models):
                         if model_configs[i_model]['network']['mu_sigma']:
                             mean_uncertainty_model = np.sum(uncertainty[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch]
@@ -391,10 +382,9 @@ def test(project_path: str,
                                 i_sample_in_batch])
                         total_rmse['mean_uncertainty'].append(mean_uncertainty_model)
                         total_rmse['length_hole'].append(n_missing[i_sample_in_batch])
-                        if swap_bool:
-                            total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
-                            total_rmse['swap_length'].append(swap_length)
-                            total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
+                        total_rmse['swap_kp_id'].append(tuple(np.unique(swap_keypoints[swap_samples == i_sample_in_batch])))
+                        total_rmse['swap_length'].append(swap_length)
+                        total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
                     id_sample += 1
 
                 """VISUALIZATION, only first batch"""
@@ -411,15 +401,16 @@ def test(project_path: str,
                                     visualize_val_outputdir,
                                     f'traj3D_{indices_sample[i][0]}{model_names[i_model]}{suffix}'
                                 )
-                                plot_sequence(full_data_np[i, 1:], xo[i, 1:], mask_holes_np[i, 1:], skeleton_graph, nplots=15,
+                                plot_sequence(full_data_np[i, :], xo[i, :], mask_holes_np[i, :], skeleton_graph, nplots=15,
                                               save_path=save_path,
                                               size=plot3d_size, azim=plot3d_azim,
                                               normalized_coordinates=(not test_original_coordinates))
 
-                        title = '(swap) ' if swap_bool else ''
+                        title = '(swap) ' if swap_length > 0 else ''
                         title += f'RMSE & MPJPE'
                         title += ' -  '.join(
                             [f'{i_model}: {np.sqrt(np.mean(rmse[i_model][i])):.3f} & {np.mean(euclidean_distance[i_model][i]):.3f}' for i_model in range(n_models)])
+
                         if np.min(add_missing_pad) > 0:
                             title += f'; linear: {np.sqrt(np.mean(rmse_linear_interp[i])):.3f} & {np.mean(euclidean_distance_linear_interp[i]):.3f}'
                         def make_xyz_plot():
@@ -428,48 +419,48 @@ def test(project_path: str,
                                                                   dataset_constants.DIVIDER * 7),
                                                               dataset_constants.NUM_FEATURES),
                                                      sharex='all', sharey='col')
+                            fig.suptitle(title)
                             axes = axes.flatten()
-                            t_vect = np.arange(1, dataset_constants.SEQ_LENGTH) / dataset_constants.FREQ
+                            t_vect = np.arange(0, dataset_constants.SEQ_LENGTH) / dataset_constants.FREQ
 
                             for j in range(dataset_constants.N_KEYPOINTS):
                                 if plot2d_only_holes:
-                                    t_mask = (mask_holes_np[i, 1:, j] == 1)
-                                    t_mask_holes = (mask_holes_np[i, 1:, j] == 1)
+                                    t_mask = (mask_holes_np[i, :, j] == 1)
+                                    t_mask_holes = (mask_holes_np[i, :, j] == 1)
                                 else:
-                                    t_mask = np.ones_like(mask_holes_np[i, 1:, j]).astype(bool)
-                                    t_mask_holes = (mask_holes_np[i, 1:, j] == 1)
+                                    t_mask = np.ones_like(mask_holes_np[i, :, j]).astype(bool)
+                                    t_mask_holes = (mask_holes_np[i, :, j] == 1)
                                 for i_dim in range(dataset_constants.DIVIDER):
-                                    if swap_bool:
-                                        axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, data_swapped_np[i, 1:, j, i_dim], 'o-', color='grey', ms=1, label='swap')
-                                    axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, full_data_np[i, 1:, j, i_dim], 'o-')
+                                    if swap_length > 0 and j in swap_keypoints[swap_samples == i]:
+                                        axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, data_with_holes_np[i, :, j, i_dim], 'o--', color='grey', label='swap')
+                                    axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, full_data_np[i, :, j, i_dim], 'o-')
                                     if np.sum(t_mask) > 0:
                                         for i_model, xo in enumerate(x_outputs_np):
-                                            plot_ = axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[t_mask], xo[i, 1:, j, i_dim][t_mask], 'o',
+                                            plot_ = axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[t_mask], xo[i, :, j, i_dim][t_mask], 'o',
                                                              label=model_names[i_model], )
                                             if model_configs[i_model]['network']['mu_sigma']:
                                                 # 3 * std otherwise 1/ we do not see anything,
                                                 # 2/ because the underlying distribution is supposed to be Gaussian
                                                 axes[dataset_constants.DIVIDER * j + i_dim]\
-                                                    .fill_between(t_vect[t_mask], xo[i, 1:, j, i_dim][t_mask]
-                                                                          - 3 * uncertainty_estimates_np[i_model][i, 1:, j, i_dim][t_mask],
-                                                                          xo[i, 1:, j, i_dim][t_mask]
-                                                                          + 3 * uncertainty_estimates_np[i_model][i, 1:, j, i_dim][t_mask],
+                                                    .fill_between(t_vect[t_mask], xo[i, :, j, i_dim][t_mask]
+                                                                          - 3 * uncertainty_estimates_np[i_model][i, :, j, i_dim][t_mask],
+                                                                          xo[i, :, j, i_dim][t_mask]
+                                                                          + 3 * uncertainty_estimates_np[i_model][i, :, j, i_dim][t_mask],
                                                                           color=plot_[0].get_color(), alpha=0.2)
                                             assert not np.any(np.isnan(xo))
 
-                                    out = find_holes(np.array(t_mask_holes).reshape(dataset_constants.SEQ_LENGTH - 1, 1).astype(int), ['0'], indep=True)
+                                    out = find_holes(np.array(t_mask_holes).reshape(dataset_constants.SEQ_LENGTH, 1).astype(int), ['0'], indep=True)
                                     if np.min(add_missing_pad) > 0:
                                         for o in out:
-                                            axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[o[0]:o[0]+o[1]],
-                                                                                     linear_interp_data[i, 1:, j, i_dim][o[0]:o[0]+o[1]], 'r-',
+                                            axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect[o[0] - 1: o[0] + o[1] + 1],
+                                                                                     linear_interp_data[i, :, j, i_dim][o[0] - 1: o[0] + o[1] + 1], 'r-',
                                                      label='linear interp 1D')
 
                                     if not test_original_coordinates:
                                         axes[dataset_constants.DIVIDER * j + i_dim].set_ylim(-1.2, 1.2)
 
-                                if np.any(t_mask_holes):
+                                if np.any(t_mask_holes) or swap_length > 0 and j in swap_keypoints[swap_samples == i]:
                                     axes[dataset_constants.DIVIDER * j].legend()
-                                    axes[dataset_constants.DIVIDER * j + 1].set_title(title)
 
                                 axes[dataset_constants.DIVIDER * j].set_ylabel(dataset_constants.KEYPOINTS[j])
                             axes[0].set_title('X')
@@ -483,8 +474,6 @@ def test(project_path: str,
                                   title=f'RMSE_reconstruction_xyz_{indices_sample[i][0]}{suffix}',
                                   only_png=False,
                                   outputdir=visualize_val_outputdir)
-
-
 
                         n_plots += 1
 
@@ -512,7 +501,7 @@ def test(project_path: str,
             n_keypoints = np.sum(mask)
 
             sns.catplot(data=total_rmse.loc[mask, :], kind='bar', y='keypoint',
-                        hue='method_param', x=metric, height=max(5, n_keypoints // 8))
+                        hue='method_param', x=metric, height=max(5, n_keypoints // 30))
             plt.tight_layout()
 
 

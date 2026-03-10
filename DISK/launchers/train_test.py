@@ -185,7 +185,7 @@ def cli(_cfg) -> None:
 
     modified_cfg['model_name'] = os.path.basename(final_model_path)
 
-    logging.basicConfig(level=logging_flag, handlers=[VoidHandler()])
+    logging.basicConfig(level=logging_flag)#, handlers=[VoidHandler()])
     logger = setup_custom_logging(final_model_path, 'train.log', logging_flag)
 
     ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS

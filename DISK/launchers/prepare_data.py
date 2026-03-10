@@ -85,7 +85,7 @@ def cli(_cfg) -> None:
     else:
         skeleton_graph = Graph(len(config['keypoints']),
                  config['skeleton_center'],
-                 config['skeleton_links'],
+                 config['skeleton'],
                  config['skeleton_colors'])
 
     ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
