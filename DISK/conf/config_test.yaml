@@ -1,63 +1,98 @@
+### REQUIRED PARAMETERS
+### _type and _help should not be changed
+### If mistakes / erasures with the config files, they can be reinitialized by the command: DISK-restore-config
+
 project_path:
 project_path_type: str
+project_path_help: "relative or absolute path to the DISK project folder. Should exist (it is created by the command DISK-create-project)"
 
 dataset_name:
 dataset_name_type: str
-dataset_name_help: "output name for the created dataset"
+dataset_name_help: "name of the created dataset"
 
 model_name_list: _DEFAULT_
 model_name_list_type: StringList
+model_name_list_help: "list of names of trained models, should all exist. These models would be compared on the given dataset on exactly the same artificially randomly created gaps."
 
 name_output_dir: _DEFAULT_
 name_output_dir_type: str
+name_output_dir_help: "name of the output directory. Will be placed inside DISK_train folder."
 
-debug: false
-debug_type: bool
+
+### OPTIONAL PARAMETERS
 
 batch_size: 32
 batch_size_type: int
+training_batch_size_help: "number of simultaneous samples loaded into the GPU memory. Depends on the number of keypoints and sequence length. If out of memory error, reduce the batch_size."
 
-n_cpus: 8 # TOCHANGE: if no multiprocessing, put 0
+n_cpus: 8
 n_cpus_type: int
+n_cpus_help: "number of CPUs used for the job. When having access to a GPU the CPUs take care of the data loading and data transforms."
 
-
-transforms:
-  add_missing_pad: [1, 0]
-  add_missing_pad_type: IntList
-  viewinvariant: true
-  viewinvariant_type: bool
-  normalize: false
-  normalize_type: bool
-  normalizecube: true
-  normalizecube_type: bool
-  swap: 0.5
-  swap_type: float
 
 indep_keypoints: True
 indep_keypoints_type: bool
+indep_keypoints_str: "if False, look at sets of simultaneous missing keypoints; if True, look at each keypoint independently"
+
 merge_keypoints: False
 merge_keypoints_type: bool
+merge_keypoints_help: "if False then no merging because each combination of keypoints may not have enough data points to estimate a good missing probability distribution"
 
 test:
   n_plots: 5
   n_plots_type: int
+  n_plots_help: "number of random samples to be plotted"
+
   threshold_pck: 0.1
   threshold_pck_type: float
-  plot3d_azim: 60
-  plot3d_azim_type: int
-  plot3d_size: 2
-  plot3d_size_type: float
-  plot2d_only_holes: true
-  plot2d_only_holes_type: bool
-  original_coordinates: true
-  original_coordinates_type: bool
+  threshold_pck_help: "threshold for the PCK (percent of correct keypoints) metric. The threshold should be a float between 0 and 1, corresponds to a fraction of the maximal distance between two tracked bodypoints. Usually set <= 0.1."
+
   n_repeat: 1
   n_repeat_type: int
+  n_repeat_help: "number of times we test the model. As the gaps are artificially and randomly created, there can be some small variations in the metrics between different repeats of the test script."
+
+
+### DEV PARAMETERS
+
+debug: false
+debug_type: bool
+
+transforms:
+  add_missing_pad: [1, 0]
+  add_missing_pad_type: IntList
+
+  viewinvariant: true
+  viewinvariant_type: bool
+
+  normalize: false
+  normalize_type: bool
+
+  normalizecube: true
+  normalizecube_type: bool
+
+  swap: 0.5
+  swap_type: float
+
+plot:
+
+  azim3d: 60
+  azim3d_type: int
+
+  size3d: 2
+  size3d_type: float
+
+  only_holes2d: true
+  only_holes2d_type: bool
+
+  original_coordinates: true
+  original_coordinates_type: bool
 
 loss:
   def: l1
   def_type: str
+
   mask: true
   mask_type: bool
+
   factor: 100
   factor_type: float

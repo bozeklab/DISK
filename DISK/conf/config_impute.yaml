@@ -1,30 +1,42 @@
+### REQUIRED PARAMETERS
+### _type and _help should not be changed
+### If mistakes / erasures with the config files, they can be reinitialized by the command: DISK-restore-config
+
 project_path: DISK_project_human
 project_path_type: str
+project_path_help: "relative or absolute path to the DISK project folder. Should exist (it is created by the command DISK-create-project)"
 
 dataset_name: human
 dataset_name_type: str
-dataset_name_help: "output name for the created dataset"
-
-missing_pad: [1, 1]
-missing_pad_type: IntList
-
-batch_size: 1
-batch_size_type: int
-
-n_cpus: 1
-n_cpus_type: int
+dataset_name_help: "name of the created dataset"
 
 model_name:
 model_name_type: str
+model_name_help: "name of the trained model used for "
 
-## threshold used to reject bad imputed samples when the model is of type transformer_proba or GRU_proba
-## to have an idea about the value to put, look at plots output of the test script
-threshold_error_score: 0.1
+### OPTIONAL PARAMETERS
+
+threshold_error_score: _DEFAULT_
 threshold_error_score_type: float
+threshold_error_score_help: "threshold used to reject bad imputed samples when the model is of type transformer_proba or GRU_proba. To have an idea about the value to put, look at plots output of the test script. By default, all the DISK imputed valueds are kept."
+
+batch_size: 1
+batch_size_type: int
+batch_size_help: "number of simultaneous samples loaded into the GPU memory. Depends on the number of keypoints and sequence length. If out of memory error, reduce the training_batch_size"
+
+n_cpus: 1
+n_cpus_type: int
+n_cpus_help: "number of CPUs used for the job. When having access to a GPU the CPUs take care of the data loading and data transforms."
 
 n_plots: 5
 n_plots_type: int
-## save: boolean to save plots
+n_plots_help: "number of random samples to be plotted"
+
+
+### DEV PARAMETERS
+
+missing_pad: [1, 1]
+missing_pad_type: IntList
 
 plot_only_holes: true
 plot_only_holes_type: bool

@@ -170,10 +170,10 @@ def parse_command_line_args(config, desc=''):
                         if 'type' in kkk or 'help' in kkk:
                             continue
 
-                    parser = single_add_argument(parser, kkk, vvv, vv, f'{k}-{kk}-{kkk}')
+                    parser = single_add_argument(parser, kkk, vvv, vv, f'{k}_{kk}_{kkk}')
                 else:
                     dict_keys.append(k)
-                    parser = single_add_argument(parser, kk, vv, v, f'{k}-{kk}')
+                    parser = single_add_argument(parser, kk, vv, v, f'{k}_{kk}')
 
         else:
              parser = single_add_argument(parser, k, v, config, f'{k}')

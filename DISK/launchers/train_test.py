@@ -393,22 +393,22 @@ def cli(_cfg) -> None:
     else:
         threshold_pck = _cfg.test_threshold_pck
 
-    if _cfg.test_plot3d_azim is None or type(_cfg.test_plot3d_azim) != int:
+    if _cfg.plot_azim3d is None or type(_cfg.plot_azim3d) != int:
         print("\n❌ test.plot3d_azim should be an integer."
-              f"Got {_cfg.test_plot3d_azim}")
+              f"Got {_cfg.plot_azim3d}")
         sys.exit(1)
     else:
-        plot3d_azim = _cfg.test_plot3d_azim
+        plot3d_azim = _cfg.plot_azim3d
 
-    if _cfg.test_plot3d_size is None or type(_cfg.test_plot3d_size) not in [float, int]:
+    if _cfg.plot_size3d is None or type(_cfg.plot_size3d) not in [float, int]:
         print("\n❌ test.plot3d_size should be a "
-              f"float. Got {_cfg.test_plot3d_size}")
+              f"float. Got {_cfg.plot_size3d}")
         sys.exit(1)
     else:
-        plot3d_size = _cfg.test_plot3d_size
+        plot3d_size = _cfg.plot_size3d
 
-    plot2d_only_holes = test_boolean_variable(_cfg.test_plot2d_only_holes, 'test_plot2d_only_holes')
-    original_coordinates = test_boolean_variable(_cfg.test_original_coordinates, 'test_original_coordinates')
+    plot2d_only_holes = test_boolean_variable(_cfg.plot_only_holes2d, 'test_plot2d_only_holes')
+    original_coordinates = test_boolean_variable(_cfg.plot_original_coordinates, 'test_original_coordinates')
 
     if _cfg.test_n_repeat is None or type(_cfg.test_n_repeat) != int:
         print("\n❌ test.n_repeat should be a string."

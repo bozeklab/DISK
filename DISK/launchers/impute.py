@@ -135,13 +135,20 @@ def cli(_cfg) -> None:
     else:
         n_plots = max(0, _cfg.n_plots)
 
-    if _cfg.threshold_error_score is None or type(
-            _cfg.threshold_error_score) != float or _cfg.threshold_error_score < 0:
-        print("\n❌ threshold_pck should be a strictly positive"
+    if _cfg.threshold_error_score is not None:
+        if _cfg.threshold_error_score == '_DEFAULT_':
+            threshold_error_score = 2 * 64 - 1
+        elif type(_cfg.threshold_error_score) != float or _cfg.threshold_error_score < 0:
+            print("\n❌ threshold_error_score should be a strictly positive "
+                  f"float. Got {_cfg.threshold_error_score}")
+            sys.exit(1)
+        else:
+            threshold_error_score = _cfg.threshold_error_score
+
+    else:
+        print("\n❌ threshold_error_score should be a strictly positive"
               f"float. Got {_cfg.threshold_error_score}")
         sys.exit(1)
-    else:
-        threshold_error_score = _cfg.threshold_error_score
 
     if _cfg.plot_only_holes is None or type(_cfg.plot_only_holes) != bool:
         print("\n❌ plot_only_holes should be a "

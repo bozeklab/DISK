@@ -29,12 +29,17 @@ stride: _DEFAULT_
 stride_type: int
 stride_help: "in number of timepoints at subsampling_freq; a good rule of thumb is to put stride to length or length/2"
 
-discard_beginning: 0 # if not used, should be set to 0
+discard_beginning: 0
 discard_beginning_type: int
-discard_end: 0  # if not used, should be set to 0
+discard_beginning_help: "number of seconds if original_freq is given, otherwise number of frames to discard at the beginning of the file. For example if the recording was started before the actual behavioral tasks began. If not used, should be set to 0."
+
+discard_end: 0
 discard_end_type: int
-fill_gap: 0  # linear interpolation under the provided length, done before resampling
+discard_end_help: "number of seconds if original_freq is given, otherwise number of frames to discard at the end of the file. For example if the recording was ended before the actual behavioral tasks began. If not used, should be set to 0."
+
+fill_gap: 0  #
 fill_gap_type: int
+fill_gap_help: "If fill_gap > 0, then small gaps under the provided number of frames will be filled by linear interpolation, done before resampling. If not used, should be set to 0. !! Linear interpolation is only suited for short gaps !!"
 
 drop_keypoints: []
 drop_keypoints_type: StringList

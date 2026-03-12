@@ -4,11 +4,11 @@
 
 project_path:
 project_path_type: str
-project_path_help: "relative or absolute path to the DISK project folder. Should exist (it is create by the command DISK-create-project)"
+project_path_help: "relative or absolute path to the DISK project folder. Should exist (it is created by the command DISK-create-project)"
 
 dataset_name:
 dataset_name_type: str
-dataset_name_help: "output name for the created dataset"
+dataset_name_help: "name of the created dataset"
 
 
 ### OPTIONAL PARAMETERS
@@ -42,41 +42,42 @@ print_every_type: int
 print_every_help: "print_every modifies the frequency at which the model infers on the validation set and the frequency at which models can be saved (save when validation loss is better than previous one)"
 
 
-transforms:
-  add_missing_pad: [1, 0]
-  add_missing_pad_type: IntList
-  viewinvariant: true
-  viewinvariant_type: bool
-  normalize: false
-  normalize_type: bool
-  normalizecube: true
-  normalizecube_type: bool
-  swap: 0.5
-  swap_type: float
-
 indep_keypoints: False
 indep_keypoints_type: bool
+indep_keypoints_str: "if False, look at sets of simultaneous missing keypoints; if True, look at each keypoint independently"
+
 merge_keypoints: False
 merge_keypoints_type: bool
+merge_keypoints_help: "if False then no merging because each combination of keypoints may not have enough data points to estimate a good missing probability distribution"
 
 test:
   n_plots: 5
   n_plots_type: int
+  n_plots_help: "number of random samples to be plotted"
+
   threshold_pck: 0.1
   threshold_pck_type: float
-  plot3d_azim: 60
-  plot3d_azim_type: int
-  plot3d_size: 2
-  plot3d_size_type: float
-  plot2d_only_holes: true
-  plot2d_only_holes_type: bool
-  original_coordinates: true
-  original_coordinates_type: bool
+  threshold_pck_help: "threshold for the PCK (percent of correct keypoints) metric. The threshold should be a float between 0 and 1, corresponds to a fraction of the maximal distance between two tracked bodypoints. Usually set <= 0.1."
+
   n_repeat: 1
   n_repeat_type: int
+  n_repeat_help: "number of times we test the model. As the gaps are artificially and randomly created, there can be some small variations in the metrics between different repeats of the test script."
 
 
 ### DEV PARAMETERS
+
+plot:
+  azim3d: 60
+  azim3d_type: int
+
+  size3d: 2
+  size3d_type: float
+
+  only_holes2d: true
+  only_holes2d_type: bool
+
+  original_coordinates: true
+  original_coordinates_type: bool
 
 training_seed: _DEFAULT_
 training_seed_type: int
@@ -85,6 +86,22 @@ training_seed_help: "make the training reproducible"
 training_learning_rate: _DEFAULT_
 training_learning_rate_type: float
 training_learning_rate_help: "from experience, learning rate of 0.0001 is better for GRU and 0.001 for transformer"
+
+transforms:
+  add_missing_pad: [1, 0]
+  add_missing_pad_type: IntList
+
+  viewinvariant: true
+  viewinvariant_type: bool
+
+  normalize: false
+  normalize_type: bool
+
+  normalizecube: true
+  normalizecube_type: bool
+
+  swap: 0.5
+  swap_type: float
 
 loss:
   def: l1

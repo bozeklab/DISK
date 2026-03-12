@@ -241,33 +241,33 @@ def cli(_cfg) -> None:
     else:
         threshold_pck = _cfg.test_threshold_pck
 
-    if _cfg.test_plot3d_azim is None or type(_cfg.test_plot3d_azim) != int:
-        print("\n❌ test_plot3d_azim should be an integer."
-              f"Got {_cfg.test_plot3d_azim}")
+    if _cfg.plot_azim3d is None or type(_cfg.plot_azim3d) != int:
+        print("\n❌ plot_azim3d should be an integer."
+              f"Got {_cfg.plot_azim3d}")
         sys.exit(1)
     else:
-        plot3d_azim = _cfg.test_plot3d_azim
+        plot3d_azim = _cfg.plot_azim3d
 
-    if _cfg.test_plot3d_size is None or (type(_cfg.test_plot3d_size) != float and type(_cfg.test_plot3d_size) != int):
-        print("\n❌ test_plot3d_size should be a "
-              f"float. Got {_cfg.test_plot3d_size}")
+    if _cfg.plot_size3d is None or (type(_cfg.plot_size3d) != float and type(_cfg.plot_size3d) != int):
+        print("\n❌ plot_size3d should be a "
+              f"float. Got {_cfg.plot_size3d}")
         sys.exit(1)
     else:
-        plot3d_size = _cfg.test_plot3d_size
+        plot3d_size = _cfg.plot_size3d
 
-    if _cfg.test_plot2d_only_holes is None or type(_cfg.test_plot2d_only_holes) != bool:
-        print("\n❌ test_plot2d_only_holes should be a "
-              f"bool. Got {_cfg.test_plot2d_only_holes}")
+    if _cfg.plot_only_holes2d is None or type(_cfg.plot_only_holes2d) != bool:
+        print("\n❌ plot_only_holes2d should be a "
+              f"bool. Got {_cfg.plot_only_holes2d}")
         sys.exit(1)
     else:
-        plot2d_only_holes = _cfg.test_plot2d_only_holes
+        plot2d_only_holes = _cfg.plot_only_holes2d
 
-    if _cfg.test_original_coordinates is None or type(_cfg.test_original_coordinates) != bool:
-        print("\n❌ test_original_coordinates should be a "
-              f"bool. Got {_cfg.test_original_coordinates}")
+    if _cfg.plot_original_coordinates is None or type(_cfg.plot_original_coordinates) != bool:
+        print("\n❌ plot_original_coordinates should be a "
+              f"bool. Got {_cfg.plot_original_coordinates}")
         sys.exit(1)
     else:
-        original_coordinates = _cfg.test_original_coordinates
+        original_coordinates = _cfg.plot_original_coordinates
 
 
     if _cfg.test_n_repeat is None or type(_cfg.test_n_repeat) != int:
