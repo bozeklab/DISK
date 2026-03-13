@@ -155,6 +155,17 @@ def single_add_argument(parser, key, value, parent_value, full_name):
 
 def parse_command_line_args(config, desc=''):
     parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument(f'--config_path', type=str,
+                        help=f'Path to config file. Will overwrite the default config file.',
+                        default='')
+    args, _ = parser.parse_known_args()
+
+    if args.config_path != '':
+        if not os.path.exists(args.config_path) or not args.config_path.endswith('.yaml'):
+            print("\n❌ config_path if given should be a "
+                  f"valid path to a yaml config file. Got {args.config_path}")
+            sys.exit(1)
+        config = read_config(args.config_path)
 
     dict_keys = []
     # Dynamically add arguments based on config keys

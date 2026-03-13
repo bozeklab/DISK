@@ -202,7 +202,7 @@ class ParentDataset(data.Dataset):
             #     output['swap'] = sample['swap']
             # else:
             #     output['x_swap'] = torch.from_numpy(np.zeros_like(x_supp[0])).type(torch.float)
-            output['swap'] = sample['swap']
+            # output['swap'] = sample['swap']
 
         if 'i_file' in sample.keys():
             output['indices_file'] = sample['i_file']
@@ -528,29 +528,34 @@ class ImputeDataset(FullLengthDataset):
             i_pos = [[i_pos], ]
             len_ = [[len_], ]
 
+        unc_list = []
         for ii in range(len(i_file)):
-            m = self.mask[i_file[ii][0]][i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]]
+            # here we need len_ to only consider one gap at a time
+            m = self.mask[i_file[ii][0]][i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]] # True is value, False is missing
+            # (nan)
 
             if uncertainty is not None:
-                unc = np.sum(uncertainty[ii, :len_[ii][0]]) / np.sum(m)
+                unc = np.sum(uncertainty[ii, :len_[ii][0]]) / np.sum(~m) # ~m because False is missing
             else:
                 unc = None
+            unc_list.append(unc)
 
             if unc is None or unc <= threshold:
-                # logger.debug(
-                # f'[WARNING] Updating {i_file[ii][0]} at pos {i_pos[ii][0]}: {i_pos[ii][0] + len_[ii][0]} '
-                # f'with vector with {np.sum(m)} NaN and uncertainty {unc}')
-                if self.divider == self.divider:
-                    self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][~m] = new_x_np[ii][:len_[ii][0]][~m]
-                    self.mask[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][~m] = True
-                else:  # only for Qualisys Mocap
-                    dims = [i for i in range(self.X.shape[-1]) if i != 0 and i % self.divider == 0]
-                    self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0], dims][~m] = new_x_np[ii][:len_[ii][0]][~m]
-                    self.mask[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][~m] = True
-                    self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0], self.divider::self.divider][~m] = 2
-            # else:
-                # logger.debug(
-                # f'[WARNING] NOT Updating {i_file[ii][0]} at pos {i_pos[ii][0]}: {i_pos[ii][0] + len_[ii][0]} '
-                # f'with vector with {np.sum(m)} NaN and uncertainty {unc}')
+                self.logger.debug(
+                f'[DEBUG] Updating {i_file[ii][0]} at pos {i_pos[ii][0]}: {i_pos[ii][0] + len_[ii][0]} '
+                f'with vector with {np.sum(m)} NaN and uncertainty {unc}')
+                # if self.divider == self.divider:
+                self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][~m] = new_x_np[ii][:len_[ii][0]][~m]
+                self.mask[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][~m] = True
+                # else:  # only for Qualisys Mocap
+                #     dims = [i for i in range(self.X.shape[-1]) if i != 0 and i % self.divider == 0]
+                #     self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0], dims][~m] = new_x_np[ii][:len_[ii][0]][~m]
+                #     self.mask[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]][~m] = True
+                #     self.X[i_file[ii][0], i_pos[ii][0]: i_pos[ii][0] + len_[ii][0], self.divider::self.divider][~m] = 2
+            else:
+                self.logger.debug(
+                f'[DEBUG] NOT Updating {i_file[ii][0]} at pos {i_pos[ii][0]}: {i_pos[ii][0] + len_[ii][0]} '
+                f'with vector with {np.sum(m)} NaN and uncertainty {unc}')
 
+        return unc_list
 

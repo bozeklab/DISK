@@ -282,6 +282,7 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
 
     config_file = os.path.join(checkpoint, 'config', 'config_train.yaml')
     cfg_model = None
+    model_name = ''
     if os.path.exists(config_file):
         with open(config_file, 'r') as file:
             cfg_model = yaml.safe_load(file)
@@ -303,7 +304,6 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
     """ DATA """
     logger.info('Loading prediction model...')
     # load model
-    model_name = ''
     model = construct_NN_model(cfg_model['network'], keypoints, data_divider, seq_length, skeleton_graph, device)
 
     logger.info(f'Network {model_name} constructed')
@@ -364,7 +364,7 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
                     """Compute the prediction from networks"""
 
                     transformed_data = data_dict['X'].to(device)
-                    mask_holes = data_dict['mask_holes'].to(device)
+                    mask_holes = data_dict['mask_holes'].to(device) # =0 when no missing data, =1 when missing
                     lengths = data_dict['length_seq'].to(device)
                     assert not torch.any(torch.isnan(transformed_data))
 
@@ -383,8 +383,8 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
                     transformed_data_np = transformed_data.detach().cpu().numpy()
                     untransformed_data_np = reconstruct_before_normalization(transformed_data_np, data_dict, transforms)
 
-                    x_output = de_out[0].detach().cpu().numpy()
-                    x_output_np = reconstruct_before_normalization(x_output, data_dict, transforms)
+                    x_output_before_reconstruction = de_out[0].detach().cpu().numpy()
+                    x_output_np = reconstruct_before_normalization(x_output_before_reconstruction, data_dict, transforms)
 
                     mask_holes_np = mask_holes.detach().cpu().numpy()
 
@@ -392,22 +392,31 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
                         # for proba models
                         reshaped_mask_holes = np.repeat(mask_holes_np, data_divider, axis=-1)\
                                               .reshape(x_output_np.shape)
-                        uncertainty_estimates_np = reconstruct_before_normalization(de_out[1].detach().cpu().numpy() + x_output, data_dict, transforms)
+                        uncertainty_estimates_np = reconstruct_before_normalization(de_out[1].detach().cpu().numpy() + x_output_before_reconstruction,
+                                                                                    data_dict,
+                                                                                    transforms)
+                        uncertainty_estimates_np -= x_output_np
                         uncertainty = np.sum(
-                                            np.sqrt((uncertainty_estimates_np - x_output_np ** 2) * reshaped_mask_holes),
-                                            axis=3)  # sum on the keypoint on dimension, shape (batch, time, keypoint)
+                                            np.sqrt((uncertainty_estimates_np ** 2) *
+                                            reshaped_mask_holes),
+                                            axis=3)  # sum on the keypoint on dimension, shape (batch, time,
+                        # keypoint)
+
                     else:
                         uncertainty = None
 
-                    dataset.update_dataset(data_dict['index'], x_output_np, uncertainty,
+                    unc = dataset.update_dataset(data_dict['index'], x_output_np, uncertainty,
                                                                 threshold=threshold_error_score)
+
+                    equiv_unc = np.sum(uncertainty, axis=(1, 2)) / np.sum(mask_holes_np, axis=(1, 2))
+                    print(unc, equiv_unc)
 
                     """VISUALIZATION, only first batch"""
                     if total_n_plots > 0 and n_plots <= total_n_plots:
 
-                        mean_ = np.nanmean(untransformed_data_np, axis=(1, 2))
-                        max_ = np.nanmax(untransformed_data_np, axis=(1, 2))
-                        min_ = np.nanmin(untransformed_data_np, axis=(1, 2))
+                        # mean_ = np.nanmean(untransformed_data_np, axis=(1, 2))
+                        # max_ = np.nanmax(untransformed_data_np, axis=(1, 2))
+                        # min_ = np.nanmin(untransformed_data_np, axis=(1, 2))
 
                         for i in np.random.choice(untransformed_data_np.shape[0],
                                                   min(untransformed_data_np.shape[0], total_n_plots),
@@ -422,8 +431,14 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
                             def make_xyz_plot():
                                 fig, axes = plt.subplots(n_keypoints, data_divider,
                                                          figsize=(max(seq_length // 3, 16),
-                                                                  n_keypoints * data_divider))
+                                                                  n_keypoints * data_divider),
+                                                         sharex='all', sharey='col')
                                 axes = axes.flatten()
+
+                                title = (f'uncertainty_estimate = {equiv_unc[i]:.1f}; threshold ='
+                                         f' {threshold_error_score}\n'
+                                         f'{["REJECTED", "ACCEPTED"][equiv_unc[i] <= threshold_error_score]}')
+                                fig.suptitle(title, size=30)
                                 t_vect = np.arange(0, seq_length) / subsampling_freq
 
                                 for j in range(n_keypoints):
@@ -437,18 +452,26 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
                                         axes[data_divider * j + i_dim].plot(t_vect[:lengths[i]][~t_mask[:lengths[i]]],
                                                                                          d[:lengths[i]][~t_mask[:lengths[i]]],
                                                                                          'o-',
-                                                                                         label='reconstruct after norm')
+                                                                                         label='original data')
 
-                                        axes[data_divider * j + i_dim].plot(t_vect[1:lengths[i]][t_mask[1:lengths[i]]],
+                                        plot_ = axes[data_divider * j + i_dim].plot(t_vect[1:lengths[i]][t_mask[
+                                            1:lengths[i]]],
                                                                                  x_output_np[i, 1:lengths[i], j, i_dim][t_mask[1:lengths[i]]],
                                                                                  'o', label=model_name)
 
+                                        axes[data_divider * j + i_dim] \
+                                            .fill_between(t_vect[1:lengths[i]][t_mask[
+                                            1:lengths[i]]], x_output_np[i, 1:lengths[i], j, i_dim][t_mask[1:lengths[i]]]
+                                                          - 3 * uncertainty_estimates_np[i, 1:lengths[i], j, i_dim][t_mask[1:lengths[i]]],
+                                                          x_output_np[i, 1:lengths[i], j, i_dim][t_mask[1:lengths[i]]]
+                                                          + 3 * uncertainty_estimates_np[i, 1:lengths[i], j, i_dim][t_mask[1:lengths[i]]],
+                                                          color=plot_[0].get_color(), alpha=0.2)
+
                                         assert not np.any(np.isnan(x_output_np))
 
-                                        axes[data_divider * j + i_dim].set_ylim(min(mean_[i, i_dim] - 20, min_[i,
-                                        i_dim] - 5),
-                                                                                             max(mean_[i, i_dim] + 20, max_[i, i_dim] + 5))
-
+                                        # axes[data_divider * j + i_dim].set_ylim(min(mean_[i, i_dim] - 20, min_[i,
+                                        # i_dim] - 5),
+                                        #                                                      max(mean_[i, i_dim] + 20, max_[i, i_dim] + 5))
                                     if np.any(t_mask):
                                         axes[data_divider * j].legend()
 

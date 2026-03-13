@@ -274,27 +274,6 @@ def test(project_path: str,
                                                 axis=3))  # sum on the XYZ dimension, output shape (batch, time, keypoint)
                     pck_linear_interpolation = euclidean_distance_linear_interp <= pck_final_threshold
 
-                coverage = [[]] * n_models
-                bandexcess = [[]] * n_models
-
-                for i_model in range(n_models):
-                    if model_configs[i_model]['network']['mu_sigma']:
-                        factor = 2
-                        in_ = np.sum((full_data_np <= x_outputs_np[i_model] + uncertainty_estimates_np[i_model] * factor) *
-                                     (full_data_np >= x_outputs_np[i_model] - uncertainty_estimates_np[i_model] * factor) *
-                                     reshaped_mask_holes,
-                                     axis=(1, 2, 3))
-                        out_ = np.sum(((full_data_np > x_outputs_np[i_model] + uncertainty_estimates_np[i_model] * factor) +
-                                       (full_data_np < x_outputs_np[i_model] - uncertainty_estimates_np[i_model] * factor)) *
-                                      reshaped_mask_holes,
-                                      axis=(1, 2, 3))
-                        coverage[i_model] = in_ / (in_ + out_)
-
-                        be = np.sum(
-                            np.abs(np.abs(x_outputs_np[i_model] - full_data_np) - uncertainty_estimates_np[i_model] * factor) * reshaped_mask_holes,
-                            axis=(1, 2, 3))
-                        bandexcess[i_model] = be[n_missing > 0] / be[n_missing > 0]
-
                 for i_sample_in_batch in range(data_with_holes_np.shape[0]):
                     # if swap_bool:
                     if i_sample_in_batch in swap_samples:
@@ -410,20 +389,19 @@ def test(project_path: str,
                                               size=plot3d_size, azim=plot3d_azim,
                                               normalized_coordinates=(not test_original_coordinates))
 
-                        title = '(swap) ' if swap_length > 0 else ''
-                        title += f'RMSE & MPJPE'
-                        title += ' -  '.join(
-                            [f'{i_model}: {np.sqrt(np.mean(rmse[i_model][i])):.3f} & {np.mean(euclidean_distance[i_model][i]):.3f}' for i_model in range(n_models)])
+                        title = f'RMSE & MPJPE\n'
+                        title += '\n'.join(
+                            [f'{model_names[i_model]}: {np.sqrt(np.mean(rmse[i_model][i])):.3f} & {np.mean(euclidean_distance[i_model][i]):.3f}' for i_model in range(n_models)])
 
                         if np.min(add_missing_pad) > 0:
-                            title += f'; linear: {np.sqrt(np.mean(rmse_linear_interp[i])):.3f} & {np.mean(euclidean_distance_linear_interp[i]):.3f}'
+                            title += f'\nlinear: {np.sqrt(np.mean(rmse_linear_interp[i])):.3f} & {np.mean(euclidean_distance_linear_interp[i]):.3f}'
                         def make_xyz_plot():
                             fig, axes = plt.subplots(dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER,
                                                      figsize=(max(dataset_constants.SEQ_LENGTH // 10,
                                                                   dataset_constants.DIVIDER * 7),
                                                               dataset_constants.NUM_FEATURES),
                                                      sharex='all', sharey='col')
-                            fig.suptitle(title)
+                            fig.suptitle(title, size=30)
                             axes = axes.flatten()
                             t_vect = np.arange(0, dataset_constants.SEQ_LENGTH) / dataset_constants.FREQ
 
@@ -436,7 +414,8 @@ def test(project_path: str,
                                     t_mask_holes = (mask_holes_np[i, :, j] == 1)
                                 for i_dim in range(dataset_constants.DIVIDER):
                                     if swap_length > 0 and j in swap_keypoints[swap_samples == i]:
-                                        axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, data_with_holes_np[i, :, j, i_dim], 'o--', color='grey', label='swap')
+                                        axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, data_with_holes_np[
+                                            i, :, j, i_dim], '+--', color='grey', label='swap')
                                     axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, full_data_np[i, :, j, i_dim], 'o-')
                                     if np.sum(t_mask) > 0:
                                         for i_model, xo in enumerate(x_outputs_np):

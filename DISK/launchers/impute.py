@@ -137,7 +137,8 @@ def cli(_cfg) -> None:
 
     if _cfg.threshold_error_score is not None:
         if _cfg.threshold_error_score == '_DEFAULT_':
-            threshold_error_score = 2 * 64 - 1
+            import numpy as np
+            threshold_error_score = np.inf
         elif type(_cfg.threshold_error_score) != float or _cfg.threshold_error_score < 0:
             print("\n❌ threshold_error_score should be a strictly positive "
                   f"float. Got {_cfg.threshold_error_score}")

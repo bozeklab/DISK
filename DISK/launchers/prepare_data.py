@@ -157,7 +157,23 @@ def cli(_cfg) -> None:
             dataset_name = _cfg.dataset_name
 
     dataset_path = os.path.join(project_path, 'DISK_data', dataset_name,)
-    if not os.path.exists(dataset_path):
+    if os.path.exists(dataset_path):
+        print(
+            f"\n️⚠️ Dataset {dataset_path} already exists. Do you want to rewrite files in the same folder? [y/n]")
+        y_n = input('> ')
+        while y_n not in ['y', 'n', 'Y', 'N', 'yes', 'no', 'Yes', 'YES', 'No', 'NO']:
+            y_n = input('Retype y or n: ')
+        if y_n in ['y', 'Y', 'yes', 'Yes', 'YES']:
+            pass
+        else:
+            ext_dataset_path = 1
+            final_dataset_path = str(dataset_path)
+            while os.path.exists(final_dataset_path):
+                final_dataset_path = dataset_path + f'_{ext_dataset_path}'
+                ext_dataset_path += 1
+            dataset_path = final_dataset_path
+            print(f"\nℹ️ Not overwriting, instead creating new folder {dataset_path}.")
+    else:
         os.mkdir(dataset_path)
 
     if _cfg.debug:
