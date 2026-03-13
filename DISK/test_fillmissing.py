@@ -56,7 +56,7 @@ def test(project_path: str,
          logger,
          suffix='',
          stride=None,
-         verbose=0) -> None:
+         verbose=0) -> list:
 
     logger.debug(f'{project_path}')
 
@@ -90,6 +90,8 @@ def test(project_path: str,
                     cfg_model = yaml.safe_load(file)
                 model_configs.append(cfg_model)
                 model_names.append(os.path.basename(path))
+
+    max_length_model_name = np.max([len(n) for n in model_names])
 
     n_models = len(paths_to_models)
     logger.info(f'Number of compared models: {n_models}')
@@ -389,12 +391,18 @@ def test(project_path: str,
                                               size=plot3d_size, azim=plot3d_azim,
                                               normalized_coordinates=(not test_original_coordinates))
 
-                        title = f'RMSE & MPJPE\n'
+                        title = f'{"RMSE"} | {"MPJPE"} | estimated error  \n'
                         title += '\n'.join(
-                            [f'{model_names[i_model]}: {np.sqrt(np.mean(rmse[i_model][i])):.3f} & {np.mean(euclidean_distance[i_model][i]):.3f}' for i_model in range(n_models)])
+                            [f'{model_names[i_model]}: '
+                             f'{np.sqrt(np.sum(rmse[i_model][i]) / n_missing[i]):.2f} |'
+                             f' {np.sum(euclidean_distance[i_model][i]) / n_missing[i]:.2f} | '
+                             f'{np.sum(uncertainty[i_model][i]) / n_missing[i]:.2f} ' for i_model in
+                             range(n_models)])
 
                         if np.min(add_missing_pad) > 0:
-                            title += f'\nlinear: {np.sqrt(np.mean(rmse_linear_interp[i])):.3f} & {np.mean(euclidean_distance_linear_interp[i]):.3f}'
+                            title += (f'\n{"linear"}: '
+                                      f'{np.sqrt(np.sum(rmse_linear_interp[i]) / n_missing[i]):.2f} | '
+                                      f'{np.sum(euclidean_distance_linear_interp[i]) / n_missing[i]:.2f}')
                         def make_xyz_plot():
                             fig, axes = plt.subplots(dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER,
                                                      figsize=(max(dataset_constants.SEQ_LENGTH // 10,
@@ -523,12 +531,15 @@ def test(project_path: str,
 
         total_rmse.to_csv(os.path.join(output_dir, f'total_metrics{suffix}.csv'), index=False)
 
-        thresholding_df = pd.DataFrame(columns=['th', 'RMSE', 'RMSE_std', 'MPJPE', 'MPJPE_std', pck_name, f'{pck_name}_std', 'count', 'method'])
+        thresholding_df = pd.DataFrame(columns=['th', 'RMSE', 'RMSE_std', 'MPJPE', 'MPJPE_std',
+                                                pck_name, f'{pck_name}_std', 'count', 'method'])
+        pcoeff_per_model = []
         for i_model in range(n_models):
             if uncertainty_estimates[i_model] is not None:
                 # pivot_df only for one method
                 mask = (total_rmse['keypoint'] == 'all') * (total_rmse['method_param'] == model_names[i_model])
                 pcoeff, ppval = pearsonr(total_rmse.loc[mask, 'RMSE'].values, total_rmse.loc[mask, 'mean_uncertainty'])
+                pcoeff_per_model.append((pcoeff, ppval))
                 logger.info(f'Model {model_names[i_model]}: PEARSONR COEFF w RMSE {pcoeff}, PVAL {ppval}')
 
                 def corr_plot():
@@ -570,6 +581,9 @@ def test(project_path: str,
                                                                         vals_pck['mean'], vals_pck['std'],
                                                                         vals_RMSE['count'], model_names[i_model]]
 
+            else:
+                pcoeff_per_model.append((None, None))
+
         if np.any([unc is not None for unc in uncertainty_estimates]):
             def plot_thresholding():
                 fig, ax1 = plt.subplots(1, 1)
@@ -593,3 +607,5 @@ def test(project_path: str,
                 plt.close('all')
 
     pd.concat(mean_RMSE).to_csv(os.path.join(output_dir, f'mean_metrics{suffix}.csv'), index=False)
+
+    return pcoeff_per_model

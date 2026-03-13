@@ -265,6 +265,7 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
     constant_file_path = os.path.join(dataset_path, f'constants.py')
     if not os.path.exists(constant_file_path):
         raise ValueError(f'no constant file found at {constant_file_path}')
+
     dataset_constants = read_constant_file(constant_file_path)
     n_keypoints = len(dataset_constants.KEYPOINTS)
     stride = dataset_constants.STRIDE
@@ -331,24 +332,28 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
 
     # return full length dataset for imputation
     train_dataset, val_dataset, test_dataset = load_datasets(
-        dataset_path=dataset_path,
-         transform=transforms,
-         dataset_type='impute',
-         suffix='_w-all-nans',
-         root_path=project_dir,
-         outputdir=impute_dir,
-        keypoints=keypoints,
-         label_type='all',  # don't care, not using
-         verbose=verbose,
-         padding=missing_pad,
-         skeleton_graph=skeleton_graph,
-         seq_length=seq_length,
-         stride=stride,
-         freq=subsampling_freq,
-        divider=data_divider,
-    logger=logger)
+                                                        dataset_path=dataset_path,
+                                                        transform=transforms,
+                                                        dataset_type='impute',
+                                                        suffix='_w-all-nans',
+                                                        root_path=project_dir,
+                                                        outputdir=impute_dir,
+                                                        keypoints=keypoints,
+                                                        label_type='all',  # don't care, not using
+                                                        verbose=verbose,
+                                                        padding=missing_pad,
+                                                        skeleton_graph=skeleton_graph,
+                                                        seq_length=seq_length,
+                                                        stride=stride,
+                                                        freq=subsampling_freq,
+                                                        divider=data_divider,
+                                                        logger=logger
+                                                )
 
     if len(train_dataset) == 0 and len(val_dataset) == 0 and len(test_dataset) == 0:
+        # if the length of all datasets is null, then nothing to impute
+        # in the dataset are only listed samples of "possible_indices" which are gaps
+        # which length is <= DISK_model_length - pad_before - pad_after
         return False
 
     """LOOPING ON DATA"""

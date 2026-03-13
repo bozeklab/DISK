@@ -79,17 +79,23 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
     logger.info(f'*********************** TESTING DISK TRAINED MODEL *********************** \n')
 
     add_missing_pad_for_test = (max(1, add_missing_pad[0]), max(1, add_missing_pad[0]))
-    test(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
-         [model_dir, ], training_batch_size, n_cpus,
-         loss_type, loss_mask, loss_factor,
-         proba_file, proba_length_file, indep_keypoints,
-         add_missing_pad_for_test,
-         viewinvariant, normalize, normalizecube, swap, add_missing,
-         test_original_coordinates, test_threshold_pck, n_repeat,
-         total_n_plots, plot2d_only_holes,
-         plot3d_size, plot3d_azim,
-         logger, suffix='', stride=None, verbose=verbose)
+    pcoef_per_model = test(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
+                 [model_dir, ], training_batch_size, n_cpus,
+                 loss_type, loss_mask, loss_factor,
+                 proba_file, proba_length_file, indep_keypoints,
+                 add_missing_pad_for_test,
+                 viewinvariant, normalize, normalizecube, swap, add_missing,
+                 test_original_coordinates, test_threshold_pck, n_repeat,
+                 total_n_plots, plot2d_only_holes,
+                 plot3d_size, plot3d_azim,
+                 logger, suffix='', stride=None, verbose=verbose)
     logger.info(f'✅ Successfully tested DISK model {model_dir}.\n')
+
+    if pcoef_per_model[0][0] is not None and pcoef_per_model[0][0] < 0.8:
+        logger.info(f"⚠️ The correlation coefficient between the estimation of the error and "
+                    f"the real error made by the model is low (corr = {pcoef_per_model[0][0]:.2f}). \n"
+                    f"Be cautious when visualizing it in the plots and when using DISK-impute "
+                    f"(threshold_error_score).")
 
 
 @config_reader(config_path="../conf/config_train.yaml")
@@ -204,23 +210,22 @@ def cli(_cfg) -> None:
             if y_n in ['y', 'Y', 'yes', 'Yes', 'YES']:
                 pass
             else:
-                logger.info(f"\n️⚠️ If you want to save the output in a different folder, then the correct command is:\n"
-                            f"DISK-train ... --load_model my_existing_model --model_name a_new_name ...")
+                logger.info(f"️⚠️ If you want to save the output in a different folder, then the correct command is:\n"
+                            f"DISK-train ... --load_model my_existing_model --model_name a_new_name ...\n")
                 exit(0)
         else:
-            logger.info(f"\nℹ️ Loading model {final_load_model_path}, saving in {final_model_path}.\n")
+            logger.info(f"ℹ️  Loading model {final_load_model_path}, saving in {final_model_path}.\n")
     else:
-        logger.info(f"\nℹ️ Model folder is {final_model_path}.")
+        logger.info(f"ℹ️  Model folder is {final_model_path}.\n")
 
 
-    if not 'skeleton' in config.keys() or config['skeleton'] is None or len(config['skeleton'])\
-            == 0:
+    if (not 'skeleton' in config.keys()) or config['skeleton'] is None or len(config['skeleton']) == 0:
         skeleton_graph = None
     else:
         skeleton_graph = Graph(len(config['keypoints']),
-                             config['skeleton_center'],
-                             config['skeleton'],
-                             config['skeleton_colors'],
+                               config['skeleton_center'],
+                               config['skeleton'],
+                               config['skeleton_colors'],
                                logger=logger)
 
     ### _CFG PARAMETER CHECK --- OFTEN CHANGED PARAMETERS
