@@ -56,7 +56,7 @@ def test(project_path: str,
          logger,
          suffix='',
          stride=None,
-         verbose=0) -> list:
+         verbose=0) -> (list, list):
 
     logger.debug(f'{project_path}')
 
@@ -90,8 +90,6 @@ def test(project_path: str,
                     cfg_model = yaml.safe_load(file)
                 model_configs.append(cfg_model)
                 model_names.append(os.path.basename(path))
-
-    max_length_model_name = np.max([len(n) for n in model_names])
 
     n_models = len(paths_to_models)
     logger.info(f'Number of compared models: {n_models}')
@@ -489,11 +487,29 @@ def test(project_path: str,
 
         def barplot_RMSE_keypoint():
             mask = (total_rmse['keypoint'] != 'all')
-            n_keypoints = np.sum(mask)
+            n_keypoints = len(total_rmse['keypoint'].unique())
 
-            sns.catplot(data=total_rmse.loc[mask, :], kind='bar', y='keypoint',
-                        hue='method_param', x=metric, height=max(5, n_keypoints // 30))
-            plt.tight_layout()
+            if n_keypoints > 40:
+                total_rmse['n_keypoints'] = total_rmse.loc[:, 'keypoint'].apply(lambda s: len(s.split(' ')))
+                total_rmse['simplified_keypoint'] = total_rmse.apply(lambda a:
+                                                        str(a['keypoint']) if a['n_keypoints'] == 1
+            else f'{a["n_keypoints"]:02d}_keypoints', axis=1)
+                n_keypoints = len(total_rmse['simplified_keypoint'].unique())
+                keypoints = total_rmse['simplified_keypoint'].unique()
+                keypoints = np.delete(keypoints, keypoints == 'all')
+                order_keypoints = np.sort(keypoints)
+                sns.catplot(data=total_rmse.loc[mask, :], kind='bar', y='simplified_keypoint',
+                            hue='method_param', x=metric, height=max(5, n_keypoints // 8),
+                            order=order_keypoints,)
+                plt.tight_layout()
+            else:
+                keypoints = total_rmse['keypoint'].unique()
+                keypoints = np.delete(keypoints, keypoints == 'all')
+                order_keypoints = np.sort(keypoints)
+                sns.catplot(data=total_rmse.loc[mask, :], kind='bar', y='keypoint',
+                            hue='method_param', x=metric, height=max(5, n_keypoints // 8),
+                            raw_order=order_keypoints,)
+                plt.tight_layout()
 
 
         for metric in [pck_name, 'RMSE', 'MPJPE']:
@@ -556,7 +572,7 @@ def test(project_path: str,
                           outputdir=output_dir)
                 plt.close('all')
 
-                th_vals = np.unique(total_rmse.loc[mask, 'mean_uncertainty'])[10:]
+                th_vals = np.unique(total_rmse.loc[mask, 'mean_uncertainty'])
                 th_vals = th_vals[::max(1, len(th_vals) // 10)]
                 for th in th_vals:
                     filtered_id_samples = total_rmse.loc[(total_rmse[metric] <= th) *
@@ -586,26 +602,42 @@ def test(project_path: str,
 
         if np.any([unc is not None for unc in uncertainty_estimates]):
             def plot_thresholding():
+                err_sup_PCK = [None for _ in range(n_models)]
                 fig, ax1 = plt.subplots(1, 1)
                 for i_model in range(n_models):
                     if not model_configs[i_model]['network']['mu_sigma']:
                         continue
                     m = model_names[i_model]
                     count = thresholding_df.loc[thresholding_df['method'] == m, 'count'].astype(int)
-                    rmse = thresholding_df.loc[thresholding_df['method'] == m, metric].astype(float)
-                    rmse_std = thresholding_df.loc[thresholding_df['method'] == m, f'{metric}_std'].astype(float)
-                    pl = ax1.plot(count, rmse, '+-', label=m)
-                    ax1.fill_between(x=count, y1=rmse - rmse_std, y2=rmse + rmse_std, label=m, color=pl[0].get_color(), alpha=0.5)
+                    metric = thresholding_df.loc[thresholding_df['method'] == m, metric_name].astype(float)
+                    metric_std = thresholding_df.loc[thresholding_df['method'] == m, f'{metric_name}_std'].astype(float)
+                    if 'PCK' in metric_name:
+                        metric_sup_index = np.where(metric > 0.8)
+                        if len(metric_sup_index[0]) > 0:
+                            err_sup_PCK[i_model] = th_vals[metric_sup_index[0][-1]]
+
+                    pl = ax1.plot(count, metric, '+-', label=m)
+                    ax1.fill_between(x=count, y1=metric - metric_std, y2=metric + metric_std, label=m,
+                                     color=pl[0].get_color(),
+                                     alpha=0.5)
                 ax1.legend()
-                ax1.set_ylabel(f'Mean {metric}')
+                ax1.set_ylabel(f'Mean {metric_name}')
                 ax1.set_xlabel('Remaining samples')
 
-            for metric in [pck_name, 'RMSE', 'MPJPE']:
-                plot_save(plot_thresholding,
-                          title=f'thresholding_curve_{metric}{suffix}', only_png=False,
-                          outputdir=output_dir)
+                return err_sup_PCK
+
+            for metric_name in [pck_name, 'RMSE', 'MPJPE']:
+                if metric_name == pck_name:
+                    err_sup_PCK = plot_save(plot_thresholding,
+                                          title=f'thresholding_curve_{metric_name}{suffix}', only_png=False,
+                                          outputdir=output_dir)
+                else:
+                    plot_save(plot_thresholding,
+                              title=f'thresholding_curve_{metric_name}{suffix}', only_png=False,
+                              outputdir=output_dir)
                 plt.close('all')
+
 
     pd.concat(mean_RMSE).to_csv(os.path.join(output_dir, f'mean_metrics{suffix}.csv'), index=False)
 
-    return pcoeff_per_model
+    return pcoeff_per_model, err_sup_PCK

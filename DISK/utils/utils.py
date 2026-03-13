@@ -106,11 +106,11 @@ def plot_save(plot_fct, save_bool=True, title='', only_png=False, outputdir=''):
     #         plt.savefig(os.path.join(outputdir, title + '.svg'))#, transparent=True)
     #         plt.close()
     with plt.style.context('seaborn-v0_8'):
-        plot_fct()
+        out = plot_fct()
         if save_bool:
             plt.savefig(os.path.join(outputdir, title + '.png'))
             plt.close()
-
+    return out
 
 def compute_interp(data_with_holes_np, mask_holes_np, keypoints, n_dim):
     # do it all in numpy

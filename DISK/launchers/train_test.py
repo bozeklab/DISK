@@ -79,24 +79,31 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
     logger.info(f'*********************** TESTING DISK TRAINED MODEL *********************** \n')
 
     add_missing_pad_for_test = (max(1, add_missing_pad[0]), max(1, add_missing_pad[0]))
-    pcoef_per_model = test(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
-                 [model_dir, ], training_batch_size, n_cpus,
-                 loss_type, loss_mask, loss_factor,
-                 proba_file, proba_length_file, indep_keypoints,
-                 add_missing_pad_for_test,
-                 viewinvariant, normalize, normalizecube, swap, add_missing,
-                 test_original_coordinates, test_threshold_pck, n_repeat,
-                 total_n_plots, plot2d_only_holes,
-                 plot3d_size, plot3d_azim,
-                 logger, suffix='', stride=None, verbose=verbose)
+    pcoef_per_model, err_pck_sup = test(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
+                             [model_dir, ], training_batch_size, n_cpus,
+                             loss_type, loss_mask, loss_factor,
+                             proba_file, proba_length_file, indep_keypoints,
+                             add_missing_pad_for_test,
+                             viewinvariant, normalize, normalizecube, swap, add_missing,
+                             test_original_coordinates, test_threshold_pck, n_repeat,
+                             total_n_plots, plot2d_only_holes,
+                             plot3d_size, plot3d_azim,
+                             logger, suffix='', stride=None, verbose=verbose)
     logger.info(f'✅ Successfully tested DISK model {model_dir}.\n')
 
     if pcoef_per_model[0][0] is not None and pcoef_per_model[0][0] < 0.8:
         logger.info(f"⚠️ The correlation coefficient between the estimation of the error and "
                     f"the real error made by the model is low (corr = {pcoef_per_model[0][0]:.2f}). \n"
                     f"Be cautious when visualizing it in the plots and when using DISK-impute "
-                    f"(threshold_error_score).")
+                    f"(threshold_error_score).\n")
 
+    if err_pck_sup[0] is None:
+        logger.info(f"⚠️ The DISK model seems to give poor results. \n"
+                    f"No threshold for the estimated error was found "
+                    f"to reach at least 80% of correct keypoints.")
+    else:
+        logger.info(f"ℹ️  Based on the test results, we recommend a threshold_error_score of "
+                    f"{err_pck_sup[0]:.3f} for the imputation step.")
 
 @config_reader(config_path="../conf/config_train.yaml")
 def cli(_cfg) -> None:
