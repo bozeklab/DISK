@@ -19,7 +19,7 @@ def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton
          proba_file, proba_length_file, indep_keypoints,
          add_missing_pad, viewinvariant, normalize, normalizecube, swap,
          add_missing,
-         test_original_coordinates, test_threshold_pck,
+         test_original_coordinates, pck_threshold,
          n_repeat,
          total_n_plots, plot2d_only_holes, plot3d_size, plot3d_azim,
          logger, verbose=0):
@@ -32,7 +32,7 @@ def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton
              proba_file, proba_length_file, indep_keypoints,
              add_missing_pad,
              viewinvariant, normalize, normalizecube, swap, add_missing,
-             test_original_coordinates, test_threshold_pck, n_repeat,
+             test_original_coordinates, pck_threshold, n_repeat,
              total_n_plots, plot2d_only_holes,
              plot3d_size, plot3d_azim,
              logger, suffix='', stride=None, verbose=verbose)
@@ -226,20 +226,20 @@ def cli(_cfg) -> None:
     else:
         swap = _cfg.transforms_swap
 
-    if _cfg.test_n_plots is None or type(_cfg.test_n_plots) != int:
-        print("\n❌ test_n_plots should be a positive integer. "
-              f"Got {_cfg.test_n_plots}")
+    if _cfg.n_plots is None or type(_cfg.n_plots) != int:
+        print("\n❌ n_plots should be a positive integer. "
+              f"Got {_cfg.n_plots}")
         sys.exit(1)
     else:
-        n_plots = max(0, _cfg.test_n_plots)
+        n_plots = max(0, _cfg.n_plots)
 
-    if _cfg.test_threshold_pck is None or type(
-            _cfg.test_threshold_pck) != float or _cfg.test_threshold_pck < 0 or _cfg.test_threshold_pck > 1:
-        print("\n❌ test_threshold_pck should be a "
-              f"float between 0 and 1. Got {_cfg.test_threshold_pck}")
+    if _cfg.pck_threshold is None or type(
+            _cfg.pck_threshold) != float or _cfg.pck_threshold < 0 or _cfg.pck_threshold > 1:
+        print("\n❌ pck_threshold should be a "
+              f"float between 0 and 1. Got {_cfg.pck_threshold}")
         sys.exit(1)
     else:
-        threshold_pck = _cfg.test_threshold_pck
+        pck_threshold = _cfg.pck_threshold
 
     if _cfg.plot_azim3d is None or type(_cfg.plot_azim3d) != int:
         print("\n❌ plot_azim3d should be an integer."
@@ -270,12 +270,12 @@ def cli(_cfg) -> None:
         original_coordinates = _cfg.plot_original_coordinates
 
 
-    if _cfg.test_n_repeat is None or type(_cfg.test_n_repeat) != int:
-        print("\n❌ test_n_repeat should be a string."
-              f"Got {_cfg.test_n_repeat}")
+    if _cfg.n_repeat is None or type(_cfg.n_repeat) != int:
+        print("\n❌ n_repeat should be a string."
+              f"Got {_cfg.n_repeat}")
         sys.exit(1)
     else:
-        n_repeat = max(1, _cfg.test_n_repeat)
+        n_repeat = max(1, _cfg.n_repeat)
 
     if _cfg.loss_def is None or type(_cfg.loss_def) != str or not _cfg.loss_def in ['l1', 'l2']:
         print("\n❌ loss_def should be l1 or l2."
@@ -313,7 +313,7 @@ def cli(_cfg) -> None:
          add_missing_pad, viewinvariant,
          normalize, normalizecube, swap,
          add_missing,
-         original_coordinates, threshold_pck, n_repeat,
+         original_coordinates, pck_threshold, n_repeat,
          n_plots, plot2d_only_holes,
          plot3d_size, plot3d_azim,
          logger, verbose)

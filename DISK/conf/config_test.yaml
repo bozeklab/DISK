@@ -38,18 +38,17 @@ merge_keypoints: False
 merge_keypoints_type: bool
 merge_keypoints_help: "if False then no merging because each combination of keypoints may not have enough data points to estimate a good missing probability distribution"
 
-test:
-  n_plots: 5
-  n_plots_type: int
-  n_plots_help: "number of random samples to be plotted"
+n_plots: 5
+n_plots_type: int
+n_plots_help: "number of random samples to be plotted"
 
-  threshold_pck: 0.1
-  threshold_pck_type: float
-  threshold_pck_help: "threshold for the PCK (percent of correct keypoints) metric. The threshold should be a float between 0 and 1, corresponds to a fraction of the maximal distance between two tracked bodypoints. Usually set <= 0.1."
+pck_threshold: 0.1
+pck_threshold_type: float
+pck_threshold_help: "threshold for the PCK (percent of correct keypoints) metric. The threshold should be a float between 0 and 1, corresponds to a fraction of the maximal distance between two tracked bodypoints. Usually set <= 0.1."
 
-  n_repeat: 1
-  n_repeat_type: int
-  n_repeat_help: "number of times we test the model. As the gaps are artificially and randomly created, there can be some small variations in the metrics between different repeats of the test script."
+n_repeat: 1
+n_repeat_type: int
+n_repeat_help: "number of times we test the model. As the gaps are artificially and randomly created, there can be some small variations in the metrics between different repeats of the test script."
 
 
 ### DEV PARAMETERS

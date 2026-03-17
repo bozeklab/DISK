@@ -150,11 +150,54 @@ def single_add_argument(parser, key, value, parent_value, full_name):
     help_message = parent_value.get(help_key, '')  # Default to 'str'
     parser.add_argument(f'--{full_name}', type=expected_type, nargs=nargs,
                         action=custom_action,
-                        help=f'Override {key}. {help_message}', default=value)
+                        help=f'Overwrite {key}. {help_message}', default=value)
     return parser
 
+class CustomArgumentParser(argparse.ArgumentParser):
+    def __init__(self, config=None, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config
+
+    def print_help(self, file=None):
+        # Call the standard help output
+        print("\n*** Can read values from a config file: ***", file=file or sys.stdout)
+        super().print_help(file)
+
+        # Custom help message
+        print("\n*** Or directly from command line arguments: ***", file=file or sys.stdout)
+        print(self.get_other_parser_help(), file=file or sys.stdout)
+
+    def get_other_parser_help(self):
+        # Create another ArgumentParser for additional options
+        other_parser = argparse.ArgumentParser(self.description)
+        # Dynamically add arguments based on config keys
+        for k, v in self.config.items():
+            if 'type' in k or 'help' in k:
+                continue
+            if type(v) == dict:
+                for kk, vv in v.items():
+                    if 'type' in kk or 'help' in kk:
+                        continue
+                    if type(vv) == dict:
+                        for kkk, vvv in vv.items():
+                            if 'type' in kkk or 'help' in kkk:
+                                continue
+
+                        other_parser = single_add_argument(other_parser, kkk, vvv, vv, f'{k}_{kk}_{kkk}')
+                    else:
+                        other_parser = single_add_argument(other_parser, kk, vv, v, f'{k}_{kk}')
+
+            else:
+                other_parser = single_add_argument(other_parser, k, v, self.config, f'{k}')
+
+        # Capture the help text of the other_parser
+        from io import StringIO
+        help_text = StringIO()
+        other_parser.print_help(help_text)
+        return help_text.getvalue()
+
 def parse_command_line_args(config, desc=''):
-    parser = argparse.ArgumentParser(description=desc)
+    parser = CustomArgumentParser(description=desc, config=config)
     parser.add_argument(f'--config_path', type=str,
                         help=f'Path to config file. Will overwrite the default config file.',
                         default='')
