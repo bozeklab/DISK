@@ -97,13 +97,19 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
                     f"Be cautious when visualizing it in the plots and when using DISK-impute "
                     f"(threshold_error_score).\n")
 
-    if err_pck_sup[0] is None:
+    if err_pck_sup[0]  == -1:
         logger.info(f"⚠️ The DISK model seems to give poor results. \n"
                     f"No threshold for the estimated error was found "
                     f"to reach at least 80% of correct keypoints.")
     else:
-        logger.info(f"ℹ️  Based on the test results, we recommend a threshold_error_score of "
-                    f"{err_pck_sup[0]:.3f} for the imputation step.")
+        if err_pck_sup[0] is not None:
+            logger.info(f"ℹ️  Based on the test results, we recommend a threshold_error_score of "
+                        f"{err_pck_sup[0]:.3f} for the imputation step.")
+        else:
+            logger.info(f"ℹ️  The DISK model was trained without module for error estimation. \n"
+                        f"No thresholding on the results will be possible at imputation step.")
+
+
 
 @config_reader(config_path="../conf/config_train.yaml")
 def cli(_cfg) -> None:

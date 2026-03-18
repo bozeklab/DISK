@@ -246,13 +246,15 @@ def test(project_path: str,
                     full_data_np = reconstruct_before_normalization(full_data_np, data_dict, transforms)
                     data_with_holes_np = reconstruct_before_normalization(data_with_holes_np, data_dict, transforms)
 
-                    max_uncertainty_margin_orig = [reconstruct_before_normalization(out + unc, data_dict, transforms)
+                    max_uncertainty_margin_orig = [unc if unc is None else
+                                                   reconstruct_before_normalization(out + unc, data_dict, transforms)
                                                    for out, unc in zip(x_outputs_np, uncertainty_estimates_np)]
 
                     x_outputs_np = [reconstruct_before_normalization(out, data_dict, transforms)
                                for out in x_outputs_np]
 
-                    uncertainty_estimates_np = [y - out for out, y in zip(x_outputs_np, max_uncertainty_margin_orig)]
+                    uncertainty_estimates_np = [y if y is None else y - out for out, y in zip(x_outputs_np,
+                                                                                           max_uncertainty_margin_orig)]
 
 
                 uncertainty = [unc if unc is None else np.sum(np.sqrt((unc ** 2) * reshaped_mask_holes), axis=3)
@@ -375,9 +377,18 @@ def test(project_path: str,
                     logger.info(f'Plotting sample: {n_plots} / {total_n_plots}')
                     potential_indices = np.where(n_missing > 0)[0]
                     np.random.seed(0)
-                    for i in np.random.choice(potential_indices,  #full_data_np.shape[0],
+                    indices = np.random.choice(potential_indices,  #full_data_np.shape[0],
                                               min(len(potential_indices), total_n_plots),
-                                              replace=False):
+                                              replace=False)
+                    uncertainty_str = []
+                    for i_model in range(n_models):
+                        if uncertainty[i_model] is None:
+                            uncertainty_str.append(["None"] * len(rmse[i_model]))
+                        else:
+                            uncertainty_str.append([f'{np.sum(uncertainty[i_model][i]) / n_missing[i] :.2f}' for
+                                                    i in indices])
+
+                    for i in indices:
                         if skeleton_graph is not None:
                             for i_model, xo in enumerate(x_outputs_np):
                                 save_path = os.path.join(
@@ -394,8 +405,8 @@ def test(project_path: str,
                             [f'{model_names[i_model]}: '
                              f'{np.sqrt(np.sum(rmse[i_model][i]) / n_missing[i]):.2f} |'
                              f' {np.sum(euclidean_distance[i_model][i]) / n_missing[i]:.2f} | '
-                             f'{np.sum(uncertainty[i_model][i]) / n_missing[i]:.2f} ' for i_model in
-                             range(n_models)])
+                             f'{uncertainty_str[i_model][i]} '
+                             for i_model in range(n_models)])
 
                         if np.min(add_missing_pad) > 0:
                             title += (f'\n{"linear"}: '
@@ -602,7 +613,7 @@ def test(project_path: str,
 
         if np.any([unc is not None for unc in uncertainty_estimates]):
             def plot_thresholding():
-                err_sup_PCK = [None for _ in range(n_models)]
+                err_sup_PCK = [-1 for _ in range(n_models)]
                 fig, ax1 = plt.subplots(1, 1)
                 for i_model in range(n_models):
                     if not model_configs[i_model]['network']['mu_sigma']:
@@ -637,7 +648,8 @@ def test(project_path: str,
                               outputdir=output_dir)
                 plt.close('all')
 
-
+        else:
+            err_sup_PCK = [None] * n_models
     pd.concat(mean_RMSE).to_csv(os.path.join(output_dir, f'mean_metrics{suffix}.csv'), index=False)
 
     return pcoeff_per_model, err_sup_PCK

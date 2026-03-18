@@ -35,8 +35,9 @@ def main(project_path, dataset_path, dataset_name, data_files, file_type,
     logger.info(f'✅ Successfully created dataset {dataset_name}.\n')
 
     if number_samples_train < 2000:
-        logger.info(f'⚠️️⚠️️⚠️ The training set created for DISK has only {number_samples_train}. This risks to be too '
-                  f'small for the training. '
+        warning_signs = '⚠️️⚠️️⚠️ ' if number_samples_train < 1000 else '⚠️️ '
+        logger.info(f'{warning_signs}The training set created for DISK has only {number_samples_train}. This risks to be too '
+                  f'small for the training. We recommend at least 2000 training samples.'
               f'\nTry relaunching DISK-prepare-data with a higher fill_gap value and/or '
               f'lower stride value.\n')
 
@@ -148,6 +149,8 @@ def cli(_cfg) -> None:
             dataset_name = f'dataset_{length}_{stride}'
         else:
             dataset_name = f'dataset_{subsampling_freq}Hz_{length}length_{stride}stride'
+            if sequential:
+                dataset_name += '_sequential'
     else:
         if _cfg.dataset_name is None or type(_cfg.dataset_name) != str:
             print("\n❌ dataset_name should be a "
@@ -158,8 +161,7 @@ def cli(_cfg) -> None:
 
     dataset_path = os.path.join(project_path, 'DISK_data', dataset_name,)
     if os.path.exists(dataset_path):
-        print(
-            f"\n️⚠️ Dataset {dataset_path} already exists. Do you want to rewrite files in the same folder? [y/n]")
+        print(f"⚠️  Dataset {dataset_path} already exists. Do you want to rewrite files in the same folder? [y/n]")
         y_n = input('> ')
         while y_n not in ['y', 'n', 'Y', 'N', 'yes', 'no', 'Yes', 'YES', 'No', 'NO']:
             y_n = input('Retype y or n: ')
