@@ -188,7 +188,7 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
         ave_rmse_train /= len(train_loader)
 
         ### EVALUATION
-        if ith_epoch % print_every == 0 and ith_epoch != start_epoch:
+        if ith_epoch % print_every == 0:
             with torch.no_grad():
                 ave_loss_eval, ave_rmse_eval, _ = compute_loss(model, val_loader, dataset_constants.DIVIDER,
                                                                criterion_seq, loss_mask, loss_factor, cfg_network,

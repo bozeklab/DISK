@@ -104,7 +104,8 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
     else:
         if err_pck_sup[0] is not None:
             logger.info(f"ℹ️  Based on the test results, we recommend a threshold_error_score of "
-                        f"{err_pck_sup[0]:.3f} for the imputation step.")
+                        f"{err_pck_sup[0]:.3f} for the imputation step (based on 80% of PCK@{test_threshold_pck} on "
+                        f"the test set).")
         else:
             logger.info(f"ℹ️  The DISK model was trained without module for error estimation. \n"
                         f"No thresholding on the results will be possible at imputation step.")

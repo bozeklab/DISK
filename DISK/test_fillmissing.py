@@ -386,7 +386,7 @@ def test(project_path: str,
                             uncertainty_str.append(["None"] * len(rmse[i_model]))
                         else:
                             uncertainty_str.append([f'{np.sum(uncertainty[i_model][i]) / n_missing[i] :.2f}' for
-                                                    i in indices])
+                                                    i in range(len(rmse[i_model]))])
 
                     for i in indices:
                         if skeleton_graph is not None:
