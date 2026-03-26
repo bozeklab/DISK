@@ -24,6 +24,10 @@ def main(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_gr
 
 @config_reader(config_path="../conf/config_impute.yaml")
 def cli(_cfg) -> None:
+    print('\n', '*' * 81, sep='')
+    print('*' * 30, ' DISK-IMPUTE START ', '*' * 30)
+    print('*' * 81, '\n')
+
     _cfg = parse_command_line_args(_cfg)
     modified_cfg = dict(_cfg.__dict__)
 
@@ -182,6 +186,11 @@ def cli(_cfg) -> None:
     main(project_path, output_path, impute_plots_dir, file_type, dataset_path, skeleton_graph, model_path,
          batch_size, threshold_error_score, n_plots, plot_only_holes, missing_pad, logger, verbose=verbose)
 
+    print('\n', '*' * 79, sep='')
+    print('*' * 30, ' DISK-IMPUTE END ', '*' * 30)
+    print('*' * 79, '\n')
+
+    return
 
 if __name__ == '__main__':
     cli()

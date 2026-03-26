@@ -442,7 +442,7 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
 
                                 title = (f'uncertainty_estimate = {equiv_unc[i]:.1f}; threshold ='
                                          f' {threshold_error_score}\n'
-                                         f'{["REJECTED", "ACCEPTED"][equiv_unc[i] <= threshold_error_score]}')
+                                         f'{["REJECTED", "ACCEPTED"][(equiv_unc[i] <= threshold_error_score).astype(int)]}')
                                 fig.suptitle(title, size=30)
                                 t_vect = np.arange(0, seq_length) / subsampling_freq
 

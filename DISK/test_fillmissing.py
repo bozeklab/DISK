@@ -512,14 +512,15 @@ def test(project_path: str,
                 sns.catplot(data=total_rmse.loc[mask, :], kind='bar', y='simplified_keypoint',
                             hue='method_param', x=metric, height=max(5, n_keypoints // 8),
                             order=order_keypoints,)
-                plt.tight_layout()
+                # plt.tight_layout()
             else:
                 keypoints = total_rmse['keypoint'].unique()
                 keypoints = np.delete(keypoints, keypoints == 'all')
                 order_keypoints = np.sort(keypoints)
                 sns.catplot(data=total_rmse.loc[mask, :], kind='bar', y='keypoint',
                             hue='method_param', x=metric, height=max(5, n_keypoints // 8),
-                            raw_order=order_keypoints,)
+                            order=order_keypoints, aspect=1.8)
+
                 plt.tight_layout()
 
 

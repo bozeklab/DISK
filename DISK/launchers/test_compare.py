@@ -45,6 +45,10 @@ def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton
 
 @config_reader(config_path="../conf/config_test.yaml")
 def cli(_cfg) -> None:
+    print('\n', '*' * 80, sep='')
+    print('*' * 30, ' DISK-TEST START ', '*' * 30)
+    print('*' * 80, '\n')
+
     _cfg = parse_command_line_args(_cfg)
     modified_cfg = dict(_cfg.__dict__)
 
@@ -318,6 +322,11 @@ def cli(_cfg) -> None:
          plot3d_size, plot3d_azim,
          logger, verbose)
 
+    print('\n', '*' * 77, sep='')
+    print('*' * 30, ' DISK-TEST END ', '*' * 30)
+    print('*' * 77, '\n')
+
+    return
 
 if __name__ == '__main__':
     cli()

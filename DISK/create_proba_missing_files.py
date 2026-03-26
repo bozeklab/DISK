@@ -197,6 +197,10 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
             proba_df[['keypoint', 'length', 'proba']].sort_values(['keypoint', 'length'])\
                 .to_csv(os.path.join(dataset_path, f'proba_missing_length{suffix}.csv'), index=False)
 
+        elif initial:
+            raise ValueError(f'[DISK][CREATE_PROBA_MISSING_FILES] No proba_missing_length file saved. Check the values '
+                             f'of indep_keypoints ({indep_keypoints}) and merge_keypoints ({merge_keypoints}).\n')
+
         def hist_length_original_vs_fake():
             plt.figure()
             bins = np.arange(0, dataset_constants.SEQ_LENGTH + 2) - 0.5

@@ -37,6 +37,7 @@ class Graph():
         self.num_keypoints = num_keypoints
         self.max_hop = max_hop
         self.dilation = dilation
+        self.logger = logger
 
         self.get_edge(num_keypoints,
                  center,
@@ -46,7 +47,6 @@ class Graph():
             self.num_node, self.edge, max_hop=max_hop)
         self.get_adjacency(strategy)
 
-        self.logger = logger
 
     def __str__(self):
         return self.A

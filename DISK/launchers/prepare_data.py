@@ -48,6 +48,10 @@ def main(project_path, dataset_path, dataset_name, data_files, file_type,
 
 @config_reader(config_path="../conf/config_prepare_data.yaml")
 def cli(_cfg) -> None:
+    print('\n', '*' * 87, sep='')
+    print('*' * 30, ' DISK-PREPARE-DATA START ', '*' * 30)
+    print('*' * 87, '\n')
+
     _cfg = parse_command_line_args(_cfg)
     modified_cfg = dict(_cfg.__dict__)
 
@@ -240,6 +244,12 @@ def cli(_cfg) -> None:
     indep_keypoints = test_boolean_variable(_cfg.indep_keypoints, 'indep_keypoints')
     merge_keypoints = test_boolean_variable(_cfg.merge_keypoints, 'merge_keypoints')
 
+    if indep_keypoints:
+        if merge_keypoints:
+            logger.info(f'️ℹ merge_keypoints = True is not a valid option when indep_keypoints = True. '
+                        f'merge_keypoints would be considered False')
+            merge_keypoints = False
+
     os.makedirs(os.path.join(dataset_path, 'config'), exist_ok=True)
 
     output_config_file = os.path.join(dataset_path, 'config', f'config_prepare_data.yaml')
@@ -259,6 +269,10 @@ def cli(_cfg) -> None:
 
     with open(os.path.join(project_path, 'config_project.yaml'), 'w') as file:
         yaml.dump(config, file)
+
+    print('\n', '*' * 85, sep='')
+    print('*' * 30, ' DISK-PREPARE-DATA END ', '*' * 30)
+    print('*' * 85, '\n')
 
     return
 

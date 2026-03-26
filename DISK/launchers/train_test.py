@@ -56,7 +56,7 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
          total_n_plots, plot2d_only_holes, plot3d_size, plot3d_azim,
          logger, verbose=0):
 
-    logger.info(f'*********************** TRAINING DISK *********************** \n')
+    logger.info(f'**************** TRAINING DISK **************** \n')
     try:
         train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, training_seed,
                           load_model_dir, cfg_network,
@@ -76,7 +76,7 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
 
     logger.info(f'✅ Successfully trained DISK model {model_dir}.\n')
 
-    logger.info(f'*********************** TESTING DISK TRAINED MODEL *********************** \n')
+    logger.info(f'********* TESTING DISK TRAINED MODEL ********** \n')
 
     add_missing_pad_for_test = (max(1, add_missing_pad[0]), max(1, add_missing_pad[0]))
     pcoef_per_model, err_pck_sup = test(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
@@ -114,6 +114,11 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
 
 @config_reader(config_path="../conf/config_train.yaml")
 def cli(_cfg) -> None:
+
+    print('\n', '*' * 80, sep='')
+    print('*' * 30, ' DISK-TRAIN START ', '*' * 30)
+    print('*' * 80, '\n')
+
     _cfg = parse_command_line_args(_cfg)
     modified_cfg = dict(_cfg.__dict__)
 
@@ -228,9 +233,9 @@ def cli(_cfg) -> None:
                             f"DISK-train ... --load_model my_existing_model --model_name a_new_name ...\n")
                 exit(0)
         else:
-            logger.info(f"ℹ️  Loading model {final_load_model_path}, saving in {final_model_path}.\n")
+            logger.info(f"ℹ️  Loading model {final_load_model_path}, saving in {final_model_path}\n")
     else:
-        logger.info(f"ℹ️  Model folder is {final_model_path}.\n")
+        logger.info(f"ℹ️  Model folder is {final_model_path}\n")
 
 
     if (not 'skeleton' in config.keys()) or config['skeleton'] is None or len(config['skeleton']) == 0:
@@ -341,7 +346,7 @@ def cli(_cfg) -> None:
         suffix = f'_set_keypoints' if not indep_keypoints else ''
         if indep_keypoints:
             if merge_keypoints:
-                logger.info(f'️ℹ\n️ merge_keypoints = True is not a valid option when indep_keypoints = True. '
+                logger.info(f'️ℹ merge_keypoints = True is not a valid option when indep_keypoints = True. '
                             f'merge_keypoints would be considered False')
                 suffix += f'_merged'
 
@@ -506,6 +511,11 @@ def cli(_cfg) -> None:
          plot3d_size, plot3d_azim,
          logger, verbose)
 
+    print('\n', '*' * 78, sep='')
+    print('*' * 30, ' DISK-TRAIN END ', '*' * 30)
+    print('*' * 78)
+
+    return
 
 if __name__ == '__main__':
     cli()
