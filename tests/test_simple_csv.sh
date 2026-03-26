@@ -26,4 +26,4 @@ DISK-prepare-data --project_path DISK_simple_3csv --dataset_name test --indep_ke
 
 DISK-train --project_path DISK_simple_3csv --dataset_name test --training_epochs 2 --indep_keypoints true
 
-DISK-impute --project_path DISK_simple_3csv --dataset_name test --model_name
+DISK-impute --project_path DISK_simple_3csv --dataset_name test --model_name DISK_test

@@ -36,8 +36,7 @@ def cli(_cfg) -> None:
         if val is None or val == '_DEFAULT_':
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'
-                  f'\n  > DISK-impute project_path=test_project dataset_name=dataset model_name=model\n'
-                  f'# careful no space after/before "="')
+                  f'\n  > DISK-impute --project_path test_project --dataset_name dataset --model_name model')
             sys.exit(1)
 
     ### _CFG PARAMETER CHECK --- REQUIRED PARAMETERS
