@@ -515,7 +515,7 @@ def test(project_path: str,
                 # plt.tight_layout()
             else:
                 keypoints = total_rmse['keypoint'].unique()
-                keypoints = np.delete(keypoints, keypoints == 'all')
+                keypoints = np.delete(keypoints, np.where(keypoints == 'all'))
                 order_keypoints = np.sort(keypoints)
                 sns.catplot(data=total_rmse.loc[mask, :], kind='bar', y='keypoint',
                             hue='method_param', x=metric, height=max(5, n_keypoints // 8),

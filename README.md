@@ -40,17 +40,18 @@ DISK allows to use a bigger proportion of experimental data for downstream behav
 
 # Installation
 
-To Install DISK and core dependencies, including PyTorch with the Correct CUDA Backend:
+To Install DISK and core dependencies:
 
 
 ```bash
-pip install disk-impute --extra-index-url <Torch-Wheel-Link>
+pip install disk-impute
 ```
 
+To make DISK work, including PyTorch with the Correct CUDA Backend. First install the correct pytorch for your machine, then pip install disk-impute:
 
-> Find link for your CUDA installation at this [page](https://pytorch.org/get-started/previous-versions/) Not using a GPU at all?  Use "--extra-index-url https://download.pytorch.org/whl/cpu/torch_stable.html"
+> Find link for your CUDA installation at this [page](https://pytorch.org/get-started/previous-versions/) Not using a GPU at all?  
 
-This step should take up to 10-15 minutes. 
+This step can take up to 10-15 minutes. 
 
 **[VERY IMPORTANT - if using with GPU]** To test that pytorch is seeing the GPU, you can test it in a terminal: `DISK-check-gpu`
 
@@ -107,20 +108,25 @@ There are 4 main commands:
 Example of command usage:
 
 ```commandline
+# download the data file to run the demo code
+gdown https://drive.google.com/uc?id=1a1iMd_eyVjCXectJjSGKrmP5fpBQkuX_
+
 # create project folder
-DISK-create-project project_path=DISK_demo file_type=simple_csv data_files=[fish_fighting_interpolated_head_2D.csv]
+DISK-create-project --project_path DISK_demo --file_format simple_csv --data_files fish_fighting_interpolated_head_2D.csv
 
 # prepare a dataset for DISK model with a given sample length
-DISK-prepare-data project_path=DISK_demo length=30
+DISK-prepare-data --project_path DISK_demo --length 30
 
 # train a DISK model on the previsouly created dataset
-DISK-train project_path=DISK_demo dataset_name=dataset_30_15 training_epochs=3
+DISK-train --project_path DISK_demo --dataset_name dataset_30_15 --training_epochs 3
 
 # use the trained model to impute gaps
-DISK-impute project_path=DISK_demo dataset_name=dataset_30_15 model_name=dataset_30_15_DISK
+DISK-impute --project_path DISK_demo --dataset_name dataset_30_15 --model_name dataset_30_15_DISK
 ```
 
-TODO: make download the csv file!!
+The demo code is to verify that everything works on your machine and to introduce you the main commands. 
+- The arguments (except training_epochs) are all mandatory. Additionally, there are other parameters to tailor DISK to your situation (see next [section](#customize-disk-commands-using-the-command-line).)
+- The trained DISK model is not going to perform as it is trained for a very short time on very little data!
 
 ## Customize DISK commands using the command line
 
@@ -151,7 +157,7 @@ To compute the probability of missing keypoints, there are two additional parame
 
 The syntax remains the same:
 ```commandline
-DISK-prepare-data project_path=DISK_demo length=30 fill_gap=10 indep_keypoints=True
+DISK-prepare-data --project_path DISK_demo --length 30 --fill_gap 10 --indep_keypoints True
 ```
 
 ### DISK-train
@@ -179,7 +185,7 @@ And as in the previous step, you can choose how to compute the probability of mi
 
 The syntax remains the same:
 ```commandline
-DISK-train project_path=DISK_demo dataset_name=dataset_30_15 network=gru n_cpus=1
+DISK-train --project_path DISK_demo --dataset_name dataset_30_15 --network gru --n_cpus 1
 ```
 
 ### DISK-impute
@@ -196,19 +202,19 @@ Additional parameters can be set:
 - **DISK-add-skeleton**: prompts the user to enter links between keypoints corresponding to the skeleton. The built skeleton is only used for ST-GCN backbone and plots.
 
 ```
-DISK-add-skeleton project_path=...
+DISK-add-skeleton --project_path ...
 ```
 
 - **DISK-restore-default-config**: restores the original configs inside the config folder
 
 ```
-DISK-restore-default-config project_path=...
+DISK-restore-default-config --project_path ...
 ```
 
 - **DISK-test**: compares different already trained models on a given dataset, outputs plots and metrics
 
 ```
-DISK-restore-default-config project_path=... dataset_name=... model_name_list=[model1,model2]
+DISK-restore-default-config --project_path ... --dataset_name ... --model_name_list path/to/model1/folder /path/to/model2/folder
 ```
 
 
@@ -224,7 +230,7 @@ These values can be changed by the user and overwritten by the command line as w
 You can set all the values in a config file and use it with the corresponding launcher using this syntax:
 
 ```
-DISK-train config_file=path/to/your/yaml/config/file.yaml
+DISK-train --config_file path/to/your/yaml/config/file.yaml
 ```
 
 
@@ -301,8 +307,8 @@ The length, fill_gaps, and drop_keypoints are options in the config file.
 
 ### Too small dataset
 
-Additionally if there is enough segments but the resulting datasets have very few training samples (under 1,000) or test/validation samples (under 10).
-You can further decrease the **stride** which will be create more samples by overlapping them.
+Additionally, if there is enough segments but the resulting datasets have very few training samples (under 1,000) or test/validation samples (under 10).
+You can further decrease the **stride** which will create more samples by overlapping them.
 
 On the contrary if the dataset is very large (over 20,000 samples for the training set), then you can increase the **stride**.
 
@@ -321,15 +327,15 @@ Some of them can be directly used to train and test, and are available for downl
 
 ## Step 3. Train a model
 
-The training will be long, from a few hours to a few days depending on the size of the dataset and the number of required epochs. Hence we advise to run the training (`DISK-train`) on a machine with a GPU.
+The training will be long, from a few hours to a few days depending on the size of the dataset and the number of required epochs. Hence, we advise to run the training (`DISK-train`) on a machine with a GPU.
 
 Transformer model has the best performance for all the tested datasets.
-However transformer usually benefits from a lower batch size (32 or 64) and is the slowest to train even on GPU.
+However, transformer usually benefits from a lower batch size (32 or 64) and is the slowest to train even on GPU.
 Depending on the size of the training dataset, it can take a few hours to days. 
 
 GRU is the second best model in terms of performances. 
 GRU can be trained with larger batch size (up to 512 if enough GPU memory) and is shorter to train. 
-It can still take hours to train on a middle sized dataset.
+It can still take hours to train on a middle-sized dataset.
 
 To understand loss plots, see [FAQ](FAQ.md#how-to-know-the-model-has-trained-successfully).
 
@@ -372,7 +378,7 @@ Additional scripts to reproduce plots and analyses (comparison with other publis
 If using [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)/pip, you can first create a new environment:
 ```bash
 # if using conda environments
-conda create --name env_DISK python=3.9 # requires python>=3.8,<3.10
+conda create --name env_DISK python=3.12 # requires python>=3.8,<3.10
 conda activate env_DISK
 ```
 
