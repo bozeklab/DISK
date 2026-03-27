@@ -26,7 +26,7 @@ def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton
 
     logger.info(f'*********************** TESTING DISK TRAINED MODEL *********************** \n')
     try:
-        test(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
+        pcoeff_per_model, err_sup_PCK = test(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
              model_dirs, training_batch_size, n_cpus,
              loss_type, loss_mask, loss_factor,
              proba_file, proba_length_file, indep_keypoints,
@@ -36,6 +36,23 @@ def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton
              total_n_plots, plot2d_only_holes,
              plot3d_size, plot3d_azim,
              logger, suffix='', stride=None, verbose=verbose)
+
+        for model_name, err_pck_sup in zip(model_dirs, err_sup_PCK):
+            if err_pck_sup == -1:
+                logger.info(f"⚠️ The DISK model {os.path.basename(model_name)} seems to give poor results. \n"
+                            f"No threshold for the estimated error was found "
+                            f"to reach at least 80% of correct keypoints.")
+            else:
+                if err_pck_sup is not None:
+                    logger.info(f"ℹ️  For model {os.path.basename(model_name)}, based on the test results, "
+                                f"we recommend a threshold_error_score of "
+                                f"{err_pck_sup:.3f} for the imputation step (based on 80% of PCK@{pck_threshold} on "
+                                f"the test set).")
+                else:
+                    logger.info(f"ℹ️  The DISK model {os.path.basename(model_name)} was trained without module for "
+                                f"error estimation. \n"
+                                f"No thresholding on the results will be possible at imputation step.")
+
     except torch.OutOfMemoryError:
         print(f"\n❌ CUDA (GPU) out of memory. Try reducing the --training_batch_size. Got {training_batch_size}")
         sys.exit(1)

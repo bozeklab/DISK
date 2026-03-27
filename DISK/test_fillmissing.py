@@ -487,7 +487,7 @@ def test(project_path: str,
         total_rmse = pd.DataFrame.from_dict(total_rmse)
         total_rmse = total_rmse.reset_index().convert_dtypes()
         logger.info(f'n lines in result df: {total_rmse.shape[0]}')
-        logger.info(f"RMSE per sample averaged: \n"
+        logger.info(f"Metric per sample averaged: \n"
                      f"{total_rmse[(total_rmse['keypoint'] == 'all')].groupby(['method_param'])[[pck_name, 'RMSE', 'MPJPE']].agg('mean')}")
         tmp = total_rmse[(total_rmse['keypoint'] == 'all')].groupby(['method', 'method_param'])[[pck_name, 'RMSE', 'MPJPE']].agg('mean').reset_index()
         tmp['repeat'] = i_repeat
