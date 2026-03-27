@@ -150,11 +150,11 @@ def cli(_cfg) -> None:
 
     if _cfg.dataset_name == '_DEFAULT_':
         if subsampling_freq == 1:
-            dataset_name = f'dataset_{length}_{stride}'
+            dataset_name = f'dataset_length{length}_stride{stride}'
         else:
-            dataset_name = f'dataset_{subsampling_freq}Hz_{length}length_{stride}stride'
-            if sequential:
-                dataset_name += '_sequential'
+            dataset_name = f'dataset_{subsampling_freq}Hz_length{length}_stride{stride}'
+        if sequential:
+            dataset_name += '_sequential'
     else:
         if _cfg.dataset_name is None or type(_cfg.dataset_name) != str:
             print("\n❌ dataset_name should be a "
