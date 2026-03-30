@@ -411,14 +411,14 @@ def test(project_path: str,
                         if np.min(add_missing_pad) > 0:
                             title += (f'\n{"linear"}: '
                                       f'{np.sqrt(np.sum(rmse_linear_interp[i]) / n_missing[i]):.2f} | '
-                                      f'{np.sum(euclidean_distance_linear_interp[i]) / n_missing[i]:.2f}')
+                                      f'{np.sum(euclidean_distance_linear_interp[i]) / n_missing[i]:.2f} | --')
                         def make_xyz_plot():
+                            fig_width = max(dataset_constants.SEQ_LENGTH // 10, dataset_constants.DIVIDER * 7)
                             fig, axes = plt.subplots(dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER,
-                                                     figsize=(max(dataset_constants.SEQ_LENGTH // 10,
-                                                                  dataset_constants.DIVIDER * 7),
+                                                     figsize=(fig_width,
                                                               dataset_constants.NUM_FEATURES),
                                                      sharex='all', sharey='col')
-                            fig.suptitle(title, size=30)
+                            fig.suptitle(title, size=fig_width * 5)
                             axes = axes.flatten()
                             t_vect = np.arange(0, dataset_constants.SEQ_LENGTH) / dataset_constants.FREQ
 
@@ -500,7 +500,7 @@ def test(project_path: str,
             mask = (total_rmse['keypoint'] != 'all')
             n_keypoints = len(total_rmse['keypoint'].unique())
 
-            if n_keypoints > 40:
+            if n_keypoints > 25:
                 total_rmse['n_keypoints'] = total_rmse.loc[:, 'keypoint'].apply(lambda s: len(s.split(' ')))
                 total_rmse['simplified_keypoint'] = total_rmse.apply(lambda a:
                                                         str(a['keypoint']) if a['n_keypoints'] == 1

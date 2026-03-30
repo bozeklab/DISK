@@ -204,6 +204,7 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
         def hist_length_original_vs_fake():
             plt.figure()
             bins = np.arange(0, dataset_constants.SEQ_LENGTH + 2) - 0.5
+            n_keypoints = np.sum(df['original'] * (df['keypoint'] != 'non_missing'))
             if no_original_missing:
                 plt.bar((bins[1:] + bins[:-1]) / 2, [1 / (len(bins) - 1)] * (len(bins) - 1), alpha=.5, label='original',
                         color='cornflowerblue')
@@ -213,14 +214,25 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
             if not initial:
                 plt.hist(df.loc[~df['original'] * (df['keypoint'] != 'non_missing'), 'length'], bins=bins, alpha=.5,
                          label='fake', density=True, color='seagreen')
+            plt.xlabel('Gap length')
             plt.legend()
 
         plot_save(hist_length_original_vs_fake, ~initial,
                   title=f'hist_length_original_vs_fake{suffix}',
-                  only_png=False, outputdir=dataset_path)
+                  only_png=True, outputdir=dataset_path)
 
         def hist_length_per_keypoint():
             keypoints = df.loc[df['keypoint'] != 'non_missing', 'keypoint'].unique()
+            if len(keypoints) > 25:
+                df['n_keypoints'] = df.loc[:, 'keypoint'].apply(lambda s: len(s.split(' ')))
+                df['simplified_keypoint'] = df.apply(lambda a:
+                                                        str(a['keypoint']) if a['n_keypoints'] == 1
+                                                        else f'{a["n_keypoints"]:02d}_keypoints', axis=1)
+                keypoints = df.loc[df['keypoint'] != 'non_missing', 'simplified_keypoint'].unique()
+                key = 'simplified_keypoint'
+            else:
+                key = 'keypoint'
+            keypoints = np.sort(keypoints)
             n_rows = int(np.ceil(np.sqrt(len(keypoints))))
             n_cols = int(np.ceil(len(keypoints) / n_rows))
             fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 3, n_rows * 3))
@@ -228,7 +240,7 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
             bins = np.arange(0, dataset_constants.SEQ_LENGTH + 2) - 0.5
             for ikp, kp in enumerate(keypoints):
                 if not no_original_missing:
-                    distrib = df.loc[(df['original']) & (df['keypoint'] == kp), 'length'].values
+                    distrib = df.loc[(df['original']) & (df[key] == kp), 'length'].values
                     weights = np.ones_like(distrib) / len(distrib)
                     axes[ikp].hist(distrib, bins=bins, histtype='step', weights=weights,
                                    label='original', linewidth=2)
@@ -236,7 +248,7 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
                     axes[ikp].plot((bins[1:] + bins[:-1]) / 2, [1 / (len(bins) - 1)] * (len(bins) - 1),
                                    label='original', linewidth=2)
                 if not initial:
-                    distrib = df.loc[(~df['original']) & (df['keypoint'] == kp), 'length'].values
+                    distrib = df.loc[(~df['original']) & (df[key] == kp), 'length'].values
                     weights = np.ones_like(distrib) / len(distrib)
                     axes[ikp].hist(distrib, bins=bins, histtype='step', weights=weights,
                                    label='fake', linewidth=2)
@@ -251,21 +263,33 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
 
         def count_vs_keypoint():
             keypoints = df['keypoint'].unique()
-            pivot_df = df.sample(min(df.shape[0] - 1, 5000), replace=False).groupby(['keypoint', 'original'])['index_sample'].agg('count').reset_index().rename({'index_sample': 'count'}, axis=1)
+            if len(keypoints) > 40:
+                df['n_keypoints'] = df.loc[:, 'keypoint'].apply(lambda s: len(s.split(' ')))
+                df['simplified_keypoint'] = df.apply(lambda a:
+                                                        str(a['keypoint']) if a['n_keypoints'] == 1
+                                                        else f'{a["n_keypoints"]:02d}_keypoints', axis=1)
+                keypoints = df.loc[df['keypoint'] != 'non_missing', 'simplified_keypoint'].unique()
+                key = 'simplified_keypoint'
+            else:
+                key = 'keypoint'
+            keypoints = np.sort(keypoints)
+            pivot_df = df.sample(min(df.shape[0] - 1, 5000), replace=False).groupby([key, 'original'])[
+                'index_sample'].agg('count').reset_index().rename({'index_sample': 'count'}, axis=1)
             pivot_df['count'] = pivot_df['count'].astype(float)
             if not no_original_missing:
                 pivot_df.loc[pivot_df['original'], 'count'] /= pivot_df.loc[pivot_df['original'], 'count'].sum()
             pivot_df.loc[~pivot_df['original'], 'count'] /= pivot_df.loc[~pivot_df['original'], 'count'].sum()
             try:
-                sns.catplot(data=pivot_df, x='count', hue='original', y='keypoint', orient='h', alpha=0.9,
+                sns.catplot(data=pivot_df, x='count', hue='original', y=key, orient='h', alpha=0.9,
                             height=max(5, len(keypoints) // 10))
             except ValueError:
                 print('catplot error')
             if no_original_missing:
                 plt.axvline(x=1 / len(keypoints), label='original')
+                plt.legend()
 
         if not (no_original_missing and initial):
-            plot_save(count_vs_keypoint, ~initial, title=f'count_vs_keypoint{suffix}', only_png=False,
+            plot_save(count_vs_keypoint, ~initial, title=f'count_vs_keypoint{suffix}', only_png=True,
                       outputdir=dataset_path)
 
         logger.debug(f'Done with initial = {initial}')
