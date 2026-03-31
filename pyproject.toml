@@ -36,7 +36,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "build",
-    "twine"
+    "twine",
+    "pytest"
 ]
 
 [project.scripts]
