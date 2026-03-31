@@ -15,6 +15,8 @@ def main(project_path, dataset_path, dataset_name, data_files, file_type,
 
     from DISK.create_dataset import create_dataset
     from DISK.create_proba_missing_files import create_proba_missing_files
+    from DISK.utils.transforms import init_transforms
+    from DISK.utils.dataset_utils import load_datasets
 
     number_samples_train, keypoints, divider = create_dataset(
                                 dataset_path,
@@ -44,6 +46,50 @@ def main(project_path, dataset_path, dataset_name, data_files, file_type,
 
     no_original_missing, indep_keypoints, merge_keypoints, suffix = create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_graph, logger)
     logger.info(f'✅ Successfully estimated probabilities of missing keypoints for dataset {dataset_name}.\n')
+
+    logger.info(f'ℹ️ Checking if imputable segments in dataset {dataset_name}.\n')
+    transforms = init_transforms(
+                                keypoints,
+                                divider,
+                                length,
+                                dataset_path,
+                                logger,
+                                add_missing=False,
+                                viewinvariant=False,
+                                normalize=False,
+                                normalizecube=False,
+                                swap=0)
+
+
+    # return full length dataset for imputation
+    train_dataset, val_dataset, test_dataset = load_datasets(
+                                                        dataset_path=dataset_path,
+                                                        transform=transforms,
+                                                        dataset_type='impute',
+                                                        suffix='_w-all-nans',
+                                                        root_path=project_path,
+                                                        outputdir=dataset_path,
+                                                        keypoints=keypoints,
+                                                        label_type='all',  # don't care, not using
+                                                        verbose=0,
+                                                        padding=(1, 0), # minimal padding
+                                                        skeleton_graph=skeleton_graph,
+                                                        seq_length=length,
+                                                        stride=stride,
+                                                        freq=subsampling_freq,
+                                                        divider=divider,
+                                                        logger=logger
+                                                )
+
+    if len(train_dataset) == 0 and len(val_dataset) == 0 and len(test_dataset) == 0:
+        # if the length of all datasets is null, then nothing to impute
+        # in the dataset are only listed samples of "possible_indices" which are gaps
+        # which length is <= DISK_model_length - pad_before - pad_after
+        logger.info(
+            f'⚠️️⚠️️⚠️ It seems the created datasets does not have gaps that will be imputable. \n'
+            f'We recommend to increase the --length and --stride values, and if available add more data files. \n'
+            f'(This has been computed with pad (1, 0) which is the minimal recommended padding.)\n')
+
     return keypoints, divider, no_original_missing, indep_keypoints, merge_keypoints, suffix
 
 @config_reader(config_path="../conf/config_prepare_data.yaml")

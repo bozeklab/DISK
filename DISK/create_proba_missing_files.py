@@ -5,6 +5,7 @@ import pandas as pd
 from tqdm import tqdm
 from glob import glob
 import seaborn as sns
+from io import StringIO
 import torch
 from torch.utils.data import DataLoader
 
@@ -25,6 +26,35 @@ def create_uniform_proba(min_len, max_len, keypoints):
                                  data=np.vstack([keypoints + ['non_missing'], [1 / len(keypoints)] * len(keypoints) + [0]]).T)
     return pd.concat(dfs).reset_index().drop('index', axis=1), df_proba_init
 
+
+def find_gap_loop(data_dict, initial=True, keypoints=(), indep_keypoints=True, start_i=0):
+    df = []
+    i_data = start_i
+    mask_holes = data_dict['mask_holes']
+    mask_original = data_dict['original_mask']
+    if torch.any(mask_original == 0):
+        '''original hole'''
+        out = find_holes(mask_holes[0], keypoints, indep=indep_keypoints)
+        original = True
+        for (_, length_nan, keypoint_name) in out:
+            df.append([int(i_data), int(length_nan), str(keypoint_name), original])
+        out = find_holes(torch.sum(mask_holes[0], dim=1).view(mask_holes.shape[1], 1),
+                         ['non_missing'], target_val=0)
+        for (_, length_nan, name) in out:
+            df.append([int(i_data), int(length_nan), str(name), original])
+        i_data += 1
+    elif not initial and torch.all(mask_original == 1) and torch.any(mask_holes == 1):
+        original = False
+
+        out = find_holes(mask_holes[0], keypoints, indep=indep_keypoints)
+        for (_, length_nan, keypoint_name) in out:
+            df.append([int(i_data), int(length_nan), str(keypoint_name), original])
+        out = find_holes(torch.sum(mask_holes[0], dim=1).view(mask_holes.shape[1], 1),
+                         ['non_missing'], target_val=0)
+        for (_, length_nan, name) in out:
+            df.append([int(i_data), int(length_nan), str(name), original])
+        i_data += 1
+    return df
 
 def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints,
                                skeleton_graph, logger) -> (bool, bool, bool, str):
@@ -77,38 +107,31 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
 
         train_loader = DataLoader(train_dataset, batch_size=1, shuffle=False)
 
-        df = pd.DataFrame(columns=['index_sample', 'length', 'keypoint', 'original'])
+        import multiprocessing
+
+
+        # df = pd.DataFrame(columns=['index_sample', 'length', 'keypoint', 'original'])
+        # i_data = 0
+        df = []
         i_data = 0
-
         for data_dict in tqdm(train_loader, desc='Looping on samples to search for gaps'):
-            logger.debug(f'{df.shape}')
-            mask_holes = data_dict['mask_holes']
-            mask_original = data_dict['original_mask']
-            if torch.any(mask_original == 0):
-                '''original hole'''
-                out = find_holes(mask_holes[0], dataset_constants.KEYPOINTS, indep=indep_keypoints)
-                original = True
-                for (_, length_nan, keypoint_name) in out:
-                    df.loc[df.shape[0], :] = [int(i_data), int(length_nan), str(keypoint_name), original]
-                out = find_holes(torch.sum(mask_holes[0], dim=1).view(mask_holes.shape[1], 1),
-                                 ['non_missing'], target_val=0)
-                for (_, length_nan, name) in out:
-                    df.loc[df.shape[0], :] = [int(i_data), int(length_nan), str(name), original]
-                i_data += 1
-            elif not initial and torch.all(mask_original == 1) and torch.any(mask_holes == 1):
-                original = False
+            out = find_gap_loop(data_dict, initial=initial, indep_keypoints=indep_keypoints,
+                          keypoints=dataset_constants.KEYPOINTS, start_i=i_data)
+            df.extend(out)
+            i_data += len(out)
 
-                out = find_holes(mask_holes[0], dataset_constants.KEYPOINTS, indep=indep_keypoints)
-                for (_, length_nan, keypoint_name) in out:
-                    df.loc[df.shape[0], :] = [int(i_data), int(length_nan), str(keypoint_name), original]
-                out = find_holes(torch.sum(mask_holes[0], dim=1).view(mask_holes.shape[1], 1),
-                                 ['non_missing'], target_val=0)
-                for (_, length_nan, name) in out:
-                    df.loc[df.shape[0], :] = [int(i_data), int(length_nan), str(name), original]
-                i_data += 1
+        df = pd.DataFrame(columns=['index_sample', 'length', 'keypoint', 'original'],
+                          data=df)
+
+        #
+        # pool = multiprocessing.Pool(4)
+        # from functools import partial
+        # results = pool.map(partial(find_gap_loop, keypoints=dataset_constants.KEYPOINTS,
+        #                                             indep_keypoints=indep_keypoints, initial=initial),
+        #                    train_loader.__iter__())
 
         logger.debug(f'Done with the loop(s)')
-        from io import StringIO
+
         df = pd.read_csv(StringIO(df.to_csv(index=False)))#df.convert_dtypes()
 
         if initial:

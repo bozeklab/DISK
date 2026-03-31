@@ -345,11 +345,15 @@ def create_dataset(dataset_path, data_files, file_type, sample_length, stride, f
                     if type(k) == str:
                         if k in keypoints:
                             indices.append(keypoints.index(k))
+                            if i_file == 0:
+                                logger.info(f'Dropping keypoint:  {k}')
                     else:
                         if f'{k:02d}' in keypoints:
                             indices.append(keypoints.index(f'{k:02d}'))
+                            if i_file == 0:
+                                logger.info(f'Dropping keypoint:  {k}')
             except ValueError:
-                logger.error(f'keypoints to drop {drop_keypoints} not found in {f} with keypoints {keypoints}')
+                logger.error(f'keypoints to drop {drop_keypoints} NOT found in {f} with keypoints {keypoints}')
                 raise ValueError
             other_indices = np.array([i for i in range(len(keypoints)) if not i in indices])
             data = data[:, other_indices]

@@ -77,9 +77,9 @@ def main(project_path: str,
 
     if project_path != project_path:
         print(f'\n✅ A DISK project under the specified name already exists.'
-              f'\n  Created DISK project {project_path}\n')
+              f'\n  Created DISK project {project_path} with {len(list(data_file_list))} data files.\n')
     else:
-        print(f'\n✅ Created DISK project {project_path}\n')
+        print(f'\n✅ Created DISK project {project_path} with {len(list(data_file_list))} data files.\n')
 
 
 @config_reader(config_path="../conf/config_create_project.yaml")
@@ -177,5 +177,4 @@ if __name__ == '__main__':
     """
     # DISK syntax:
     DISK-create-project --project_path test_project --data_files x y z --file_format csv
-    # careful no space between input_files inside the brackets, and after/before '='
     """
