@@ -531,11 +531,15 @@ class ImputeDataset(FullLengthDataset):
         unc_list = []
         for ii in range(len(i_file)):
             # here we need len_ to only consider one gap at a time
-            m = self.mask[i_file[ii][0]][i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]] # True is value, False is missing
+            m = self.mask[i_file[ii][0]][i_pos[ii][0]: i_pos[ii][0] + len_[ii][0]]
+            # True is value,
+            # False is missing
             # (nan)
 
             if uncertainty is not None:
-                unc = np.sum(uncertainty[ii, :len_[ii][0]]) / np.sum(~m) # ~m because False is missing
+                # ~m because False is missing
+                sum_mask = np.sum(~m.reshape(-1, self.n_keypoints,self.divider)[..., 0])
+                unc = np.sum(uncertainty[ii, :len_[ii][0]]) / sum_mask
             else:
                 unc = None
             unc_list.append(unc)

@@ -356,6 +356,7 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
         # which length is <= DISK_model_length - pad_before - pad_after
         return False
 
+    uncertainty_list = []
     """LOOPING ON DATA"""
     with torch.no_grad():
         for subset, dataset in {'test': test_dataset, 'val': val_dataset, 'train': train_dataset}.items():
@@ -412,9 +413,7 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
 
                     unc = dataset.update_dataset(data_dict['index'], x_output_np, uncertainty,
                                                                 threshold=threshold_error_score)
-
-                    equiv_unc = np.sum(uncertainty, axis=(1, 2)) / np.sum(mask_holes_np, axis=(1, 2))
-                    print(unc, equiv_unc)
+                    uncertainty_list.extend(unc)
 
                     """VISUALIZATION, only first batch"""
                     if total_n_plots > 0 and n_plots <= total_n_plots:
@@ -440,9 +439,9 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
                                                          sharex='all', sharey='col')
                                 axes = axes.flatten()
 
-                                title = (f'uncertainty_estimate = {equiv_unc[i]:.1f}; threshold ='
+                                title = (f'uncertainty_estimate = {unc[i]:.1f}; threshold ='
                                          f' {threshold_error_score}\n'
-                                         f'{["REJECTED", "ACCEPTED"][(equiv_unc[i] <= threshold_error_score).astype(int)]}')
+                                         f'{["REJECTED", "ACCEPTED"][(unc[i] <= threshold_error_score).astype(int)]}')
                                 fig.suptitle(title, size=30)
                                 t_vect = np.arange(0, seq_length) / subsampling_freq
 
@@ -544,5 +543,16 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
             else:
                 np.savez(os.path.join(dataset_path, f'{subset}_dataset_imputed.npz'), X=np.stack(new_dataset, axis=0),
                          y=np.stack(new_y), lengths=np.stack(new_lengths))
+
+    def plot_hist_uncertainty():
+        plt.hist(uncertainty_list, bins=20)
+        plt.xlabel('Estimated error on real gaps')
+        plt.title(f'Impute step {os.path.basename(project_dir)}\n Model '
+                  f'{os.path.basename(os.path.dirname(model_path))}')
+
+    plot_save(plot_hist_uncertainty,
+              title=f'hist_uncertainty',
+              only_png=True,
+              outputdir=plot_dir)
 
     return True
