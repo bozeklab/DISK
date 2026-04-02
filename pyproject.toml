@@ -24,7 +24,6 @@ dependencies = [
     "seaborn>=0.12.2",
     "imageio>=2.3", # ,<2.10
     "scikit-image>=0.18.1", # ,<0.20
-    "hydra-core>=1.2.0",
     "pandas>=1.4.4",
     "scikit-learn>=0.24.1",
     "scipy>=1.10", # ,<1.13
@@ -46,8 +45,8 @@ DISK-check-gpu = "DISK.launchers.check_gpu:cli"
 DISK-create-project = "DISK.launchers.create_project:cli"
 DISK-add-skeleton = "DISK.launchers.add_skeleton:cli"
 DISK-prepare-data = "DISK.launchers.prepare_data:cli"
-DISK-train = "DISK.launchers.train_test:cli"
-DISK-test = "DISK.launchers.test_compare:cli"
+DISK-train = "DISK.launchers.train_evaluate:cli"
+DISK-evaluate = "DISK.launchers.evaluate_compare:cli"
 DISK-impute = "DISK.launchers.impute:cli"
 DISK-restore-default-config = "DISK.launchers.restore_default_config:cli"
 
@@ -72,3 +71,6 @@ DISK = [
 write_to = "DISK/_version.py"
 version_scheme = "post-release"
 local_scheme = "no-local-version"
+
+[pytest]
+addopts = ["-p", "no:warnings"]

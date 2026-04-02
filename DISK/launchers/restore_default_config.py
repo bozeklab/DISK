@@ -12,7 +12,7 @@ def main(project_path: str):
     os.makedirs(example_configs_folder, exist_ok=True)
 
     script_directory = os.path.dirname(os.path.abspath(__file__))
-    for config in ('config_prepare_data', 'config_train', 'config_test', 'config_impute'):
+    for config in ('config_prepare_data', 'config_train', 'config_evaluate', 'config_impute'):
         shutil.copy(os.path.join(script_directory, '..', 'conf', f'{config}.yaml'),
                     os.path.join(example_configs_folder, f'{config}.yaml'))
 

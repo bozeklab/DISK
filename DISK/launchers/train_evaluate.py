@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from glob import glob
 import os
 import sys
 import yaml
@@ -9,7 +10,7 @@ from DISK.utils.logger_setup import setup_custom_logging, copy_config_file, Void
 from DISK.models.graph import Graph
 from DISK.utils.config_decorator import config_reader, parse_command_line_args, test_boolean_variable
 from DISK.main_fillmissing import train_fillmissing
-from DISK.test_fillmissing import test
+from DISK.evaluate_fillmissing import evaluate
 
 possible_network_type_values = ('transformer', 'gru', 'st_gcn', 'sts_gcn', 'tcn')
 
@@ -54,24 +55,27 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
          test_original_coordinates, test_threshold_pck,
          n_repeat,
          total_n_plots, plot2d_only_holes, plot3d_size, plot3d_azim,
-         logger, verbose=0):
+         logger, verbose=0) -> (float, int, int):
 
     logger.info(f'**************** TRAINING DISK **************** \n')
     try:
-        train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, training_seed,
-                          load_model_dir, cfg_network,
-                          training_batch_size, training_epochs, learning_rate,
-                          loss_type, loss_mask, loss_factor,
-                          model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,
-                          n_cpus,
-                          print_every,
-                          proba_file, proba_length_file, indep_keypoints,
-                          add_missing_pad, viewinvariant,
-                          normalize, normalizecube, swap,
-                          add_missing,
-                          logger, verbose=verbose)
-    except torch.OutOfMemoryError:
-        print(f"\n❌ CUDA (GPU) out of memory. Try reducing the --training_batch_size. Got {training_batch_size}")
+        best_rmse, best_epoch, last_epoch = train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph,
+                                                              training_seed, load_model_dir, cfg_network,
+                                                              training_batch_size, training_epochs, learning_rate,
+                                                                loss_type, loss_mask, loss_factor,
+                                                                model_scheduler_rate, model_scheduler_type, model_scheduler_steps_epoch,
+                                                                n_cpus,
+                                                                print_every,
+                                                                proba_file, proba_length_file, indep_keypoints,
+                                                                add_missing_pad, viewinvariant,
+                                                                normalize, normalizecube, swap,
+                                                                add_missing,
+                                                                logger, verbose=verbose)
+    except RuntimeError as e:
+        print(f"\n❌ CUDA (GPU) out of memory ({e}). Try reducing the --training_batch_size. Got {training_batch_size}")
+        sys.exit(1)
+    except Exception as e:
+        print(e)
         sys.exit(1)
 
     logger.info(f'✅ Successfully trained DISK model {model_dir}.\n')
@@ -79,7 +83,8 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
     logger.info(f'********* TESTING DISK TRAINED MODEL ********** \n')
 
     add_missing_pad_for_test = (max(1, add_missing_pad[0]), max(1, add_missing_pad[0]))
-    pcoef_per_model, err_pck_sup = test(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
+
+    pcoef_per_model, err_pck_sup = evaluate(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
                              [model_dir, ], training_batch_size, n_cpus,
                              loss_type, loss_mask, loss_factor,
                              proba_file, proba_length_file, indep_keypoints,
@@ -89,6 +94,7 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
                              total_n_plots, plot2d_only_holes,
                              plot3d_size, plot3d_azim,
                              logger, suffix='', stride=None, verbose=verbose)
+
     logger.info(f'✅ Successfully tested DISK model {model_dir}.\n')
 
     if pcoef_per_model[0][0] is not None and pcoef_per_model[0][0] < 0.8:
@@ -110,7 +116,7 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
             logger.info(f"ℹ️  The DISK model was trained without module for error estimation. \n"
                         f"No thresholding on the results will be possible at imputation step.")
 
-
+    return best_rmse, best_epoch, last_epoch
 
 @config_reader(config_path="../conf/config_train.yaml")
 def cli(_cfg) -> None:
@@ -154,7 +160,9 @@ def cli(_cfg) -> None:
             or not os.path.exists(os.path.join(project_path, 'DISK_data', _cfg.dataset_name)):
         print("\n❌ dataset_name is a required parameter and should be the name "
               "of an existing dataset within subfolder DISK_data. "
-              f"  Got {_cfg.dataset_name} {os.path.join(project_path, 'DISK_data', _cfg.dataset_name)}")
+              f"  Got {_cfg.dataset_name} {os.path.join(project_path, 'DISK_data', _cfg.dataset_name)}.\n"
+              f"Existing datasets are: "
+              f"{[os.path.basename(d) for d  in glob(os.path.join(project_path, 'DISK_data', '*'))]}")
         sys.exit(1)
     else:
         dataset_name = os.path.basename(_cfg.dataset_name)

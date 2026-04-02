@@ -133,7 +133,7 @@ def compute_interp(data_with_holes_np, mask_holes_np, keypoints, n_dim):
     return linear_interp_data
 
 
-def find_holes(mask, keypoints, target_val=1, indep=True, single_sample=True):
+def find_holes(mask, keypoints, target_val=1, indep=True):
     """
     Find holes defined as equal to target_val in a 2D or 3D numpy array or pytorch tensor.
 
@@ -150,16 +150,12 @@ def find_holes(mask, keypoints, target_val=1, indep=True, single_sample=True):
     """
     # holes are where mask == target_val
     if type(mask) == np.ndarray:
-        if single_sample and len(mask.shape) == 2:
+        if len(mask.shape) == 2:
             mask = mask.reshape((mask.shape[0], len(keypoints), -1))
-        elif (not single_sample) and len(mask.shape) == 3:
-            mask = mask.reshape((mask.shape[0], mask.shape[1], len(keypoints), -1))
         module_ = np
     else:
-        if single_sample and len(mask.shape) == 2:
+        if len(mask.shape) == 2:
             mask = mask.view((mask.shape[0], len(keypoints), -1))
-        elif (not single_sample) and len(mask.shape) == 3:
-            mask = mask.view((mask.shape[0], mask.shape[1], len(keypoints), -1))
         module_ = torch
     out = []
     if indep:
@@ -168,15 +164,15 @@ def find_holes(mask, keypoints, target_val=1, indep=True, single_sample=True):
             # probably slower
             start = 0
             mask_kp = mask[:, i_kp]
-            while start < mask.shape[0]:
-                if not module_.any(mask[start:] == target_val):
+            while start < mask_kp.shape[0]:
+                if not module_.any(mask_kp[start:] == target_val):
                     break
-                index_start_nan = module_.where(mask[start:] == target_val)[0][0]
-                if module_.any(~(mask[start + index_start_nan:] == target_val)):
-                    length_nan = module_.where(~(mask[start + index_start_nan:] == target_val))[0][0]
+                index_start_nan = module_.where(mask_kp[start:] == target_val)[0][0]
+                if module_.any(~(mask_kp[start + index_start_nan:] == target_val)):
+                    length_nan = module_.where(~(mask_kp[start + index_start_nan:] == target_val))[0][0]
                 else:
                     # the nans go until the end of the vector
-                    length_nan = mask.shape[0] - start - index_start_nan
+                    length_nan = mask_kp.shape[0] - start - index_start_nan
                 out.append((start + index_start_nan, length_nan, keypoints[i_kp]))
                 start = start + index_start_nan + length_nan
 
@@ -206,6 +202,8 @@ def find_holes(mask, keypoints, target_val=1, indep=True, single_sample=True):
                 start = start + index_start_nan + length_nan
 
     return out  # returns a list of tuples (start, length_nan, keypoint_name)
+
+
 
 
 def _find_consecutive_sequences(arr, target_val, module_):

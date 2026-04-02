@@ -6,10 +6,10 @@ import yaml
 import torch
 
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file, VoidHandler
-from DISK.launchers.train_test import find_proba_files
+from DISK.launchers.train_evaluate import find_proba_files
 from DISK.models.graph import Graph
 from DISK.utils.config_decorator import config_reader, parse_command_line_args, test_boolean_variable
-from DISK.test_fillmissing import test
+from DISK.evaluate_fillmissing import evaluate
 
 
 def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton_graph,
@@ -22,11 +22,11 @@ def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton
          test_original_coordinates, pck_threshold,
          n_repeat,
          total_n_plots, plot2d_only_holes, plot3d_size, plot3d_azim,
-         logger, verbose=0):
+         logger, suffix='', verbose=0):
 
     logger.info(f'*********************** TESTING DISK TRAINED MODEL *********************** \n')
     try:
-        pcoeff_per_model, err_sup_PCK = test(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
+        pcoeff_per_model, err_sup_PCK = evaluate(project_dir, test_dir, dataset_path, dataset_name, skeleton_graph,
              model_dirs, training_batch_size, n_cpus,
              loss_type, loss_mask, loss_factor,
              proba_file, proba_length_file, indep_keypoints,
@@ -35,7 +35,7 @@ def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton
              test_original_coordinates, pck_threshold, n_repeat,
              total_n_plots, plot2d_only_holes,
              plot3d_size, plot3d_azim,
-             logger, suffix='', stride=None, verbose=verbose)
+             logger, suffix=suffix, stride=None, verbose=verbose)
 
         for model_name, err_pck_sup in zip(model_dirs, err_sup_PCK):
             if err_pck_sup == -1:
@@ -53,17 +53,17 @@ def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton
                                 f"error estimation. \n"
                                 f"No thresholding on the results will be possible at imputation step.")
 
-    except torch.OutOfMemoryError:
-        print(f"\n❌ CUDA (GPU) out of memory. Try reducing the --training_batch_size. Got {training_batch_size}")
+    except RuntimeError as e:
+        print(f"\n❌ CUDA (GPU) out of memory ({e}). Try reducing the --training_batch_size. Got {training_batch_size}")
         sys.exit(1)
 
     logger.info(f'✅ Successfully tested DISK model.\n')
 
 
-@config_reader(config_path="../conf/config_test.yaml")
+@config_reader(config_path="../conf/config_evaluate.yaml")
 def cli(_cfg) -> None:
     print('\n', '*' * 80, sep='')
-    print('*' * 30, ' DISK-TEST START ', '*' * 30)
+    print('*' * 30, ' DISK-evaluate START ', '*' * 30)
     print('*' * 80, '\n')
 
     _cfg = parse_command_line_args(_cfg)
@@ -74,7 +74,8 @@ def cli(_cfg) -> None:
         if val is None or val == '_DEFAULT_':
             print(f'\n❌ No value was passed to parameter {key}. This is a required parameter.'
                   f'\n  Expected syntax:'
-                  f'\n  > DISK-test project_path=test_project dataset_name=dataset model_name_list=[model1,model2]\n'
+                  f'\n  > DISK-evaluate project_path=test_project dataset_name=dataset model_name_list=[model1,'
+                  f'model2]\n'
                   f'# careful no space between model names inside the brackets, and after/before "="')
 
             sys.exit(1)
@@ -320,7 +321,7 @@ def cli(_cfg) -> None:
         loss_factor = max(1, _cfg.loss_factor)
 
     os.makedirs(os.path.join(test_dir, 'config'), exist_ok=True)
-    output_config_file = os.path.join(test_dir, 'config', f'config_test.yaml')
+    output_config_file = os.path.join(test_dir, 'config', f'config_evaluate.yaml')
     copy_config_file(modified_cfg, output_config_file)
 
     logger.info(f'✅ Successfully loaded configuration.\n')
@@ -340,7 +341,7 @@ def cli(_cfg) -> None:
          logger, verbose)
 
     print('\n', '*' * 77, sep='')
-    print('*' * 30, ' DISK-TEST END ', '*' * 30)
+    print('*' * 30, ' DISK-evaluate END ', '*' * 30)
     print('*' * 77, '\n')
 
     return

@@ -15,12 +15,14 @@ def main(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_gr
 
     if impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph, checkpoint, batch_size,
            threshold_error_score, total_n_plots, plot_only_holes, missing_pad, verbose=verbose, logger=logger):
-        logger.info(f'✅ Successfully imputed data with DISK model.\n')
+        mess = f'✅ Successfully imputed data with DISK model.\n'
+        logger.info(mess)
     else:
-        logger.info(f'❌ Could not find short-enough segments to be imputed by the DISK model.\n'
-                    f'Re-run DISK-prepare-data with higher value for length.')
+        mess = (f'❌ Could not find short-enough segments to be imputed by the DISK model.\n'
+                f'Re-run DISK-prepare-data with higher value for length.')
+        logger.info(mess)
 
-
+    return mess
 
 @config_reader(config_path="../conf/config_impute.yaml")
 def cli(_cfg) -> None:

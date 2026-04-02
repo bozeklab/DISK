@@ -34,7 +34,7 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
                       add_missing_pad, viewinvariant,
                       normalize, normalizecube, swap,
                       add_missing,
-                      logger, verbose=0) -> None:
+                      logger, verbose=0) -> (float, int, int):
     if training_seed:
         torch.manual_seed(training_seed)
         random.seed(0)
@@ -127,30 +127,33 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
     past_val_rmse = np.inf
 
     start_epoch = 1
+    best_epoch = -1
     # Load a saved model
     if load_model_dir:
+        # search for the pas training_losses file
         for item in os.listdir(load_model_dir):
             if item.startswith('model_epoch') and not item.endswith('txt'):
                 # Pull the starting epoch from the file name
-                print('Loading model from', item)
-                start_epoch, loaded_print_every = load_checkpoint(model, optimizer, os.path.join(load_model_dir,
+                logger.info(f'Loading model from {item}')
+                start_epoch, print_every = load_checkpoint(model, optimizer, os.path.join(load_model_dir,
                                                                                                  item), device, logger)
-                start_epoch += 1
+                # start_epoch += 1
+                best_epoch = start_epoch
                 # found a model, so stop looking in the folders
                 break
 
-        file_output = open(os.path.join(model_dir, f'training_losses.txt'), 'a')
-        if model_dir != load_model_dir:
-            for item in os.listdir(load_model_dir):
-                if item.startswith('training_losses'):
-                    previous_content = open(os.path.join(load_model_dir, item), 'r').readlines()
-                    file_output.writelines(previous_content[:(start_epoch - 1) // loaded_print_every])
-                    # found a model, stop looking in the folders
-                    break
+        previous_content = open(os.path.join(load_model_dir, f'training_losses.txt'), 'r').readlines()
+        print(previous_content, start_epoch - 1, print_every, (start_epoch - 1) // print_every)
+        past_val_rmse = eval(previous_content[(start_epoch - 1) // print_every].split(' ')[3])
+        print(past_val_rmse)
+        file_output = open(os.path.join(model_dir, f'training_losses.txt'), 'w')
+        file_output.writelines(previous_content[:(start_epoch - 1) // print_every])
+        logger.debug(f'Copying {(start_epoch - 1)} lines to new training_losses')
+
     else:
         file_output = open(os.path.join(model_dir, f'training_losses.txt'), 'w')
 
-    ith_epoch = 0
+    ith_epoch = 0 # only used when the following for loop is degenerate
     for ith_epoch in range(start_epoch, start_epoch + training_epochs):
         ave_loss_train = 0
         ave_rmse_train = 0
@@ -188,7 +191,7 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
         ave_rmse_train /= len(train_loader)
 
         ### EVALUATION
-        if ith_epoch % print_every == 0:
+        if ith_epoch % print_every == 0 or ith_epoch == start_epoch + training_epochs - 1:
             with torch.no_grad():
                 ave_loss_eval, ave_rmse_eval, _ = compute_loss(model, val_loader, dataset_constants.DIVIDER,
                                                                criterion_seq, loss_mask, loss_factor, cfg_network,
@@ -204,6 +207,8 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
                                        (ave_loss_train, ave_rmse_train, ave_loss_eval, ave_rmse_eval,
                                         model_scheduler.get_last_lr()[0]))
 
+                logger.debug(
+                    f'EPOCH {ith_epoch}:, ave_rmse_eval={ave_rmse_eval:.3f}, pas_val_rmse={past_val_rmse:.3f}')
                 if ave_rmse_eval < past_val_rmse:
                     past_val_rmse = ave_rmse_eval
                     for item in os.listdir(model_dir):
@@ -220,11 +225,14 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
                                   'lr': model_scheduler.get_last_lr()[0],
                                   'print_every': print_every}
                     save_checkpoint(model, ith_epoch, optimizer, value_dict, path_model)
+                    best_epoch = ith_epoch
 
-        if ith_epoch % 50 == 0 or ith_epoch == start_epoch + training_epochs - 1:  # to flush
+        if ith_epoch % 50 == 0:  # to flush
             filename = file_output.name
             file_output.close()
             file_output = open(filename, 'a')
+
+    file_output.close()
 
     with torch.no_grad():
         # ave_loss_train, ave_rmse_train, _ = compute_loss(model, train_loader, dataset_constants.DIVIDER, criterion_seq, _cfg, device)
@@ -235,10 +243,13 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
             'ave_rmse_train': ave_rmse_train,
             'ave_loss_eval': ave_loss_eval,
             'ave_rmse_eval': ave_rmse_eval,
-            'lr': model_scheduler.get_last_lr()[0]
+            'lr': model_scheduler.get_last_lr()[0],
+            'print_every': print_every
                       }
         save_checkpoint(model, ith_epoch, optimizer, value_dict,
                         os.path.join(os.path.join(model_dir, f'model_last_epoch{ith_epoch}')))
+
+        logger.debug(f'FINAL EPOCH {ith_epoch}:, ave_rmse_eval={ave_rmse_eval:.3f}, pas_val_rmse={past_val_rmse:.3f}')
 
     file_output.close()
 
@@ -253,6 +264,6 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
         plot_training(df, offset=offset, print_every=print_every)
         plt.savefig(os.path.join(model_dir, f'loss.svg'))
 
-    return past_val_rmse
+    return past_val_rmse, best_epoch, ith_epoch
 
 

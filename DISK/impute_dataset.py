@@ -15,7 +15,7 @@ from DISK.utils.dataset_utils import load_datasets
 from DISK.utils.utils import read_constant_file, load_checkpoint
 from DISK.utils.transforms import init_transforms, reconstruct_before_normalization
 from DISK.utils.train_fillmissing import construct_NN_model, feed_forward
-from DISK.test_fillmissing import plot_save
+from DISK.evaluate_fillmissing import plot_save
 from DISK.create_dataset import chop_coordinates_in_timeseries
 from DISK.utils.coordinates_utils import plot_sequence
 

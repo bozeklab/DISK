@@ -47,7 +47,7 @@ cp -Rf cloned-DISK-repo/notebooks/*.yaml cloned-DISK-repo/DISK/conf/
 
 python3 cloned-DISK-repo/DISK/main_fillmissing.py
 
-python3 cloned-DISK-repo/DISK/test_fillmissing.py
+python3 cloned-DISK-repo/DISK/evaluate_fillmissing.py
 
 # does not work on my local computer
 python3 cloned-DISK-repo/DISK/embedding_umap.py --batch_size 1 --checkpoint_folder models/03-10-24_transformer_NLL --stride 60 --dataset_path .

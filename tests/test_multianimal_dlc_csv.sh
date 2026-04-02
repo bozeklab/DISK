@@ -11,6 +11,6 @@ DISK-train --project_path DISK_multianimal_dlc_csv --dataset_name dataset_60Hz_3
 
 DISK-train --project_path DISK_multianimal_dlc_csv --dataset_name dataset_60Hz_30length_30stride --training_epochs 4 --n_cpus 6 --indep_keypoints false --merge_keypoints true
 
-DISK-test --project_path DISK_multianimal_dlc_csv --dataset_name dataset_60Hz_30length_30stride --indep_keypoints false --merge_keypoints false --model_name_list DISK_dataset_60Hz_30length_30stride DISK_dataset_60Hz_30length_30stride_1
+DISK-evaluate --project_path DISK_multianimal_dlc_csv --dataset_name dataset_60Hz_30length_30stride --indep_keypoints false --merge_keypoints false --model_name_list DISK_dataset_60Hz_30length_30stride DISK_dataset_60Hz_30length_30stride_1
 
 DISK-impute --project_path DISK_multianimal_dlc_csv --dataset_name dataset_60Hz_30length_30stride --model_name DISK_dataset_60Hz_30length_30stride

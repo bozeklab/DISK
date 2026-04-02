@@ -107,7 +107,7 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
 
         train_loader = DataLoader(train_dataset, batch_size=1, shuffle=False)
 
-        import multiprocessing
+        # import multiprocessing
 
 
         # df = pd.DataFrame(columns=['index_sample', 'length', 'keypoint', 'original'])

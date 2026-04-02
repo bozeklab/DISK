@@ -26,7 +26,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 
-def test(project_path: str,
+def evaluate(project_path: str,
          output_dir: str,
          dataset_path: str,
          dataset_name:str,
@@ -185,7 +185,7 @@ def test(project_path: str,
 
     mean_RMSE = []
     for i_repeat in range(n_repeat):
-        suffix = suffix + f'_repeat-{i_repeat}'
+        current_suffix = suffix + f'_repeat-{i_repeat}'
         """RMSE computation"""
         total_rmse = {'id_sample': [], 'id_hole': [], 'keypoint': [], 'method': [], 'method_param': [], 'RMSE': [],
                       'MPJPE': [], pck_name: [], 'mean_uncertainty': [], 'length_hole': [], 'swap_kp_id': [],
@@ -393,7 +393,7 @@ def test(project_path: str,
                             for i_model, xo in enumerate(x_outputs_np):
                                 save_path = os.path.join(
                                     visualize_val_outputdir,
-                                    f'traj3D_{indices_sample[i][0]}{model_names[i_model]}{suffix}'
+                                    f'traj3D_{indices_sample[i][0]}{model_names[i_model]}{current_suffix}'
                                 )
                                 plot_sequence(full_data_np[i, :], xo[i, :], mask_holes_np[i, :], skeleton_graph, nplots=15,
                                               save_path=save_path,
@@ -471,7 +471,7 @@ def test(project_path: str,
                             return
 
                         plot_save(make_xyz_plot,
-                                  title=f'RMSE_reconstruction_xyz_{indices_sample[i][0]}{suffix}',
+                                  title=f'imputation_xyz_{indices_sample[i][0]}{current_suffix}',
                                   only_png=False,
                                   outputdir=visualize_val_outputdir)
 
@@ -526,7 +526,7 @@ def test(project_path: str,
 
         for metric in [pck_name, 'RMSE', 'MPJPE']:
             plot_save(barplot_RMSE_keypoint,
-                      title=f'barplot_comparison_{metric}{suffix}', only_png=False,
+                      title=f'barplot_comparison_{metric}{current_suffix}', only_png=False,
                       outputdir=output_dir)
             plt.close('all')
 
@@ -539,7 +539,7 @@ def test(project_path: str,
 
         for metric in [pck_name, 'RMSE', 'MPJPE']:
             plot_save(lineplot_length,
-                  title=f'comparison_length_hole_kp_vs_{metric}{suffix}', only_png=False,
+                  title=f'comparison_length_hole_kp_vs_{metric}{current_suffix}', only_png=False,
                   outputdir=output_dir)
         plt.close('all')
 
@@ -553,11 +553,11 @@ def test(project_path: str,
 
         for metric in [pck_name, 'RMSE', 'MPJPE']:
             plot_save(lineplot_all_length,
-                      title=f'comparison_length_hole_all_vs_{metric}{suffix}', only_png=False,
+                      title=f'comparison_length_hole_all_vs_{metric}{current_suffix}', only_png=False,
                       outputdir=output_dir)
         plt.close('all')
 
-        total_rmse.to_csv(os.path.join(output_dir, f'total_metrics{suffix}.csv'), index=False)
+        total_rmse.to_csv(os.path.join(output_dir, f'total_metrics{current_suffix}.csv'), index=False)
 
         thresholding_df = pd.DataFrame(columns=['th', 'RMSE', 'RMSE_std', 'MPJPE', 'MPJPE_std',
                                                 pck_name, f'{pck_name}_std', 'count', 'method'])
@@ -580,7 +580,7 @@ def test(project_path: str,
 
                 metric = 'RMSE'
                 plot_save(corr_plot,
-                          title=f'corrplot-model-{metric}-{model_names[i_model]}{suffix}', only_png=False,
+                          title=f'corrplot-model-{metric}-{model_names[i_model]}{current_suffix}', only_png=False,
                           outputdir=output_dir)
                 plt.close('all')
 
@@ -641,11 +641,11 @@ def test(project_path: str,
             for metric_name in [pck_name, 'RMSE', 'MPJPE']:
                 if metric_name == pck_name:
                     err_sup_PCK = plot_save(plot_thresholding,
-                                          title=f'thresholding_curve_{metric_name}{suffix}', only_png=False,
+                                          title=f'thresholding_curve_{metric_name}{current_suffix}', only_png=False,
                                           outputdir=output_dir)
                 else:
                     plot_save(plot_thresholding,
-                              title=f'thresholding_curve_{metric_name}{suffix}', only_png=False,
+                              title=f'thresholding_curve_{metric_name}{current_suffix}', only_png=False,
                               outputdir=output_dir)
                 plt.close('all')
 

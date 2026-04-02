@@ -60,7 +60,7 @@ cp -Rf cloned-DISK-repo/notebooks/*.yaml cloned-DISK-repo/DISK/conf/
 
 python cloned-DISK-repo/DISK/main_fillmissing.py
 
-python cloned-DISK-repo/DISK/test_fillmissing.py
+python cloned-DISK-repo/DISK/evaluate_fillmissing.py
 
 # does not work on my local computer
 python cloned-DISK-repo/DISK/embedding_umap.py --batch_size 1 --checkpoint_folder models/03-10-24_transformer_NLL --stride 60 --dataset_path .

@@ -26,11 +26,10 @@ DISK allows to use a bigger proportion of experimental data for downstream behav
 
 - [Detailed usage](#detailed-usage)
   - [Configuration files](#more-about-the-configuration-files)
-  - [Step 0. File organization](#step-0-file-organization)
-  - [Step 1. Use an already created dataset or create your training dataset from your own data](#step-1-use-an-already-created-dataset-or-create-your-training-dataset-from-your-own-data)
-  - [Step 2. Train a model](#step-2-train-a-model)
-  -   - [Neural network training](#neural-network-training)
-  - [Step 3. Test trained models](#step-3-test-trained-models)
+  - [Step 1. DISK-create-project](#step-1-disk-create-project)
+  - [Step 2. Prepare data for DISK](#step-2-prepare-data-for-disk)
+  - [Step 3. Train a model](#step-3-train-a-model)
+  - [Step 3bis. Evaluate trained models](#step-3bis-evaluate-one-or-several-models)
   - [Step 4. Impute the dataset](#step-4-impute-the-dataset)
 - [Frequently Asked Questions](FAQ.md)
 - [How to cite us](#cite-us)
@@ -102,7 +101,7 @@ Alternatively, the same steps (without the explanations and images) are availabl
 There are 4 main commands:
 - **DISK-create-project** -- creates the folders of the DISK project. Expects a list of input data files.
 - **DISK-prepare-data** -- prepares the data in a DISK-compatible format from the input file list given when created the DISK project.
-- **DISK-train** -- train a DISK model to impute the gaps. Include testing and plotting.
+- **DISK-train** -- train a DISK model to impute the gaps. Include evaluating and plotting.
 - **DISK-impute** -- impute on original data using the trained model.
 
 Example of command usage:
@@ -162,7 +161,7 @@ DISK-prepare-data --project_path DISK_demo --length 30 --fill_gap 10 --indep_key
 
 ### DISK-train
 
-At this step, using a created DISK dataset, a DISK model is trained and tested.
+At this step, using a created DISK dataset, a DISK model is trained and evaluated.
 We advise to run the training on a machine with a GPU.
 
 Additional parameters can be set:
@@ -195,7 +194,7 @@ At this step, we will use a trained DISK model on a given dataset and impute the
 Additional parameters can be set:
 - *missing_pad* (list of 2 integers, default: [1, 0]) -- how many points to the left and right of the gap is needed for the DISK model to interpolate. Higher numbers will give better precision but fewer imputed gaps. The left value needs to be >= 1.
 - *n_cpus* (int, default: 1) -- used to load the data
-- *threshold_error_score* (float, default: 0.1) -- threshold used to reject bad imputed samples to have an idea about the value to put, look at plots output of the test script (inside `DISK_train` folder)
+- *threshold_error_score* (float, default: 0.1) -- threshold used to reject bad imputed samples to have an idea about the value to put, look at plots output of the evaluate script (inside `DISK_train` folder)
 
 ## Additional DISK commands
 
@@ -211,10 +210,10 @@ DISK-add-skeleton --project_path ...
 DISK-restore-default-config --project_path ...
 ```
 
-- **DISK-test**: compares different already trained models on a given dataset, outputs plots and metrics
+- **DISK-evaluate**: compares different already trained models on a given dataset, outputs plots and metrics
 
 ```
-DISK-restore-default-config --project_path ... --dataset_name ... --model_name_list path/to/model1/folder /path/to/model2/folder
+DISK-evaluate --project_path ... --dataset_name ... --model_name_list path/to/model1/folder /path/to/model2/folder
 ```
 
 
@@ -356,6 +355,10 @@ Randomly selected samples will be plotted showing the ground truth and the imput
 ![Example of produced test barplot](https://github.com/bozeklab/DISK/blob/main/images/test_barplot_wo_RMSE.png?raw=true)
 
 This step should be relatively quick, and can easily be run on CPUs.
+
+## Step 3bis. Evaluate one or several models
+
+Our last step is to impute the real gaps in the original dataset. 
 
 ## Step 4. Impute the dataset
 
