@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, to_rgba
@@ -7,10 +9,10 @@ from tqdm import tqdm
 import pandas as pd
 from umap import UMAP
 from glob import glob
-from omegaconf import OmegaConf
 import seaborn as sns
 from scipy.stats import mode
 import json
+import yaml
 import plotly.express as px
 from sklearn import preprocessing
 import gc
@@ -19,7 +21,6 @@ from matplotlib import gridspec
 from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
 
-from DISK.utils.logger_setup import logger
 from DISK.utils.utils import read_constant_file, load_checkpoint
 from DISK.utils.dataset_utils import load_datasets
 from DISK.utils.transforms import init_transforms
@@ -29,6 +30,34 @@ from DISK.models.graph import Graph
 import torch
 from torch.utils.data import DataLoader
 
+logger = logging.getLogger()
+
+def basic_statistics(input_tensor, dataset_constants, device):
+    coordinates = input_tensor[:, :, :, :dataset_constants.DIVIDER]
+
+    barycenter = torch.mean(coordinates, dim=2)
+
+    movement = torch.mean(torch.abs(torch.diff(coordinates, dim=1)), dim=(1, 2, 3))
+    if dataset_constants.DIVIDER > 2:
+        speed_z = torch.mean(torch.diff(barycenter[..., 2], dim=1), dim=1)
+        average_height = torch.mean(coordinates[:, :, :, 2], dim=(1, 2))
+    else:
+        speed_z = torch.zeros_like(movement).to(device)
+        average_height = torch.zeros_like(movement).to(device)
+    speed_xy = torch.mean(torch.diff(barycenter[..., :2], dim=1), dim=(1, 2))
+
+    N = coordinates.shape[1]
+    input_fft = coordinates.reshape(coordinates.shape[0], coordinates.shape[1], -1)
+    coordinates_fft, _ = torch.max(torch.abs(2.0/N * torch.fft.fft(input_fft, dim=1)[:, 5:N//2]), dim=1)
+    mask_low_fft = torch.all(coordinates_fft < 0.04, dim=1)
+    mask_high_fft = torch.any(coordinates_fft > 0.12, dim=1)
+    logger.debug(f'[STATISTICS] #low_fft {np.sum(mask_low_fft.detach().cpu().numpy())} #high_fft {np.sum(mask_high_fft.detach().cpu().numpy())}')
+
+    periodicity_cat = mask_low_fft.type(torch.float) * -1 + mask_high_fft.type(torch.float) * 1
+    periodicity_max, _ = torch.max(coordinates_fft, dim=1)
+
+    return (movement, speed_xy, speed_z, average_height,
+            periodicity_max, periodicity_cat)
 
 def statistics_human(input_tensor, dataset_constants, device):
     coordinates = input_tensor[:, :, :, :dataset_constants.DIVIDER]
@@ -182,7 +211,14 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
                       'n_missing': []
                       }
     else:
-        raise NotImplementedError
+        statistics = {'movement': [],
+                      'speed_xy': [],
+                      'speed_z': [],
+                      'average_height': [],
+                      'periodicity_max': [],
+                      'periodicity_cat': [],
+                      'n_missing': []
+                      }
 
     for ith, data_dict in tqdm(enumerate(data_loader), total=len(data_loader), ascii=True, desc='Extract hidden'):
         if ith >= 2000:
@@ -244,6 +280,17 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
                 statistics['dist_bw_knees'].extend(dist_bw_knees.detach().cpu().numpy())
                 statistics['dist_knees_shoulders'].extend(dist_knees_shoulders.detach().cpu().numpy())
                 statistics['angle_back_base'].extend(angleXY_shoulders_base.detach().cpu().numpy())
+                statistics['periodicity_max'].extend(periodicity_max.detach().cpu().numpy())
+                statistics['periodicity_cat'].extend(periodicity_cat.detach().cpu().numpy())
+                statistics['n_missing'].extend(n_missing.detach().cpu().numpy())
+
+            else:
+                (movement, speed_xy, speed_z, average_height,
+                 periodicity_max, periodicity_cat) = basic_statistics(input_tensor, dataset_constants, device)
+                statistics['movement'].extend(movement.detach().cpu().numpy())
+                statistics['speed_xy'].extend(speed_xy.detach().cpu().numpy())
+                statistics['speed_z'].extend(speed_z.detach().cpu().numpy())
+                statistics['average_height'].extend(average_height.detach().cpu().numpy())
                 statistics['periodicity_max'].extend(periodicity_max.detach().cpu().numpy())
                 statistics['periodicity_cat'].extend(periodicity_cat.detach().cpu().numpy())
                 statistics['n_missing'].extend(n_missing.detach().cpu().numpy())
@@ -557,48 +604,74 @@ if __name__ == '__main__':
 
     p = argparse.ArgumentParser()
     p.add_argument("--batch_size", type=int, default=1)
-    p.add_argument("--checkpoint_folder", type=str, required=True)
+    p.add_argument("--project_path", type=str, required=True)
+    p.add_argument("--model_name", type=str, required=True)
     p.add_argument("--stride", type=float, required=True, default='in seconds')
     p.add_argument("--suffix", type=str, default='', help='string suffix added to the save files')
-    p.add_argument("--dataset_path", type=str, default='', help='absolute path where to find datasets')
+    p.add_argument("--dataset_name", type=str, default='', help='absolute path where to find datasets')
+    p.add_argument("--indep_keypoints", type=bool, default=False, help='number of k-means clusters')
+    p.add_argument("--merge_keypoints", type=bool, default=False, help='number of k-means clusters')
     p.add_argument("--k", type=int, default=10, help='number of k-means clusters')
     args = p.parse_args()
 
-    config_file = os.path.join(args.checkpoint_folder, '.hydra', 'config.yaml')
-    model_cfg = OmegaConf.load(config_file)
-    model_path = glob(os.path.join(args.checkpoint_folder, 'model_epoch*'))[0]  # model_epoch to not take the model from the lastepoch
+    model_path = os.path.join(args.project_path, 'DISK_train', args.model_name)
+    with open(os.path.join(model_path, 'config', 'config_train.yaml'),
+              'r') as config_file:
+        model_cfg = yaml.safe_load(config_file)
+  # model_epoch to not take the model from the
+    # lastepoch
 
-    dataset_constants = read_constant_file(os.path.join(args.dataset_path, 'DISK-data', model_cfg.dataset.name,
-                                                        'constants.py'))
+    dataset_path = os.path.join(args.project_path, 'DISK_data', args.dataset_name)
+    dataset_constants = read_constant_file(os.path.join(dataset_path, 'constants.py'))
 
-    if model_cfg.dataset.skeleton_file is not None:
-        skeleton_file_path = os.path.join(args.dataset_path, 'datasets', model_cfg.dataset.skeleton_file)
-        if not os.path.exists(skeleton_file_path):
-            raise ValueError(f'no skeleton file found in', skeleton_file_path)
-        skeleton_graph = Graph(file=skeleton_file_path)
-    else:
-        skeleton_graph = None
-        skeleton_file_path = None
+    # if model_cfg.dataset.skeleton_file is not None:
+    #     skeleton_file_path = os.path.join(dataset_path, 'datasets', model_cfg.dataset.skeleton_file)
+    #     if not os.path.exists(skeleton_file_path):
+    #         raise ValueError(f'no skeleton file found in', skeleton_file_path)
+    #     skeleton_graph = Graph(file=skeleton_file_path)
+    # else:
+    skeleton_graph = None
+    skeleton_file_path = None
 
     """ DATA """
-    transforms, _ = init_transforms(model_cfg, dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
-                                 dataset_constants.SEQ_LENGTH, args.dataset_path, args.checkpoint_folder)
+    from DISK.launchers import train_evaluate
+    from DISK.utils.config_decorator import config_reader, parse_command_line_args, test_boolean_variable
+
+    indep_keypoints = test_boolean_variable(args.indep_keypoints, 'indep_keypoints')
+    merge_keypoints = test_boolean_variable(args.merge_keypoints, 'merge_keypoints')
+
+    suffix = f'_set_keypoints' if not indep_keypoints else ''
+    if indep_keypoints:
+        if merge_keypoints:
+            logger.info(f'️ℹ merge_keypoints = True is not a valid option when indep_keypoints = True. '
+                        f'merge_keypoints would be considered False')
+            suffix += f'_merged'
+
+    proba_files_exist, proba_file, proba_length_file = train_evaluate.find_proba_files(dataset_path, suffix)
+    transforms = init_transforms(dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
+                                 dataset_constants.SEQ_LENGTH, dataset_path, logger,
+                                 add_missing=False,
+                                    add_missing_pad=(1, 1),
+                                    proba_file=proba_file, proba_length_file=proba_length_file,
+                                    indep_keypoints=indep_keypoints,)
 
     logger.info('Loading datasets...')
     train_dataset, val_dataset, test_dataset = load_datasets(
-        dataset_path=os.path.join(args.dataset_path, 'DISK-data', model_cfg.dataset.name),
+        dataset_path=dataset_path,
         dataset_constants=dataset_constants,
         transform=transforms,
         dataset_type='full_length',
         stride=args.stride,
         suffix='_w-0-nans',
-        root_path=args.dataset_path,
+        root_path=dataset_path,
         length_sample=dataset_constants.SEQ_LENGTH,
         freq=dataset_constants.FREQ,
-        outputdir=args.checkpoint_folder,
+        outputdir=model_path,
         skeleton_file=None,
         label_type='all',  # don't care, not using
-        verbose=model_cfg.feed_data.verbose
+        verbose=0,
+        logger=logger,
+        keypoints = dataset_constants.KEYPOINTS,
     )
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -609,10 +682,12 @@ if __name__ == '__main__':
 
     logger.info('Loading transformer model...')
     # load model
-    model = construct_NN_model(model_cfg, dataset_constants, skeleton_file_path, device)
+    model = construct_NN_model(model_cfg['network'], dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
+                               dataset_constants.SEQ_LENGTH,
+                               skeleton_file_path, device)
     logger.info(f'Network constructed')
 
-    load_checkpoint(model, None, model_path, device)
+    load_checkpoint(model, None, glob(os.path.join(model_path, 'model_epoch*'))[0], device, logger)
 
     logger.info('Extract hidden representation...')
     ### DIRECT KNN ON SEQ2SEQ LATENT SPACE
@@ -651,18 +726,18 @@ if __name__ == '__main__':
     for imc, mc in enumerate(metadata_columns):
         df.loc[df['train_or_test'] == 'train', mc] = label_train[:, imc]
         df.loc[df['train_or_test'] == 'eval', mc] = label_eval[:, imc]
-    df.loc[:, 'time'] = np.concatenate([time_train[:len(label_train)], time_eval])
+    df.loc[:, 'time'] = np.concatenate([time_train[:len(index_file_train)], time_eval])
 
-    if 'Mocap' in model_cfg.dataset.name and 'action' in df.columns:
+    if 'Mocap' in args.dataset_name and 'action' in df.columns:
         reverse_dict_label = {0: 'Walk', 1: 'Wash', 2: 'Run', 3: 'Jump', 4: 'Animal Behavior', 5: 'Dance',
                               6: 'Step', 7: 'Climb', 8: 'unknown'}
         df.loc[:, 'action_str'] = df['action'].apply(lambda x: reverse_dict_label[int(x)])
         metadata_columns += ['action_str']
-    if 'MAB' in model_cfg.dataset.name and 'action' in df.columns:
+    if 'MAB' in args.dataset_name and 'action' in df.columns:
         reverse_dict_label = {0: 'attack', 1: 'investigation', 2: 'mount', 3: 'other'}
         df.loc[:, 'action_str'] = df['action'].apply(lambda x: reverse_dict_label[int(x)])
         metadata_columns += ['action_str']
-    all_columns = metadata_columns + scalar_columns
+    all_columns = metadata_columns + scalar_columns + ['time']
     logger.info(f'columns: {all_columns}')
 
     # get the representation per time
@@ -699,51 +774,52 @@ if __name__ == '__main__':
 
     logger.info('Apply k-means...')
     df, df_percent, cluster_centers = apply_kmeans(args.k, hi_train, hi_eval, df, proj_train, proj_eval, metadata_columns,
-                                                   outputfile=os.path.join(args.checkpoint_folder,
-                                                   f'{model_cfg.dataset.name}_normed_train_umap_colors-kmeans_latent_1.png'))
+                                                   outputfile=os.path.join(model_path,
+                                                   f'{args.dataset_name}_normed_train_umap_colors-kmeans_latent_1.png'))
 
-    plot_umaps(df, all_columns + ['cluster'], args.checkpoint_folder, model_cfg.dataset.name, args.suffix)
+    plot_umaps(df, all_columns + ['cluster'], model_path, args.dataset_name, args.suffix)
 
     logger.info('Saving data in csv and npy')
-    df.to_csv(os.path.join(args.checkpoint_folder, f'{model_cfg.dataset.name}.csv'),
+    df.to_csv(os.path.join(model_path, f'{args.dataset_name}.csv'),
               index=False)
     columns = [c for c in df.columns if 'latent' not in c]
-    df[columns].to_csv(os.path.join(args.checkpoint_folder, f'{model_cfg.dataset.name}_metadata.csv'),
+    df[columns].to_csv(os.path.join(model_path, f'{args.dataset_name}_metadata.csv'),
               index=False)
-    np.save(os.path.join(args.checkpoint_folder, f'{model_cfg.dataset.name}_latent_train'), hi_train)
-    # np.save(os.path.join(args.checkpoint_folder, f'{model_cfg.dataset.name}_latent_eval'), hi_eval)
-    np.save(os.path.join(args.checkpoint_folder, f'{model_cfg.dataset.name}_cluster_centers'), cluster_centers)
+    np.save(os.path.join(model_path, f'{args.dataset_name}_latent_train'), hi_train)
+    # np.save(os.path.join(model_path, f'{args.dataset_name}_latent_eval'), hi_eval)
+    np.save(os.path.join(model_path, f'{args.dataset_name}_cluster_centers'), cluster_centers)
 
     ##############################################################################################
     ### With a fix value of kmeans, compute umap and "signature" plot
     ##############################################################################################
 
-    logger.debug(f"plot_cluster_expression")
-    cmap_internal, all_colors = get_cmap(df['cluster'].values, "prism")
-    plot_cluster_expression(df, scalar_columns, all_colors)
-
-    ## Find cluster representatives
-    for lbl, center in zip(np.unique(df['cluster']), cluster_centers):
-        train_or_eval = df.loc[df['cluster'] == lbl, 'train_or_test'].values[0]
-        if train_or_eval == 'train':
-            train_df = df.loc[df['train_or_test'] == train_or_eval]
-            mask = (train_df['cluster'] == lbl).values
-            vect = hi_train[mask]
-            dist_to_center = cdist(vect, [center])
-        indices = np.argsort(dist_to_center.flatten())[:10]
-        original_indices = df.loc[df['cluster'] == lbl].index[indices]
-        train_or_test = df.loc[df['cluster'] == lbl, 'train_or_test'].values[indices]
-        coordinates = []
-        labels = []
-        for ind, tt in zip(original_indices, train_or_test):
-            if tt == 'train':
-                data_dict = train_dataset.__getitem__(ind)
-            else:
-                data_dict = val_dataset.__getitem__(ind - len(hi_train))
-            coordinates.append(data_dict['x_supp'][..., :dataset_constants.DIVIDER].detach().numpy())
-            # print(data_dict['label'].detach().numpy()[0, dataset_constants.METADATA.index('action')])
-            labels.append(reverse_dict_label[data_dict['label'].detach().numpy()[0, dataset_constants.METADATA.index('action')]])
-        for i in range(3):
-            # print(coordinates[i].shape)
-            plot_sequential(coordinates[i], skeleton_graph, dataset_constants.KEYPOINTS, 20,
-                            os.path.join(args.checkpoint_folder, f'cluster-{lbl}_representatives-{i}_traj3D_{labels[i]}'), size=20, azim=45)
+    # logger.debug(f"plot_cluster_expression")
+    # cmap_internal, all_colors = get_cmap(df['cluster'].values, "prism")
+    # plot_cluster_expression(df, scalar_columns, all_colors)
+    #
+    # ## Find cluster representatives
+    # for lbl, center in zip(np.unique(df['cluster']), cluster_centers):
+    #     train_or_eval = df.loc[df['cluster'] == lbl, 'train_or_test'].values[0]
+    #     if train_or_eval == 'train':
+    #         train_df = df.loc[df['train_or_test'] == train_or_eval]
+    #         mask = (train_df['cluster'] == lbl).values
+    #         vect = hi_train[mask]
+    #         dist_to_center = cdist(vect, [center])
+    #     indices = np.argsort(dist_to_center.flatten())[:10]
+    #     original_indices = df.loc[df['cluster'] == lbl].index[indices]
+    #     train_or_test = df.loc[df['cluster'] == lbl, 'train_or_test'].values[indices]
+    #     coordinates = []
+    #     labels = []
+    #     for ind, tt in zip(original_indices, train_or_test):
+    #         if tt == 'train':
+    #             data_dict = train_dataset.__getitem__(ind)
+    #         else:
+    #             data_dict = val_dataset.__getitem__(ind - len(hi_train))
+    #         coordinates.append(data_dict['x_supp'][..., :dataset_constants.DIVIDER].detach().numpy())
+    #         # print(data_dict['label'].detach().numpy()[0, dataset_constants.METADATA.index('action')])
+    #         labels.append(reverse_dict_label[data_dict['label'].detach().numpy()[0, dataset_constants.METADATA.index('action')]])
+    #     for i in range(3):
+    #         # print(coordinates[i].shape)
+    #         plot_sequential(coordinates[i], skeleton_graph, dataset_constants.KEYPOINTS, 20,
+    #                         os.path.join(model_path, f'cluster-{lbl}_representatives-{i}_traj3D_{labels[i]}'), size=20,
+    #                         azim=45)
