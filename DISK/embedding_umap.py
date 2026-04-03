@@ -607,7 +607,7 @@ if __name__ == '__main__':
     p.add_argument("--project_path", type=str, required=True)
     p.add_argument("--model_name", type=str, required=True)
     p.add_argument("--stride", type=float, required=True, default='in seconds')
-    p.add_argument("--suffix", type=str, default='', help='string suffix added to the save files')
+    p.add_argument("--suffix", type=str, default='_wmissing', help='string suffix added to the save files')
     p.add_argument("--dataset_name", type=str, default='', help='absolute path where to find datasets')
     p.add_argument("--indep_keypoints", type=bool, default=False, help='number of k-means clusters')
     p.add_argument("--merge_keypoints", type=bool, default=False, help='number of k-means clusters')
@@ -650,7 +650,7 @@ if __name__ == '__main__':
     proba_files_exist, proba_file, proba_length_file = train_evaluate.find_proba_files(dataset_path, suffix)
     transforms = init_transforms(dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
                                  dataset_constants.SEQ_LENGTH, dataset_path, logger,
-                                 add_missing=False,
+                                 add_missing=True,
                                     add_missing_pad=(1, 1),
                                     proba_file=proba_file, proba_length_file=proba_length_file,
                                     indep_keypoints=indep_keypoints,)
@@ -737,8 +737,7 @@ if __name__ == '__main__':
         reverse_dict_label = {0: 'attack', 1: 'investigation', 2: 'mount', 3: 'other'}
         df.loc[:, 'action_str'] = df['action'].apply(lambda x: reverse_dict_label[int(x)])
         metadata_columns += ['action_str']
-    all_columns = metadata_columns + scalar_columns + ['time']
-    logger.info(f'columns: {all_columns}')
+
 
     # get the representation per time
     bin_edges = np.arange(int(np.ceil(df['time'].max())) + 2) - 0.5
@@ -775,9 +774,11 @@ if __name__ == '__main__':
     logger.info('Apply k-means...')
     df, df_percent, cluster_centers = apply_kmeans(args.k, hi_train, hi_eval, df, proj_train, proj_eval, metadata_columns,
                                                    outputfile=os.path.join(model_path,
-                                                   f'{args.dataset_name}_normed_train_umap_colors-kmeans_latent_1.png'))
+                                                   f'{args.dataset_name}_normed_train_umap_colors-kmeans_latent.png'))
 
-    plot_umaps(df, all_columns + ['cluster'], model_path, args.dataset_name, args.suffix)
+    all_columns = metadata_columns + scalar_columns + ['time', 'train_or_test', 'cluster']
+    logger.info(f'columns: {all_columns}')
+    plot_umaps(df, all_columns, model_path, args.dataset_name, args.suffix)
 
     logger.info('Saving data in csv and npy')
     df.to_csv(os.path.join(model_path, f'{args.dataset_name}.csv'),
