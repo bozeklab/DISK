@@ -314,7 +314,7 @@ def cli(_cfg) -> None:
     config['original_missing'] = not no_original_missing
 
     with open(os.path.join(project_path, 'config_project.yaml'), 'w') as file:
-        yaml.dump(config, file)
+        yaml.safe_dump(config, file)
 
     print('\n', '*' * 85, sep='')
     print('*' * 30, ' DISK-PREPARE-DATA END ', '*' * 30)

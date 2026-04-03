@@ -276,15 +276,14 @@ def train_olivier_sequential(create_project_olivier_sequential,
     ## WHEN
     best_rmse, best_epoch, last_epoch = train_evaluate.main(logger=logger, **train_kwargs)
 
-    return model_dir, test_dir, best_epoch, last_epoch
+    return model_dir, test_dir, best_epoch, last_epoch, print_every
 
 
 def test_train_olivier_sequential(prepare_data_olivier_sequential_indepTrue,
                                   train_olivier_sequential):
-    model_dir, test_dir, best_epoch, last_epoch = train_olivier_sequential
+    model_dir, test_dir, best_epoch, last_epoch, print_every = train_olivier_sequential
     ## THEN
-    logger = logging.getLogger()
-    assert_file_creation_after_train(model_dir, best_epoch, last_epoch, logger)
+    assert_file_creation_after_train(model_dir, best_epoch, last_epoch, print_every)
     suffix, indep_keypoints, merge_keypoints = prepare_data_olivier_sequential_indepTrue
 
     assert_file_creation_after_evaluate(test_dir, model_name, training_n_plots, training_n_repeat, pck_threshold,
@@ -304,7 +303,7 @@ def test_evaluate_olivier_sequential(create_project_olivier_sequential,
 
     logger = logging.getLogger()
 
-    model_dir, _, _, _ = train_olivier_sequential
+    model_dir, _, _, _, _ = train_olivier_sequential
     test_dir = project_path.joinpath(f'DISK_train/test_folder3')
     n_plots = 6
     n_repeat = 2
@@ -351,7 +350,7 @@ def test_evaluate_olivier_sequential(create_project_olivier_sequential,
 def test_impute_olivier_sequential(create_project_olivier_sequential, train_olivier_sequential):
     project_path = (create_project_olivier_sequential / project_name)
     dataset_path = (project_path / f'DISK_data/{dataset_name}')
-    model_dir, _, _, _ = train_olivier_sequential
+    model_dir, _, _, _, _ = train_olivier_sequential
 
     impute_dir = project_path.joinpath(f'DISK_impute/Impute_{model_name}')
     impute_dir.mkdir(exist_ok=True, parents=True)

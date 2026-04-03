@@ -104,9 +104,8 @@ def assert_and_get_network_config(network):
     return network_config
 
 
-def assert_file_creation_after_train(model_dir, best_epoch, last_epoch, logger):
+def assert_file_creation_after_train(model_dir, best_epoch, last_epoch, print_every):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    from DISK.utils.utils import load_checkpoint
 
     assert model_dir.joinpath(f'model_epoch{best_epoch}').is_file()
     data = torch.load(model_dir.joinpath(f'model_epoch{best_epoch}'), map_location=torch.device(device))
@@ -129,9 +128,9 @@ def assert_file_creation_after_train(model_dir, best_epoch, last_epoch, logger):
     losses = pd.read_csv(model_dir.joinpath('training_losses.txt'), sep=' ', header=None)
     print(losses)
     assert len(losses.columns) >= 5
-    assert len(losses) == last_epoch
+    assert len(losses) == last_epoch // print_every
     ## we start counting epochs at 1 not at 0 (hence best_epoch - 1)
-    assert np.argmin(losses.iloc[:, 3]) == best_epoch - 1
+    assert np.argmin(losses.iloc[:, 3]) == best_epoch // print_every - 1
 
 
 def assert_file_creation_after_evaluate(test_dir, model_name, n_plots, n_repeat, pck_threshold, suffix):
@@ -194,3 +193,20 @@ def assert_file_creation_after_evaluate(test_dir, model_name, n_plots, n_repeat,
 
 def assert_after_impute_no_gaps_found(mess):
     assert "Could not find short-enough segments to be imputed by the DISK model" in mess
+
+
+def assert_after_impute_gaps_found(impute_dir, data_files, mess, n_plots):
+    assert "Successfully imputed data with DISK model" in mess
+
+    assert impute_dir.is_dir()
+    assert impute_dir.joinpath("plots").is_dir()
+    assert impute_dir.joinpath("plots/hist_uncertainty.png").is_file()
+
+    assert len(list(impute_dir.joinpath('plots').iterdir())) >= n_plots + 1
+    if n_plots > 0:
+        for f in impute_dir.joinpath('plots').iterdir():
+            assert f.is_file()
+            assert str(f).endswith('.png')
+
+    for f in data_files:
+        assert impute_dir.joinpath(f).is_file()

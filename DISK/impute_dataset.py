@@ -139,15 +139,17 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
             # multianimal
             individuals = [ind for ind in df.columns.levels[1] if ind != 'individuals']
             individuals.sort()
-            keypoints = [bp for bp in df.columns.levels[2] if bp != 'bodyparts']
-            keypoints.sort()
+            keypoints_from_file = [bp for bp in df.columns.levels[2] if bp != 'bodyparts']
+            keypoints_from_file.sort()
             coordinates = [c for c in df.columns.levels[3] if c != 'likelihood' and c != 'coords']
 
             # WIP: how to replace the likelihood where we have changed the values
             columns = []
             likelihood_columns = []
             for ind in individuals:
-                for k in keypoints:
+                for k in keypoints_from_file:
+                    if not '_'.join(k.split(' ')) in keypoints:
+                        continue
                     likelihood_columns.append((header, ind, k, 'likelihood'))
                     for c in coordinates:
                         columns.append((header, ind, k, c))
@@ -170,14 +172,16 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
         else:
             # single animal
             header = [c for c in df.columns.levels[0] if c != 'scorer'][0]
-            keypoints = [bp for bp in df.columns.levels[1] if bp != 'bodyparts']
-            keypoints.sort()
+            keypoints_from_file = [bp for bp in df.columns.levels[1] if bp != 'bodyparts']
+            keypoints_from_file.sort()
             coordinates = [c for c in df.columns.levels[2] if c != 'likelihood' and c != 'coords']
 
             # how to replace the likelihood where we have changed the values
             columns = []
             likelihood_columns = []
-            for k in keypoints:
+            for k in keypoints_from_file:
+                if not '_'.join(k.split(' ')) in keypoints:
+                    continue
                 likelihood_columns.append((header, k, 'likelihood'))
                 for c in coordinates:
                     columns.append((header, k, c))

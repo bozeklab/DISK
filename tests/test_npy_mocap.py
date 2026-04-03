@@ -9,7 +9,7 @@ from shared_assertions import *
 
 
 
-data_file_list = [
+data_files = [
     "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/90_15.npy",
     "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/90_23.npy",
     "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/90_29.npy",
@@ -82,7 +82,7 @@ data_file_list = [
 ]
 
 project_name = "DISK_mocap_dataset"
-file_type = "npy"
+file_format = "npy"
 
 dataset_name = 'DISK_human_mocap'
 model_name = 'DISK-GRU'
@@ -105,8 +105,8 @@ def create_project_human_mocap_3d(tmp_path_factory):
     ## WHEN
     create_project.main(
         project_path=project_path,
-        data_file_list=data_file_list,
-        file_type=file_type,
+        data_file_list=data_files,
+        file_type=file_format,
     )
 
     return tmp_path
@@ -134,8 +134,8 @@ def prepare_data_human_mocap_3d(create_project_human_mocap_3d):
 
     prepare_data_kwargs = dict(
         project_path=project_path,
-        data_files =data_file_list,
-        file_type =file_type,
+        data_files =data_files,
+        file_type =file_format,
         dataset_name = dataset_name,
         dataset_path = dataset_path,
         length = 20,
@@ -251,13 +251,12 @@ def train1_human_mocap_3d(create_project_human_mocap_3d, prepare_data_human_moca
     ## WHEN
     best_rmse, best_epoch, last_epoch = train_evaluate.main(logger=logger, **train_kwargs)
 
-    return model_dir, test_dir, best_epoch, last_epoch
+    return model_dir, test_dir, best_epoch, last_epoch, print_every
 
 def test_train1_human_mocap_3d(train1_human_mocap_3d):
-    model_dir, test_dir, best_epoch, last_epoch = train1_human_mocap_3d
-    logger = logging.getLogger()
+    model_dir, test_dir, best_epoch, last_epoch, print_every = train1_human_mocap_3d
     ## THEN
-    assert_file_creation_after_train(model_dir, best_epoch, last_epoch, logger)
+    assert_file_creation_after_train(model_dir, best_epoch, last_epoch, print_every)
     assert_file_creation_after_evaluate(test_dir, model_name, training_n_plots, training_n_repeat, pck_threshold,
                                         '')
 
@@ -276,7 +275,7 @@ def train2_human_mocap_3d(create_project_human_mocap_3d, prepare_data_human_moca
     ## GIVEN
     proba_files_exist, proba_file, proba_length_file = train_evaluate.find_proba_files(dataset_path, suffix)
 
-    model_dir, _, _, _ = train1_human_mocap_3d
+    model_dir, _, _, _, _ = train1_human_mocap_3d
     test_dir = project_path.joinpath(f'DISK_train/{model_name}/test_folder2')
     assert not test_dir.is_dir()
     test_dir.mkdir(exist_ok=True, parents=True)
@@ -324,12 +323,12 @@ def train2_human_mocap_3d(create_project_human_mocap_3d, prepare_data_human_moca
     ## WHEN
     best_rmse, best_epoch, last_epoch = train_evaluate.main(logger=logger, **train_kwargs)
 
-    return model_dir, test_dir, best_epoch, last_epoch
+    return model_dir, test_dir, best_epoch, last_epoch, print_every
 
 
 def test_train2_human_mocap_3d(train2_human_mocap_3d):
     ## THEN
-    model_dir, test_dir, best_epoch, last_epoch = train2_human_mocap_3d
+    model_dir, test_dir, best_epoch, last_epoch, print_every = train2_human_mocap_3d
     print(best_epoch)
     logger = logging.getLogger()
 
@@ -348,7 +347,7 @@ def test_evaluate_human_mocap_3d(create_project_human_mocap_3d, prepare_data_hum
 
     logger = logging.getLogger()
 
-    model_dir, _, _, _ = train2_human_mocap_3d
+    model_dir, _, _, _, _ = train2_human_mocap_3d
     test_dir = project_path.joinpath(f'DISK_train/test_folder3')
     n_plots = 6
     n_repeat = 2
@@ -394,7 +393,7 @@ def test_evaluate_human_mocap_3d(create_project_human_mocap_3d, prepare_data_hum
 def test_impute_human_mocap_3d(create_project_human_mocap_3d, train2_human_mocap_3d):
     project_path = (create_project_human_mocap_3d / project_name)
     dataset_path = (project_path / f'DISK_data/{dataset_name}')
-    model_dir, _, _, _ = train2_human_mocap_3d
+    model_dir, _, _, _, _ = train2_human_mocap_3d
 
     impute_dir = project_path.joinpath(f'DISK_impute/Impute_{model_name}')
     impute_dir.mkdir(exist_ok=True, parents=True)
@@ -406,7 +405,7 @@ def test_impute_human_mocap_3d(create_project_human_mocap_3d, train2_human_mocap
     impute_kwargs = dict(project_dir=project_path,
                          impute_dir=impute_dir,
                          plot_dir=plot_dir,
-                         file_type=file_type,
+                         file_type=file_format,
                          dataset_path=dataset_path,
                          skeleton_graph=None,
                          checkpoint=model_dir,
@@ -429,7 +428,7 @@ def test_create_project_errors_if_project_path_already_exists(tmp_path):
     # first time, no problem
     create_project.main(
         project_path=project_path,
-        data_file_list=data_file_list,
+        data_file_list=data_files,
         file_type="npy",
     )
 
@@ -437,7 +436,7 @@ def test_create_project_errors_if_project_path_already_exists(tmp_path):
     with pytest.raises(FileExistsError):
         create_project.main(
             project_path=project_path,
-            data_file_list=data_file_list,
+            data_file_list=data_files,
             file_type="npy",
         )
 
