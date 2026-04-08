@@ -203,8 +203,8 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
                             f'{timeSince(start, (ith_epoch - start_epoch + 1) / training_epochs)} '
                              f'-- Completed: {(ith_epoch - start_epoch + 1) / training_epochs * 100:.1f}% \n')
 
-                file_output.writelines('%.6f %.6f %.6f %.6f %.4f \n' %
-                                       (ave_loss_train, ave_rmse_train, ave_loss_eval, ave_rmse_eval,
+                file_output.writelines('%d %.6f %.6f %.6f %.6f %.4f\n' %
+                                       (ith_epoch, ave_loss_train, ave_rmse_train, ave_loss_eval, ave_rmse_eval,
                                         model_scheduler.get_last_lr()[0]))
 
                 logger.debug(
@@ -223,7 +223,8 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
                                   'ave_loss_eval': ave_loss_eval,
                                   'ave_rmse_eval': ave_rmse_eval,
                                   'lr': model_scheduler.get_last_lr()[0],
-                                  'print_every': print_every}
+                                  'print_every': print_every,
+                                  'epoch': ith_epoch}
                     save_checkpoint(model, ith_epoch, optimizer, value_dict, path_model)
                     best_epoch = ith_epoch
 
@@ -244,7 +245,8 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
             'ave_loss_eval': ave_loss_eval,
             'ave_rmse_eval': ave_rmse_eval,
             'lr': model_scheduler.get_last_lr()[0],
-            'print_every': print_every
+            'print_every': print_every,
+            'epoch': ith_epoch
                       }
         save_checkpoint(model, ith_epoch, optimizer, value_dict,
                         os.path.join(os.path.join(model_dir, f'model_last_epoch{ith_epoch}')))
@@ -261,7 +263,7 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
         offset = 10
 
     with plt.style.context('seaborn-v0_8'):
-        plot_training(df, offset=offset, print_every=print_every)
+        plot_training(df, offset=offset)
         plt.savefig(os.path.join(model_dir, f'loss.svg'))
 
     return past_val_rmse, best_epoch, ith_epoch

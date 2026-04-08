@@ -128,6 +128,7 @@ def assert_file_creation_after_train(model_dir, best_epoch, last_epoch, print_ev
     losses = pd.read_csv(model_dir.joinpath('training_losses.txt'), sep=' ', header=None)
     print(losses)
     assert len(losses.columns) >= 5
+    print(len(losses), last_epoch, print_every, last_epoch // print_every)
     assert len(losses) == last_epoch // print_every
     ## we start counting epochs at 1 not at 0 (hence best_epoch - 1)
     assert np.argmin(losses.iloc[:, 3]) == best_epoch // print_every - 1

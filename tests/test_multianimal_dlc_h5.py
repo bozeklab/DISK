@@ -8,38 +8,38 @@ from DISK.utils.logger_setup import copy_config_file
 
 from shared_assertions import *
 
-project_name = 'DISK_multi_DLC_CSV'
-file_format = 'dlc_csv'
-data_files = glob('/home/france/mount_cvg/behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-csv/*.csv')
+project_name = 'DISK_test2_multianimal_dlc_h5'
+file_format = 'dlc_h5'
+data_files = glob('/home/france/mount_cvg/behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-h5/*.h5')
 
 dataset_name = 'mouse'
 length = 30
 stride = 30
-fill_gap = 10
+fill_gap = 20
 sequential = False
-dlc_likelihood_threshold = 0.8
+dlc_likelihood_threshold = 0.1
 discard_beginning = 0
 discard_end = -1
 drop_keypoints = []
-indep_keypoints = False
+indep_keypoints = True
 merge_keypoints = False
-original_freq = 60
-subsampling_freq = 60
+original_freq = 1
+subsampling_freq = 1
 
 model_name = 'DISK_transformer'
 network_type = 'transformer'
-print_every = 2
-training_epochs = 4
+print_every = 3
+training_epochs = 8
 training_n_plots = 5
 training_n_repeat = 1
 pck_threshold = 0.5
-n_cpus = 6
+n_cpus = 4
 
-threshoold_error_score = 5
+threshoold_error_score = 50
 
 
 @pytest.fixture(scope="session")
-def create_project_multianimal_dlc_csv(tmp_path_factory):
+def create_project_multianimal_dlc_h5(tmp_path_factory):
     # STEP1. CREATE PROJECT
     ## GIVEN
     tmp_path = tmp_path_factory.mktemp("output")
@@ -56,16 +56,16 @@ def create_project_multianimal_dlc_csv(tmp_path_factory):
 
     return tmp_path
 
-def test_create_project_multianimal_dlc_csv(create_project_multianimal_dlc_csv):
-    project_path = (create_project_multianimal_dlc_csv / project_name)
+def test_create_project_multianimal_dlc_h5(create_project_multianimal_dlc_h5):
+    project_path = (create_project_multianimal_dlc_h5 / project_name)
     ## THEN
     assert_file_creation_after_create_project(project_path)
 
 
 @pytest.fixture(scope="session")
-def prepare_data_multianimal_dlc_csv(create_project_multianimal_dlc_csv):
+def prepare_data_multianimal_dlc_h5(create_project_multianimal_dlc_h5):
     # STEP2. PREPARE DATA
-    project_path = (create_project_multianimal_dlc_csv / project_name)
+    project_path = (create_project_multianimal_dlc_h5 / project_name)
 
     ## GIVEN
     dataset_path = (project_path / f'DISK_data/{dataset_name}')
@@ -107,20 +107,20 @@ def prepare_data_multianimal_dlc_csv(create_project_multianimal_dlc_csv):
 
     return suffix, indep_keypoints, merge_keypoints
 
-def test_prepare_data_multianimal_dlc_csv(create_project_multianimal_dlc_csv, prepare_data_multianimal_dlc_csv):
-    project_path = (create_project_multianimal_dlc_csv / project_name)
+def test_prepare_data_multianimal_dlc_h5(create_project_multianimal_dlc_h5, prepare_data_multianimal_dlc_h5):
+    project_path = (create_project_multianimal_dlc_h5 / project_name)
     dataset_path = (project_path / f'DISK_data/{dataset_name}')
-    suffix, _, _ = prepare_data_multianimal_dlc_csv
+    suffix, _, _ = prepare_data_multianimal_dlc_h5
     assert_file_creation_after_prepare_data(dataset_path, suffix)
 
 
 @pytest.fixture(scope="session")
-def train_multianimal_dlc_csv(create_project_multianimal_dlc_csv, prepare_data_multianimal_dlc_csv):
+def train_multianimal_dlc_h5(create_project_multianimal_dlc_h5, prepare_data_multianimal_dlc_h5):
     ## NORMAL TRAINING
     # STEP3. TRAIN
     ## GIVEN
-    project_path = (create_project_multianimal_dlc_csv / project_name)
-    suffix, indep_keypoints, merge_keypoints = prepare_data_multianimal_dlc_csv
+    project_path = (create_project_multianimal_dlc_h5 / project_name)
+    suffix, indep_keypoints, merge_keypoints = prepare_data_multianimal_dlc_h5
     dataset_path = (project_path / f'DISK_data/{dataset_name}')
     logger = logging.getLogger()
 
@@ -197,8 +197,8 @@ def train_multianimal_dlc_csv(create_project_multianimal_dlc_csv, prepare_data_m
     return model_dir, test_dir, best_epoch, last_epoch, print_every
 
 
-def test_train_multianimal_dlc_csv(train_multianimal_dlc_csv):
-    model_dir, test_dir, best_epoch, last_epoch, print_every = train_multianimal_dlc_csv
+def test_train_multianimal_dlc_h5(train_multianimal_dlc_h5):
+    model_dir, test_dir, best_epoch, last_epoch, print_every = train_multianimal_dlc_h5
     logger = logging.getLogger()
     ## THEN
     assert_file_creation_after_train(model_dir, best_epoch, last_epoch, print_every)
@@ -206,10 +206,10 @@ def test_train_multianimal_dlc_csv(train_multianimal_dlc_csv):
                                         '')
 
 
-def test_impute_multianimal_dlc_csv(create_project_multianimal_dlc_csv, train_multianimal_dlc_csv):
-    project_path = (create_project_multianimal_dlc_csv / project_name)
+def test_impute_multianimal_dlc_h5(create_project_multianimal_dlc_h5, train_multianimal_dlc_h5):
+    project_path = (create_project_multianimal_dlc_h5 / project_name)
     dataset_path = (project_path / f'DISK_data/{dataset_name}')
-    model_dir, _, _, _, _ = train_multianimal_dlc_csv
+    model_dir, _, _, _ = train_multianimal_dlc_h5
 
     impute_dir = project_path.joinpath(f'DISK_impute/Impute_{model_name}')
     impute_dir.mkdir(exist_ok=True, parents=True)
