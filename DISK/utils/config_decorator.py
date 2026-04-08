@@ -68,6 +68,7 @@ def config_reader(config_path):
         return wrapper
     return decorator
 
+
 def test_boolean_variable(var, varname):
     if var is not None:
         if type(var) == str:

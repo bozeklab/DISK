@@ -72,7 +72,7 @@ def assert_and_get_network_config(network):
     network_config = None
     script_directory = os.path.dirname(os.path.abspath(__file__))
     if network == 'gru':
-        with open(os.path.join(script_directory, f'../DISK/conf/network/gru.yaml'), 'r') as file:
+        with open(os.path.join(script_directory, f'../../DISK/conf/network/gru.yaml'), 'r') as file:
             network_config = yaml.safe_load(file)
 
         ## THEN
@@ -83,7 +83,7 @@ def assert_and_get_network_config(network):
         assert 'mu_sigma' in network_config.keys()
         assert 'beta_mu_sigma' in network_config.keys()
     elif network == 'transformer':
-        with open(os.path.join(script_directory, f'../DISK/conf/network/transformer.yaml'), 'r') as file:
+        with open(os.path.join(script_directory, f'../../DISK/conf/network/transformer.yaml'), 'r') as file:
             network_config = yaml.safe_load(file)
 
         ## THEN

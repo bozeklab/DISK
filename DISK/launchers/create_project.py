@@ -7,8 +7,8 @@ from glob import glob
 
 from DISK.utils.config_decorator import config_reader, parse_command_line_args, StringList
 
-possible_file_type_values = ('mat_dannce', 'mat_qualisys', 'simple_csv', 'dlc_csv', 'dlc_h5', 'npy', 'df3d_pkl',
-                          'sleap_h5')
+possible_file_type_values = ('mat_dannce', 'mat_qualisys', 'simple_csv', 'dlc_csv',
+                             'dlc_h5', 'npy', 'df3d_pkl', 'sleap_h5')
 
 def check_file_type(value: str) -> str:
     if value in possible_file_type_values:

@@ -46,6 +46,7 @@ def create_project_inh(tmp_path_factory):
 
     return tmp_path
 
+
 def test_create_project_inh(create_project_inh):
     project_path = (create_project_inh / project_name)
     ## THEN
