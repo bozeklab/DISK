@@ -7,6 +7,8 @@ import pytest
 from DISK.launchers import create_project
 
 
+## UTILS
+
 def generate_test_data(root: Path, foldername: str, file_names: list[str]) -> tuple[str, list[str]]:
 
     data_folder = root.joinpath(foldername)
@@ -44,6 +46,9 @@ def assert_main_create_project_call(main, project_path, file_format, data_files)
     assert kwargs['project_path'] == project_path
     assert kwargs['file_type'] == file_format
     assert set(kwargs['data_file_list']) == set(data_files)
+
+
+## TESTS
 
 def test_create_project_mat_files_ok(tmp_path, monkeypatch):
     # vanilla test with project_name as relative path, list of files, and correct format
