@@ -8,12 +8,12 @@ from DISK.utils.logger_setup import setup_custom_logging, copy_config_file, Void
 from DISK.models.graph import Graph
 from DISK.utils.config_decorator import config_reader, parse_command_line_args
 
-def main(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph, checkpoint, batch_size,
+def main(project_dir, impute_dir, plot_dir, file_format, dataset_path, skeleton_graph, checkpoint, batch_size,
          threshold_error_score, total_n_plots, plot_only_holes, missing_pad, logger, verbose=0):
 
     from DISK.impute_dataset import impute
 
-    if impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph, checkpoint, batch_size,
+    if impute(project_dir, impute_dir, plot_dir, file_format, dataset_path, skeleton_graph, checkpoint, batch_size,
            threshold_error_score, total_n_plots, plot_only_holes, missing_pad, verbose=verbose, logger=logger):
         mess = f'✅ Successfully imputed data with DISK model.\n'
         logger.info(mess)
@@ -65,7 +65,7 @@ def cli(_cfg) -> None:
         print(f'ℹ️ No Missing keypoints in the original files. DISK will NOT impute.')
         sys.exit(0)
 
-    file_type = config['file_type']
+    file_format = config['file_format']
 
     if _cfg.dataset_name is None or type(_cfg.dataset_name) != str \
             or not os.path.exists(os.path.join(project_path, 'DISK_data', _cfg.dataset_name)):
@@ -184,7 +184,7 @@ def cli(_cfg) -> None:
 
     logger.info(f'✅ Successfully loaded configuration.\n')
 
-    main(project_path, output_path, impute_plots_dir, file_type, dataset_path, skeleton_graph, model_path,
+    main(project_path, output_path, impute_plots_dir, file_format, dataset_path, skeleton_graph, model_path,
          batch_size, threshold_error_score, n_plots, plot_only_holes, missing_pad, logger, verbose=verbose)
 
     print('\n', '*' * 79, sep='')

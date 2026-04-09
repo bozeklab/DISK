@@ -23,7 +23,7 @@ import torch
 from torch.utils.data import DataLoader
 
 
-def save_data_original_format(data, time, file, file_type, keypoints, orig_freq, subsampling_freq, data_divider,
+def save_data_original_format(data, time, file, file_format, keypoints, orig_freq, subsampling_freq, data_divider,
                               new_folder, logger):
     """
     :args data: numpy array of 2 dimensions (timepoints, keypoints * 2D or 3D)
@@ -55,7 +55,7 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
 
     data = data[:len(time)].reshape((time.shape[0], len(keypoints), -1))
 
-    if file_type == 'mat_dannce':
+    if file_format == 'mat_dannce':
         # for Rat7M dataset
         # mat['mocap'][0][0].dtype.fields.keys = keypoints
         mat = loadmat(file)
@@ -68,7 +68,7 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
 
         savemat(new_file, mat)
 
-    elif file_type == 'mat_qualisys':
+    elif file_format == 'mat_qualisys':
         mat = loadmat(file)
         exp_name = [m for m in mat.keys() if m[:2] != '__'][0]  ## TOCHANGE
         # for in house mouse data, QUALISYS software
@@ -76,7 +76,7 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
         mat[exp_name][0, 0]['Trajectories'][0, 0]['Labeled']['Labels'][0, 0][0] = keypoints
         savemat(new_file, mat)
 
-    elif file_type == 'simple_csv':
+    elif file_format == 'simple_csv':
         ## for fish data from Liam
         # columns frame_index, keypoint_x, kp_y, kp_z
 
@@ -106,12 +106,12 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
 
         df.to_csv(new_file, index=False)
 
-    elif 'dlc' in file_type:
+    elif 'dlc' in file_format:
         # the dlc_h5 format is quite similar as dlc csv, the "table" is corresponding to the values of the csv
         # the idea is to do the manipulation on a pandas df format
         # the df is a multi-index df with 3 levels when 1 animal, and 4 levels when multianimal
 
-        if file_type == 'dlc_h5':
+        if file_format == 'dlc_h5':
             content = h5py.File(file)
             extracted_content = np.vstack([c[1] for c in content['df_with_missing']['table'][:]])
             values_block = content['df_with_missing']['table'].attrs['values_block_0_kind']
@@ -127,12 +127,12 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
                 # 1 animal
                 df.loc[:, ('scorer', 'bodyparts', 'coords')] = np.arange(len(df))
 
-        elif file_type == 'dlc_csv':
+        elif file_format == 'dlc_csv':
             ## for csv from DeepLabCut
             df = pd.read_csv(file, header=[0, 1, 2])
 
         if 'individuals' in df.columns.levels[1]:
-            if file_type == 'dlc_csv':
+            if file_format == 'dlc_csv':
                 df = pd.read_csv(file, header=[0, 1, 2, 3])
             header = [c for c in df.columns.levels[0] if c != 'scorer'][0]
 
@@ -198,11 +198,11 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
             logger.info(f'AFTER -- nb of nans in data: {np.sum(np.isnan(to_replace))}; nb of nans in df: {df[columns].isna().sum().sum()}')
             logger.debug(f'modifying values between indices {np.min(time_int)} and {np.max(time_int)}')
 
-        if file_type == 'dlc_csv':
+        if file_format == 'dlc_csv':
             # save to csv
             df.to_csv(new_file, index=False)
 
-        elif file_type == 'dlc_h5':
+        elif file_format == 'dlc_h5':
             attrs_dict = dict(content['df_with_missing']['table'].attrs)
             i_table = content['df_with_missing']['_i_table']
             content.close()
@@ -214,7 +214,7 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
                     dataset.attrs[k] = v
                 openedf.create_group('df_with_missing/_i_table', i_table)
 
-    elif file_type == 'npy':
+    elif file_format == 'npy':
         ## for human MoCap files
         # plain npy, no keypoints name, expected shape (n_samples, n_keypoints, n_dim)
 
@@ -229,7 +229,7 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
             f'modifying {np.sum(~np.isclose(to_save, orig_data))} values between indices {np.min(time_int)} '
             f'and {np.max(time_int)}, file: {os.path.basename(new_file)}')
 
-    elif file_type == 'df3d_pkl':
+    elif file_format == 'df3d_pkl':
         ## for DeepFly data
         pkl_content = {'points3d': data, 'keypoints': keypoints}
         with open(new_file, 'rb') as openedf:
@@ -241,7 +241,7 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
          see image on github too
         """
 
-    elif file_type == 'sleap_h5':
+    elif file_format == 'sleap_h5':
         ## compatibility with SLEAP analysis h5 files
         if keypoints[0].startswith('animal'):
             # several animals
@@ -262,7 +262,7 @@ def save_data_original_format(data, time, file, file_type, keypoints, orig_freq,
     return
 
 
-def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_graph, checkpoint, batch_size,
+def impute(project_dir, impute_dir, plot_dir, file_format, dataset_path, skeleton_graph, checkpoint, batch_size,
            threshold_error_score, total_n_plots, plot_only_holes, missing_pad, verbose=0, logger=None) -> None:
 
 
@@ -512,7 +512,7 @@ def impute(project_dir, impute_dir, plot_dir, file_type, dataset_path, skeleton_
             if dataset.files is not None:
                 for i_f, f in enumerate(dataset.files):
                     save_data_original_format(dataset.X[i_f], dataset.time[i_f],
-                                              f, file_type,
+                                              f, file_format,
                                               keypoints, orig_freq, subsampling_freq,
                                               data_divider,
                                               impute_dir, logger)

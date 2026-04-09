@@ -1,7 +1,6 @@
 
 *.pyc
 outputs/
-models/
 datasets/
 .ipynb_checkpoints/
 __pychache__/

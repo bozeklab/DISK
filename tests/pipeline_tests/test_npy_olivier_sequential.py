@@ -13,7 +13,7 @@ from shared_assertions import *
 data_file_list = ["/home/france/Dropbox/2025_UniBonn/behavior_data/DISK/female_2318.npy", ]
 
 project_name = "DISK_olivier_dataset"
-file_type = "npy"
+file_format = "npy"
 
 dataset_name = 'DISK_olivier_onefile'
 model_name = 'DISK_olivier'
@@ -45,7 +45,7 @@ def create_project_olivier_sequential(tmp_path_factory):
     create_project.main(
         project_path=str(project_path),
         data_file_list=data_file_list,
-        file_type=file_type,
+        file_format=file_format,
     )
 
     return tmp_path
@@ -85,7 +85,7 @@ def prepare_data_olivier_sequential_indepFalse(create_project_olivier_sequential
     prepare_data_kwargs = dict(
         project_path=project_path,
         data_files =data_file_list,
-        file_type =file_type,
+        file_format =file_format,
         dataset_name = dataset_name,
         dataset_path = dataset_path,
         length = length,
@@ -139,7 +139,7 @@ def prepare_data_olivier_sequential_indepTrue(create_project_olivier_sequential,
     prepare_data_kwargs = dict(
         project_path=project_path,
         data_files=data_file_list,
-        file_type=file_type,
+        file_format=file_format,
         dataset_name=dataset_name,
         dataset_path=dataset_path,
         length=length,
@@ -362,7 +362,7 @@ def test_impute_olivier_sequential(create_project_olivier_sequential, train_oliv
     impute_kwargs = dict(project_dir=project_path,
                          impute_dir=impute_dir,
                          plot_dir=plot_dir,
-                         file_type=file_type,
+                         file_format=file_format,
                          dataset_path=dataset_path,
                          skeleton_graph=None,
                          checkpoint=model_dir,

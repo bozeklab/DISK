@@ -138,14 +138,14 @@ We also estimate the probability of keypoints missing taken independently or in 
 
 Additional parameters are:
 
-| parameter name | type, default | description |
-| --- | --- | --- |
-| dataset_name | string | |
-| original_freq | int, in Hz| you can precise the original frequency, will be used for subsampling and plots |
-| subsampling_freq | in, in Hz | needs to be lower than original_freq |
-| stride | int, between 0 and length | by how many timesteps are separated consecutive samples (after subsampling) |
+| parameter name | type, default | description                                                                                                                                                |
+| --- | --- |------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| dataset_name | string |                                                                                                                                                            |
+| original_freq | int, in Hz| you can precise the original frequency, will be used for subsampling and plots                                                                             |
+| subsampling_freq | in, in Hz | needs to be lower than original_freq                                                                                                                       |
+| stride | int, between 0 and length | by how many timesteps are separated consecutive samples (after subsampling)                                                                                |
 | fill_gap | int, default: 0 | short gaps under this length will be filled by linear interpolation. This value should be kept small as linear interpolation imprecision grows with length |
-| dlc_likelihood_threshold | float, default: 0.9 | if using file_type dlc_csv or dlc_h5, DLC prediction likelihoods falling under this threshold will be considered as missing values |
+| dlc_likelihood_threshold | float, default: 0.9 | if using file_format dlc_csv or dlc_h5, DLC prediction likelihoods falling under this threshold will be considered as missing values                       |
 
 To compute the probability of missing keypoints, there are two additional parameters:
 

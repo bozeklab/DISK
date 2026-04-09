@@ -41,7 +41,7 @@ def create_project_inh(tmp_path_factory):
     create_project.main(
         project_path=project_path,
         data_file_list=data_files,
-        file_type=file_format,
+        file_format=file_format,
     )
 
     return tmp_path
@@ -68,7 +68,7 @@ def prepare_data_inh(project_path, dataset_name, indep_keypoints, merge_keypoint
     prepare_data_kwargs = dict(
         project_path=project_path,
         data_files =data_files,
-        file_type =file_format,
+        file_format =file_format,
         dataset_name = dataset_name,
         dataset_path = dataset_path,
         length = length,

@@ -106,7 +106,7 @@ def create_project_human_mocap_3d(tmp_path_factory):
     create_project.main(
         project_path=project_path,
         data_file_list=data_files,
-        file_type=file_format,
+        file_format=file_format,
     )
 
     return tmp_path
@@ -135,7 +135,7 @@ def prepare_data_human_mocap_3d(create_project_human_mocap_3d):
     prepare_data_kwargs = dict(
         project_path=project_path,
         data_files =data_files,
-        file_type =file_format,
+        file_format =file_format,
         dataset_name = dataset_name,
         dataset_path = dataset_path,
         length = 20,
@@ -405,7 +405,7 @@ def test_impute_human_mocap_3d(create_project_human_mocap_3d, train2_human_mocap
     impute_kwargs = dict(project_dir=project_path,
                          impute_dir=impute_dir,
                          plot_dir=plot_dir,
-                         file_type=file_format,
+                         file_format=file_format,
                          dataset_path=dataset_path,
                          skeleton_graph=None,
                          checkpoint=model_dir,
@@ -429,7 +429,7 @@ def test_create_project_errors_if_project_path_already_exists(tmp_path):
     create_project.main(
         project_path=project_path,
         data_file_list=data_files,
-        file_type="npy",
+        file_format="npy",
     )
 
     # second time, should a problem
@@ -437,7 +437,7 @@ def test_create_project_errors_if_project_path_already_exists(tmp_path):
         create_project.main(
             project_path=project_path,
             data_file_list=data_files,
-            file_type="npy",
+            file_format="npy",
         )
 
 

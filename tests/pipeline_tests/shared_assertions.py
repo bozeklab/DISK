@@ -64,7 +64,7 @@ def assert_file_creation_after_prepare_data(dataset_path, suffix):
     assert 'ORIG_FREQ' in constants.__dict__.keys()
     assert 'FREQ' in constants.__dict__.keys()
     assert 'W_RESIDUALS' in constants.__dict__.keys()
-    assert 'FILE_TYPE' in constants.__dict__.keys()
+    assert 'FILE_FORMAT' in constants.__dict__.keys()
     assert 'DLC_LIKELIHOOD_THRESHOLD' in constants.__dict__.keys()
 
 

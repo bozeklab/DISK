@@ -77,7 +77,7 @@ def find_hole_nan(mask):
     return out  # returns a list of tuples (start, length_nan, keypoint_name)
 
 
-def open_and_extract_data(f, file_type, dlc_likelihood_threshold, logger):
+def open_and_extract_data(f, file_format, dlc_likelihood_threshold, logger):
     """
     :args f: (str) path to data file
 
@@ -90,13 +90,13 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold, logger):
     :return data: numpy array of shape (timesteps, n_keypoints, 2D or 3D)
     :return keypoints: list of keypoint names as strings
     """
-    if file_type == 'mat_dannce':
+    if file_format == 'mat_dannce':
         mat = scipy.io.loadmat(f)
         # for Rat7M dataset
         data = np.moveaxis(np.array(list(mat['mocap'][0][0])), 1, 0)
         keypoints = list(mat['mocap'][0][0].dtype.fields.keys())
 
-    elif file_type == 'mat_qualisys':
+    elif file_format == 'mat_qualisys':
         # for in house mouse data, QUALISYS software
         mat = scipy.io.loadmat(f)
         exp_name = [m for m in mat.keys() if m[:2] != '__'][0]  ## TOCHANGE
@@ -111,7 +111,7 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold, logger):
         keypoints = [keypoints[n] for n in new_order]
         data = data[:, new_order, :]
 
-    elif file_type == 'simple_csv':
+    elif file_format == 'simple_csv':
         ## for fish data from Liam
         df = pd.read_csv(f)  # columns time, keypoint_x, kp_y, kp_z
         if np.any([c.endswith('_z') for c in df.columns]):
@@ -128,7 +128,7 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold, logger):
         # get the columns corresponding to sorted keypoints so the data can be stacked
         data = df.loc[:, columns].values.reshape((df.shape[0], len(keypoints), -1))
 
-    elif file_type == 'npy':
+    elif file_format == 'npy':
         ## for human MoCap files
         try:
             data = np.array(np.load(f))
@@ -140,7 +140,7 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold, logger):
         # WARNING - here no information about keypoint, so we expect that the columns match for every file
         keypoints = [f'{i:02d}' for i in range(data.shape[1])]
 
-    elif file_type == 'df3d_pkl':
+    elif file_format == 'df3d_pkl':
         ## for DeepFly data
         with open(f, 'rb') as openedf:
             pkl_content = pickle.load(openedf)
@@ -156,7 +156,7 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold, logger):
          see image on github too
         """
 
-    elif file_type == 'dlc_csv':
+    elif file_format == 'dlc_csv':
         ## for csv from DeepLabCut
         df = pd.read_csv(f, header=[1, 2, 3])
 
@@ -204,7 +204,7 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold, logger):
 
         data = df.loc[:, columns].values.reshape((df.shape[0], len(keypoints), -1))
 
-    elif file_type == 'dlc_h5':
+    elif file_format == 'dlc_h5':
         content = h5py.File(f)
         extracted_content = np.vstack([c[1] for c in content['df_with_missing']['table'][:]])
         mask_columns_likelihood = np.all((extracted_content <= 1) * (extracted_content >= 0) | (np.isnan(extracted_content) == True), axis=0)
@@ -241,7 +241,7 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold, logger):
         logger.debug(f'{new_order}, {keypoints}')
         data = data[:, new_order]
 
-    elif file_type == 'sleap_h5':
+    elif file_format == 'sleap_h5':
         ## compatibility with SLEAP analysis h5 files
         with h5py.File(f, 'r') as openedf:
             if 'tracks_3D_smooth' in openedf.keys():
@@ -283,7 +283,7 @@ def open_and_extract_data(f, file_type, dlc_likelihood_threshold, logger):
 
 
 
-def create_dataset(dataset_path, data_files, file_type, sample_length, stride, fill_gap, sequential, original_freq,
+def create_dataset(dataset_path, data_files, file_format, sample_length, stride, fill_gap, sequential, original_freq,
                    subsampling_freq, dlc_likelihood_threshold, discard_beginning, discard_end, drop_keypoints,
                    logger) -> int:
 
@@ -330,7 +330,7 @@ def create_dataset(dataset_path, data_files, file_type, sample_length, stride, f
     # and we want to count the number of effective files
     for i_file, f in tqdm.tqdm(enumerate(data_files), desc='Loading data files'):
         logger.debug(f'[CREATE_DATASET] {f}')
-        data, keypoints = open_and_extract_data(f, file_type, dlc_likelihood_threshold, logger=logger)
+        data, keypoints = open_and_extract_data(f, file_format, dlc_likelihood_threshold, logger=logger)
 
         # shape (keypoints, coordinates + residual, timepoints)
         begin = discard_beginning * original_freq if discard_beginning > 0 else 0
@@ -520,7 +520,7 @@ def create_dataset(dataset_path, data_files, file_type, sample_length, stride, f
                     txt += f"SEQ_LENGTH = {subdata.shape[1]}\n"
                     txt += f"STRIDE = {stride}\n"
                     txt += f"W_RESIDUALS = False\n"  # for compatibility reasons (see dataset classes)
-                    txt += f"FILE_TYPE = '{file_type}'\n"
+                    txt += f"FILE_FORMAT = '{file_format}'\n"
                     txt += f"DLC_LIKELIHOOD_THRESHOLD = {dlc_likelihood_threshold}"
                     opened_file.write(txt)
 

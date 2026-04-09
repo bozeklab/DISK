@@ -17,7 +17,7 @@ def test_prepare_data(tmp_path):
     kwargs = dict(
         project_path=project_path,
         data_files =data_file_list,
-        file_type ="npy",
+        file_format ="npy",
         dataset_name = dataset_name,
         dataset_path = project_path.join(f'DISK_data/{dataset_name}'),
         length = 30,

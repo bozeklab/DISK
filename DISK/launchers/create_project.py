@@ -7,33 +7,33 @@ from glob import glob
 
 from DISK.utils.config_decorator import config_reader, parse_command_line_args, StringList
 
-possible_file_type_values = ('mat_dannce', 'mat_qualisys', 'simple_csv', 'dlc_csv',
+possible_file_format_values = ('mat_dannce', 'mat_qualisys', 'simple_csv', 'dlc_csv',
                              'dlc_h5', 'npy', 'df3d_pkl', 'sleap_h5')
 
-def check_file_type(value: str) -> str:
-    if value in possible_file_type_values:
+def check_file_format(value: str) -> str:
+    if value in possible_file_format_values:
         return True
     else:
         return False
 
-def check_extension(file_path: str, file_type:str) -> bool:
+def check_extension(file_path: str, file_format:str) -> bool:
 
     file_extension = os.path.splitext(file_path)[1]
-    if file_type == 'mat_dannce':
+    if file_format == 'mat_dannce':
         return file_extension == '.mat'
-    elif file_type == 'mat_qualisys':
+    elif file_format == 'mat_qualisys':
         return file_extension == '.mat'
-    elif file_type == 'simple_csv':
+    elif file_format == 'simple_csv':
         return file_extension == '.csv'
-    elif file_type == 'npy':
+    elif file_format == 'npy':
         return file_extension == '.npy'
-    elif file_type == 'df3d_pkl':
+    elif file_format == 'df3d_pkl':
         return file_extension == '.pkl'
-    elif file_type == 'dlc_csv':
+    elif file_format == 'dlc_csv':
         return file_extension == '.csv'
-    elif file_type == 'dlc_h5':
+    elif file_format == 'dlc_h5':
         return file_extension == '.h5'
-    elif file_type == 'sleap_h5':
+    elif file_format == 'sleap_h5':
         return file_extension == '.h5'
     else:
         return False
@@ -43,7 +43,7 @@ def check_extension(file_path: str, file_type:str) -> bool:
 
 def main(project_path: str,
          data_file_list: list,
-         file_type: str):
+         file_format: str):
 
 
     ## CREATE DISK PROJECT FOLDER
@@ -65,7 +65,7 @@ def main(project_path: str,
     default_config = {
         'project_path': project_path,
         'data_files': list(data_file_list),
-        'file_type': file_type,
+        'file_format': file_format,
         'creation_date': datetime.today().strftime('%Y-%m-%d'),
     }
 
@@ -121,9 +121,9 @@ def cli(_cfg) -> None:
 
 
     ## FILE_FORMAT
-    if not check_file_type(_cfg.file_format):
-        print(f'\n❌ File_type {_cfg.file_format} is not correct. Should be one '
-              f'of {possible_file_type_values}.\n')
+    if not check_file_format(_cfg.file_format):
+        print(f'\n❌ File_format {_cfg.file_format} is not correct. Should be one '
+              f'of {possible_file_format_values}.\n')
         sys.exit(1)
 
     file_format = _cfg.file_format
@@ -168,7 +168,7 @@ def cli(_cfg) -> None:
     main(
         project_path=final_project_path,
         data_file_list=data_files,
-        file_type=file_format,
+        file_format=file_format,
     )
 
 

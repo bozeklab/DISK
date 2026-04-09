@@ -7,7 +7,7 @@ from DISK.utils.logger_setup import setup_custom_logging, copy_config_file, Void
 from DISK.models.graph import Graph
 from DISK.utils.config_decorator import config_reader, parse_command_line_args, test_boolean_variable
 
-def main(project_path, dataset_path, dataset_name, data_files, file_type,
+def main(project_path, dataset_path, dataset_name, data_files, file_format,
          length, stride, fill_gap, sequential, original_freq, subsampling_freq,
          dlc_likelihood_threshold, discard_beginning, discard_end,
          drop_keypoints, indep_keypoints, merge_keypoints, skeleton_graph,
@@ -21,7 +21,7 @@ def main(project_path, dataset_path, dataset_name, data_files, file_type,
     number_samples_train, keypoints, divider = create_dataset(
                                 dataset_path,
                                 data_files,
-                                file_type,
+                                file_format,
                                 length,
                                 stride,
                                 fill_gap,
@@ -157,7 +157,7 @@ def cli(_cfg) -> None:
 
     data_files = config['data_files']
     number_data_files = len(data_files)
-    file_type = config['file_type']
+    file_format = config['file_format']
     if _cfg.sequential == '_DEFAULT_':
         if number_data_files <= 6:
             sequential = True
@@ -254,7 +254,7 @@ def cli(_cfg) -> None:
     else:
         dlc_likelihood_threshold = _cfg.dlc_likelihood_threshold
 
-    if config['file_type'] in ['dlc_h5', 'dlc_csv']:
+    if config['file_format'] in ['dlc_h5', 'dlc_csv']:
         logger.info(f'ℹ️ Using a threshold of {_cfg.dlc_likelihood_threshold} for DLC likelihood. '
                     f'Any coordinate with a likelihood under {_cfg.dlc_likelihood_threshold} will be considered '
               f'missing.\n')
@@ -303,7 +303,10 @@ def cli(_cfg) -> None:
 
     logger.info(f'✅ Successfully loaded configuration.\n')
 
-    keypoints, divider, no_original_missing, indep_keypoints, merge_keypoints, suffix = main(project_path, dataset_path, dataset_name, data_files, file_type,
+    keypoints, divider, no_original_missing, indep_keypoints, merge_keypoints, suffix = main(project_path,
+                                                                                             dataset_path,
+                                                                                             dataset_name,
+                                                                                             data_files, file_format,
          length, stride, fill_gap, sequential, original_freq, subsampling_freq,
          dlc_likelihood_threshold, discard_beginning, discard_end,
          drop_keypoints, indep_keypoints, merge_keypoints, skeleton_graph,
