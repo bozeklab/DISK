@@ -28,107 +28,42 @@ def assert_train_evaluate_main_default_inputs(args):
     # skeleton_graph
     from DISK.models.graph import Graph
     assert args['skeleton_graph'] is None or isinstance(args['skeleton_graph'], Graph)
-
-    # training_seed
     assert args['training_seed'] is None or type(args['training_seed']) == int
-
-    # load_model_dir
     assert args['load_model_dir'] is None or (type(args['load_model_dir']) == str and \
                                               (args['load_model_dir'] == '' or Path(args['load_model_dir']).exists()))
 
-    # cfg_network
     assert type(args['cfg_network']) == dict
-
-    # training_batch_size
     assert type(args['training_batch_size']) == int and args['training_batch_size'] > 0
-
-    # training_epochs
     assert type(args['training_epochs']) == int and args['training_epochs'] > 0
-
-    # learning_rate
     assert type(args['learning_rate']) == float and args['learning_rate'] > 0
-
-    # loss_type
     assert type(args['loss_type']) == str
-
-    # loss_mask
     assert type(args['loss_mask']) == bool
-
-    # loss_factor
     assert (type(args['loss_factor']) == int or type(args['loss_factor']) == float) and args['loss_factor'] > 0
-
-    # model_scheduler_rate
     assert type(args['model_scheduler_rate']) == float and args['model_scheduler_rate'] > 0
-
-    # model_scheduler_type
     assert type(args['model_scheduler_type']) == str
-
-    # model_scheduler_steps_epoch
     assert type(args['model_scheduler_steps_epoch']) == int and args['model_scheduler_steps_epoch'] > 0
-
-    # n_cpus
     assert type(args['n_cpus']) == int and args['n_cpus'] >= 0
-
-    # print_every
     assert type(args['print_every']) == int and args['print_every'] > 0
-
-    # rerun_proba_files
     assert type(args['rerun_create_proba']) == bool
-
-    # indep_keypoints
     assert type(args['indep_keypoints']) == bool
-
-    # merge_keypoints
     assert type(args['merge_keypoints']) == bool
-
-    # suffix_proba_files
     assert type(args['suffix_proba_files']) == str
-
-    # add_missing_pad
     assert (len(args['add_missing_pad']) == 2 and type(args['add_missing_pad'][0]) == int \
             and type(args['add_missing_pad'][1]) == int)
-
-    # viewinvariant
     assert type(args['viewinvariant']) == bool
-
-    # normalize
     assert type(args['normalize']) == bool
-
-    # normalizecube
     assert type(args['normalizecube']) == bool
-
-    # swap
     assert type(args['swap']) == float and args['swap'] >= 0 and args['swap'] <= 1
-
-    # add_missing
     assert type(args['add_missing']) == bool
-
-    # test_original_coordinates
     assert type(args['test_original_coordinates']) == bool
-
-    # test_threshold_pck
     assert (type(args['test_threshold_pck']) == float and args['test_threshold_pck'] >= 0 \
             and args['test_threshold_pck'] <= 1)
-
-    # n_repeat
     assert type(args['n_repeat']) == int and args['n_repeat'] > 0
-
-    # total_n_plots
     assert type(args['total_n_plots']) == int and args['total_n_plots'] >= 0
-
-    # plot2d_only_holes
     assert type(args['plot2d_only_holes']) == bool
-
-    # plot3d_size
     assert (type(args['plot3d_size']) == int or type(args['plot3d_size']) == float) and args['plot3d_size'] > 0
-
-    # plot3d_azim
     assert (type(args['plot3d_azim']) == int or type(args['plot3d_azim']) == float) and args['plot3d_azim'] > 0
-
-    # logger
     assert isinstance(args['logger'], Logger)
-
-    # verbose
     assert type(args['verbose']) == bool or (type(args['verbose']) == int and args['verbose'] >= 0)
 
 

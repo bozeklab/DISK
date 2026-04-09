@@ -44,7 +44,7 @@ def assert_main_create_project_call(main, project_path, file_format, data_files)
     main.assert_called_once()
     args, kwargs = main.call_args
     assert kwargs['project_path'] == project_path
-    assert kwargs['file_type'] == file_format
+    assert kwargs['file_format'] == file_format
     assert set(kwargs['data_file_list']) == set(data_files)
 
 
