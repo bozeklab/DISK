@@ -361,7 +361,6 @@ def cli(_cfg) -> None:
     else:
         add_missing_pad = list(_cfg.transforms_add_missing_pad)
 
-    rerun_create_proba = False
     if not 'original_missing' in config.keys():
         print("\n❌ Problem with `config_project.yaml`. No 'original_missing' key."
               "\nMake sure to run DISK-prepare-data first. \n"
