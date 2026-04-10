@@ -49,15 +49,26 @@ def assert_main_create_project_call(main, project_path, file_format, data_files)
 
 
 ## TESTS
-
-def test_create_project_mat_files_ok(tmp_path, monkeypatch):
+@pytest.mark.parametrize("project_name,file_format,file_names",
+                         [['my_DISK_project', 'mat_dannce', ('1.mat', '2.mat')],
+                          ['DISK_FL2', 'mat_qualisys', [f'{i}.mat' for i in range(10)]],
+                          ['DISK_DLC_CSV', 'dlc_csv', ['ex.csv']],
+                          ['DISK_CSV', 'simple_csv', ['ex.csv']],
+                          ['DISK_DLC_H5', 'dlc_h5', ['ex.h5', 'ex2.h5']],
+                          ['DISK_SLEAP_H5', 'sleap_h5', ['ex.h5', 'ex2.h5']],
+                          ['DISK_NPY', 'npy', [f'{i}.npy' for i in range(10)]],
+                          ['DISK_PKL', 'df3d_pkl', [f'{i}.pkl' for i in range(10)]],
+                          pytest.param('DISK_NPY', 'mat_dannce', [f'{i}.npy' for i in range(10)],
+                                       marks=pytest.mark.xfail),
+                          ]
+                         )
+def test_create_project_mat_files_ok(project_name, file_format, file_names, tmp_path, monkeypatch):
     # vanilla test with project_name as relative path, list of files, and correct format
     # GIVEN
+    print(file_format, file_names, tmp_path)
     monkeypatch.chdir(tmp_path)  # set working directory to the temp directory for this test
-    project_name = 'my_DISK_project'
-    file_format = 'mat_dannce'
+
     project_path = str(tmp_path.joinpath(project_name))
-    file_names = ['1.mat', '2.mat']
     data_folder, data_files = generate_test_data(tmp_path, 'data', file_names)
 
     # WHEN
@@ -67,7 +78,20 @@ def test_create_project_mat_files_ok(tmp_path, monkeypatch):
     assert_main_create_project_call(main, project_path, file_format, data_files)
 
 
-def test_create_project_mat_folder_ok(tmp_path, monkeypatch):
+@pytest.mark.parametrize("project_name,file_format,file_names",
+                         [['my_DISK_project', 'mat_dannce', ('1.mat', '2.mat')],
+                          ['DISK_FL2', 'mat_qualisys', [f'{i}.mat' for i in range(10)]],
+                          ['DISK_DLC_CSV', 'dlc_csv', ['ex.csv']],
+                          ['DISK_CSV', 'simple_csv', ['ex.csv']],
+                          ['DISK_DLC_H5', 'dlc_h5', ['ex.h5', 'ex2.h5']],
+                          ['DISK_SLEAP_H5', 'sleap_h5', ['ex.h5', 'ex2.h5']],
+                          ['DISK_NPY', 'npy', [f'{i}.npy' for i in range(10)]],
+                          ['DISK_PKL', 'df3d_pkl', [f'{i}.pkl' for i in range(10)]],
+                          pytest.param('DISK_NPY', 'mat_dannce', [f'{i}.npy' for i in range(10)],
+                                       marks=pytest.mark.xfail),
+                          ]
+                         )
+def test_create_project_mat_folder_ok(project_name, file_format, file_names, tmp_path, monkeypatch):
     # same test but providing folder instead of list of files
 
     # GIVEN
