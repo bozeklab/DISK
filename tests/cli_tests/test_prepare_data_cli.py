@@ -4,6 +4,7 @@ from pathlib import Path
 from textwrap import dedent
 import pytest
 import inspect
+from logging import Logger
 
 from DISK.launchers import prepare_data
 from test_create_project_cli import generate_test_data
@@ -24,6 +25,21 @@ def assert_prepare_data_main_default_inputs(args):
     assert type(args['length']) == int and args['length'] > 0
     assert type(args['stride']) == int and args['stride'] > 0
     assert type(args['fill_gap']) == int and args['fill_gap'] > 0
+    assert type(args['sequential']) == bool
+    assert type(args['original_freq']) == int and args['original_freq'] > 0
+    assert type(args['subsampling_freq']) == int and args['subsampling_freq'] > 0
+    assert type(args['dlc_likelihood_threshold']) == float and \
+           args['dlc_likelihood_threshold'] >= 0 and args['dlc_likelihood_threshold'] <= 1
+    assert (type(args['discard_beginning']) == int or type(args['discard_beginning']) == float) \
+           and args['discard_beginning'] >= 0
+    assert (type(args['discard_end']) == int or type(args['discard_end']) == float) \
+           and args['discard_end'] >= -1
+    assert type(args['drop_keypoints']) == list
+    assert type(args['indep_keypoints']) == bool
+    assert type(args['merge_keypoints']) == bool
+    from DISK.models.graph import Graph
+    assert args['skeleton_graph'] is None or isinstance(args['skeleton_graph'], Graph)
+    assert isinstance(args['logger'], Logger)
 
 
 ## TESTS
