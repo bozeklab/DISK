@@ -98,10 +98,7 @@ def test_create_project_mat_folder_ok(project_name, file_format, file_names, tmp
     monkeypatch.chdir(tmp_path)  # set working directory to the temp directory for this test
 
     # data/1.mat, data/2.mat
-    file_names = ['1.mat', '2.mat']
-    file_format = 'mat_dannce'
-    project_name = 'my_DISK_project'
-    project_path = str(tmp_path.joinpath('my_DISK_project'))
+    project_path = str(tmp_path.joinpath(project_name))
 
     data_folder, data_files = generate_test_data(tmp_path, 'data', file_names)
     generate_test_data(tmp_path, 'data', ['other_file.txt'])
