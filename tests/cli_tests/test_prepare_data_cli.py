@@ -9,7 +9,16 @@ from logging import Logger
 from DISK.launchers import prepare_data
 from test_create_project_cli import generate_test_data
 
+
 ## UTILS
+def create_files_and_folders(project_path, files):
+    for file in files:
+        p = project_path.joinpath(file)
+        if file.endswith('/'):
+            p.mkdir(exist_ok=True, parents=True)
+        else:
+            p.parent.mkdir(exist_ok=True, parents=True)
+            p.touch()
 
 def assert_prepare_data_main_default_inputs(args):
     """project_path, dataset_path, dataset_name, data_files, file_format,
@@ -42,39 +51,40 @@ def assert_prepare_data_main_default_inputs(args):
     assert isinstance(args['logger'], Logger)
 
 
-## TESTS
+list_args = {
+    'DISK_FL2': dict(
+                     length=60,
+                     discard_beginning=5,
+                     discard_end=5,
+                     fill_gap=0,
+                     drop_keypoints='',
+                     sequential=False,
+                     ),
+}
 
-def test_prepare_data_ok(tmp_path, monkeypatch):
+## TESTS
+@pytest.mark.parametrize("project_name,file_format,file_names,input_args",
+                         ['DISK_FL2', 'mat_qualisys', [f'{i}.mat' for i in range(10)], list_args['DISK_FL2']]
+                         )
+def test_prepare_data_ok(project_name,file_format,file_names, input_args, tmp_path, monkeypatch):
     # GIVEN
     monkeypatch.chdir(tmp_path)  # set working directory to the temp directory for this test
 
-    project_name = 'my_DISK_project'
-    length = 60
     project_path = tmp_path.joinpath(project_name)
     project_path.mkdir(exist_ok=True, parents=True)
 
-    file_format = 'mat_dannce'
-    file_names = ['1.mat', '2.mat']
     data_folder, data_files = generate_test_data(tmp_path, 'data', file_names)
 
     files = [
-        # f'config_project.yaml',
         f'DISK_train/',
-        f'DISK_data/',
     ]
-    for file in files:
-        p = project_path.joinpath(file)
-        if file.endswith('/'):
-            p.mkdir(exist_ok=True, parents=True)
-        else:
-            p.parent.mkdir(exist_ok=True, parents=True)
-            p.touch()
+    create_files_and_folders(project_path, files)
 
     config_path = project_path.joinpath('config_project.yaml')
     config_path.write_text(dedent(
         f"""
         original_missing: true
-        file_format: {file_format}
+        file_format: {input_args['file_format']}
         data_files:
         - {data_files[0]}
         - {data_files[1]}
@@ -88,8 +98,8 @@ def test_prepare_data_ok(tmp_path, monkeypatch):
         [
             'DISK-prepare-data',
             '--project_path', str(project_path),
-            '--length', str(length),
-        ]
+
+        ] + [[f'--{k}', str(v)] for k,v in input_args.items()]
     )
 
     with patch('DISK.launchers.prepare_data.main') as main:
