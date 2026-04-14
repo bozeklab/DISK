@@ -1,8 +1,11 @@
+from typing import Any
+
 import numpy as np
 import plotly.graph_objects as go
 import os
 import pandas as pd
 import torch
+from numpy import dtype, ndarray
 
 from DISK.utils.coordinates_utils import create_skeleton_plot, compute_svd
 
@@ -532,87 +535,93 @@ class AddMissing_LengthProba(Transform):
 
     def __call__(self, x, *args, x_supp=(), **kwargs):
         # x of shape (time points, keypoints, 3 or 4)
-        x_with_holes = np.array(x)
 
         if np.max(np.sum(np.any(np.isnan(x), axis=2), axis=1)) > 0:
             if self.verbose == 2 or kwargs['verbose_sample']:
-                self.logger.info('[AddMissing Transform] There is already a missing keypoint in the sequence. Not '
-                                'adding '
-                           'more')
-        else:
-            # missing value placeholder
-            missing_values_placeholder = np.nan
+                self.logger.info('[AddMissing Transform] There is already a missing keypoint in the sequence. '
+                                 'Not adding more')
+            return np.array(x), x_supp, kwargs
 
+        x_with_holes = np.array(x)  # copy the input x
+        missing_values_placeholder = np.nan
+        create_gaps = self.create_gaps_indep_keypoints if self.indep_keypoints else (
+            self.create_gaps_set_keypoints)
+        create_gaps(x, x_with_holes, missing_values_placeholder)
 
-            if not self.indep_keypoints:
-                ## in the proba file there should be probability of missing sets of keypoints
-                ## so we don't draw missing keypoint one by one but directly a set
-                ## this should be activated only when more than 1 keypoint is missing at a time
+        if self.verbose == 2 or kwargs['verbose_sample']:
+            self.logger.info(f"nb of missing kp: {np.sum(np.sum(np.any(np.isnan(x_with_holes), axis=2), axis=0) > 0)}")
 
-                buffer = int(self.pad_before)
-                while buffer < x.shape[0] - self.pad_after:
-                    ## choose id of missing keypoints
-                    rd_kp = np.random.choice(a=self.init_proba_df['keypoint'],
-                                             size=1,
-                                             p=self.init_proba_df['proba'].values,
-                                             replace=False)[0]
-
-                    ## choose length for the keypoint set
-                    length_df = self.length_proba_df.loc[self.length_proba_df['keypoint'] == rd_kp, :].sample(n=1, weights='proba')
-                    length_input = int(length_df['length'].values[0])
-                    ## verify it's not too long
-                    length_input = min(length_input, x.shape[0] - buffer - self.pad_after)
-
-                    ## chosen first index indep per keypoint
-                    inter_lengths = int(np.fmin(self.length_proba_df.loc[self.length_proba_df['keypoint'] == 'non_missing', :].sample(n=1, weights='proba')['length'].values[0],
-                                            x.shape[0] - self.pad_after - length_input - buffer))
-
-                    start_missing = buffer + inter_lengths
-                    end_missing = start_missing + length_input
-                    buffer = int(end_missing)
-
-                    for missing_kp_index in rd_kp.split(' '):
-                        x_with_holes[start_missing: end_missing, self.list_keypoints.index(missing_kp_index), :] = missing_values_placeholder
-
-            else:
-                # all the keypoints are considered independent
-                n_missing = np.random.randint(1, x.shape[1] + 1)
-                buffer = self.pad_before
-                while buffer < x.shape[0] - self.pad_after:
-
-                    ## choose id of missing keypoints
-                    rd_kp = np.random.choice(a=self.init_proba_df['keypoint'],
-                                             size=min(n_missing, np.sum(self.init_proba_df['proba'].values != 0)),
-                                             p=self.init_proba_df['proba'].values,
-                                             replace=False)  # shape: n_missing
-
-                    ## choose length per keypoint
-                    length_df = self.length_proba_df.groupby('keypoint').sample(n=1, weights='proba')
-                    length_input = np.random.choice(length_df.loc[length_df['keypoint'].isin(rd_kp), 'length'].values, 1)[0]
-                    ## verify it's not too long
-                    lengths = int(np.fmin(length_input, x.shape[0] - buffer - self.pad_after))  # shape: n_missing
-
-                    ## chosen first index indep per keypoint
-                    inter_lengths = int(np.fmin(length_df.loc[length_df['keypoint'] == 'non_missing', 'length'].values,
-                                            x.shape[0] - self.pad_after - buffer - lengths)[0])
-
-                    start_missing = buffer + inter_lengths
-                    end_missing = start_missing + lengths
-                    buffer = int(end_missing)
-
-                    if len(rd_kp) > 1:
-                        index_rd_kp = np.array([self.list_keypoints.index(k) for k in rd_kp])
-                    else:
-                        index_rd_kp = self.list_keypoints.index(rd_kp)
-                    x_with_holes[start_missing: end_missing, index_rd_kp, :] = missing_values_placeholder
-
-            if self.verbose == 2 or kwargs['verbose_sample']:
-                self.logger.info(f"nb of missing kp: {np.sum(np.sum(np.any(np.isnan(x_with_holes), axis=2), axis=0) > 0)}")
-            v = np.sum(np.isnan(x_with_holes[..., 0]))
-            if v == 0:
-                self.logger.info(f"nb of missing values: {v}")
+        v = np.sum(np.isnan(x_with_holes[..., 0]))
+        if v == 0:
+            self.logger.info(f"nb of missing values: {v}")
 
         return x_with_holes, x_supp, kwargs
+
+    def create_gaps_indep_keypoints(self, x, x_with_holes: ndarray[Any, dtype[Any]], missing_values_placeholder: float):
+        # all the keypoints are considered independent
+        n_missing = np.random.randint(1, x.shape[1] + 1)
+        buffer = self.pad_before
+        while buffer < x.shape[0] - self.pad_after:
+
+            ## choose id of missing keypoints
+            rd_kp = np.random.choice(a=self.init_proba_df['keypoint'],
+                                     size=min(n_missing, np.sum(self.init_proba_df['proba'].values != 0)),
+                                     p=self.init_proba_df['proba'].values,
+                                     replace=False)  # shape: n_missing
+
+            ## choose length per keypoint
+            length_df = self.length_proba_df.groupby('keypoint').sample(n=1, weights='proba')
+            length_input = np.random.choice(length_df.loc[length_df['keypoint'].isin(rd_kp), 'length'].values, 1)[0]
+            ## verify it's not too long
+            lengths = int(np.fmin(length_input, x.shape[0] - buffer - self.pad_after))  # shape: n_missing
+
+            ## chosen first index indep per keypoint
+            inter_lengths = int(np.fmin(length_df.loc[length_df['keypoint'] == 'non_missing', 'length'].values,
+                                        x.shape[0] - self.pad_after - buffer - lengths)[0])
+
+            start_missing = buffer + inter_lengths
+            end_missing = start_missing + lengths
+            buffer = int(end_missing)
+
+            if len(rd_kp) > 1:
+                index_rd_kp = np.array([self.list_keypoints.index(k) for k in rd_kp])
+            else:
+                index_rd_kp = self.list_keypoints.index(rd_kp)
+            x_with_holes[start_missing: end_missing, index_rd_kp, :] = missing_values_placeholder
+
+    def create_gaps_set_keypoints(self, x, x_with_holes: ndarray[Any, dtype[Any]], missing_values_placeholder: float):
+        ## in the proba file there should be probability of missing sets of keypoints
+        ## so we don't draw missing keypoint one by one but directly a set
+        ## this should be activated only when more than 1 keypoint is missing at a time
+        buffer = int(self.pad_before)
+        while buffer < x.shape[0] - self.pad_after:
+            ## choose id of missing keypoints
+            rd_kp = np.random.choice(a=self.init_proba_df['keypoint'],
+                                     size=1,
+                                     p=self.init_proba_df['proba'].values,
+                                     replace=False)[0]
+
+            ## choose length for the keypoint set
+            length_df = self.length_proba_df.loc[self.length_proba_df['keypoint'] == rd_kp, :].sample(n=1,
+                                                                                                      weights='proba')
+            length_input = int(length_df['length'].values[0])
+            ## verify it's not too long
+            length_input = min(length_input, x.shape[0] - buffer - self.pad_after)
+
+            ## chosen first index indep per keypoint
+            inter_lengths = int(np.fmin(
+                self.length_proba_df.loc[self.length_proba_df['keypoint'] == 'non_missing', :].sample(n=1,
+                                                                                                      weights='proba')[
+                    'length'].values[0],
+                x.shape[0] - self.pad_after - length_input - buffer))
+
+            start_missing = buffer + inter_lengths
+            end_missing = start_missing + length_input
+            buffer = int(end_missing)
+
+            for missing_kp_index in rd_kp.split(' '):
+                x_with_holes[start_missing: end_missing, self.list_keypoints.index(
+                    missing_kp_index), :] = missing_values_placeholder
 
 
 def transform_x(x, transformations, **kwargs):
