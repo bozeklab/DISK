@@ -68,73 +68,134 @@ def assert_train_evaluate_main_default_inputs(args):
 
 
 ## TESTS
-
-# @pytest.mark.skip("")
-def test_train_evaluate(tmp_path, monkeypatch):
+list_args = {
+    'GRU_indep_kp_true': dict(
+                    training_epochs=4,
+                    n_cpus=6,
+                    indep_keypoints=True,
+                    network='gru'
+                     ),
+    'GRU_indep_kp_false': dict(
+        training_epochs=4,
+        n_cpus=6,
+        indep_keypoints=False,
+        network='gru',
+        model_name='GRU_test'
+    ),
+    'transformer_indep_kp_false': dict(
+        training_epochs=4,
+        print_every=1,
+        n_cpus=0,
+        indep_keypoints=False,
+        merge_keypoints=False,
+        network='transformer'
+    ),
+    'transformer_indep_kp_false_WRONG_PRINT_EVERY0': dict(
+        training_epochs=4,
+        print_every=0,
+        n_cpus=6,
+        indep_keypoints=False,
+        network='transformer'
+    ),
+    'transformer_indep_kp_false_WRONG_PRINT_EVERY-1': dict(
+        training_epochs=8,
+        print_every=-1,
+        n_cpus=6,
+        indep_keypoints=False,
+        network='transformer',
+        transforms_add_missing_pad=[2, 2]
+    ),
+}
+@pytest.mark.parametrize("project_name,dataset_name,suffix,rerun,input_args",
+                         [
+                             ['GRU_indep_kp_true', 'test_dlc_csv', '', False, list_args['GRU_indep_kp_true']],
+                             ['GRU_indep_kp_false', 'test_dlc_csv', '', True, list_args['GRU_indep_kp_false']],
+                             ['GRU_indep_kp_true', 'test_dlc_csv', '_set_keypoints', True, list_args[
+                                 'GRU_indep_kp_true']],
+                             ['GRU_indep_kp_false', 'test_dlc_csv', '_set_keypoints', False, list_args['GRU_indep_kp_false']],
+['transformer_indep_kp_false', 'test_dlc_csv', '_set_keypoints', False, list_args['transformer_indep_kp_false']],
+['transformer_indep_kp_false_WRONG_PRINT_EVERY0', 'test_dlc_csv', '_set_keypoints', False, list_args[
+    'transformer_indep_kp_false_WRONG_PRINT_EVERY0']],
+['transformer_indep_kp_false_WRONG_PRINT_EVERY-1', 'test_dlc_csv', '_set_keypoints', False, list_args[
+    'transformer_indep_kp_false_WRONG_PRINT_EVERY-1']],
+                             # ['DISK_DLC_CSV', 'dlc_csv', ['ex.csv']],
+                          # ['DISK_CSV', 'simple_csv', ['ex.csv']],
+                          # ['DISK_DLC_H5', 'dlc_h5', ['ex.h5', 'ex2.h5']],
+                          # ['DISK_SLEAP_H5', 'sleap_h5', ['ex.h5', 'ex2.h5']],
+                          # ['DISK_NPY', 'npy', [f'{i}.npy' for i in range(10)]],
+                          # ['DISK_PKL', 'df3d_pkl', [f'{i}.pkl' for i in range(10)]],
+                          # pytest.param('DISK_NPY', 'mat_dannce', [f'{i}.npy' for i in range(10)],
+                          #              marks=pytest.mark.xfail),
+                          ]
+                         )
+def test_train_evaluate(project_name, dataset_name,suffix, rerun, input_args, tmp_path, monkeypatch):
     # GIVEN
     monkeypatch.chdir(tmp_path)  # set working directory to the temp directory for this test
 
-    project_name = 'my_DISK_project'
-    dataset_name = 'dataset'
     project_path = tmp_path.joinpath(project_name)
     project_path.mkdir(exist_ok=True, parents=True)
 
-    for suffix, rerun in [['', True],
-                          ['_set_keypoints_merged', True],
-                          ['_set_keypoints', False],
-                          ]:
-        files = [
-            # f'config_project.yaml',
-            f'DISK_train/',
-            f'DISK_data/',
-            f'DISK_data/{dataset_name}/',
-            f'DISK_data/{dataset_name}/proba_missing{suffix}.csv',
-            f'DISK_data/{dataset_name}/proba_missing_length{suffix}.csv',
-        ]
-        for file in files:
-            p = project_path.joinpath(file)
-            if file.endswith('/'):
-                p.mkdir(exist_ok=True, parents=True)
-            else:
-                p.parent.mkdir(exist_ok=True, parents=True)
-                p.touch()
 
-        config_path = project_path.joinpath('config_project.yaml')
-        config_path.write_text(dedent(
-            """
-            original_missing: true
-            """
-        ))
+    files = [
+        # f'config_project.yaml',
+        f'DISK_train/',
+        f'DISK_data/',
+        f'DISK_data/{dataset_name}/',
+        f'DISK_data/{dataset_name}/proba_missing{suffix}.csv',
+        f'DISK_data/{dataset_name}/proba_missing_length{suffix}.csv',
+    ]
+    for file in files:
+        p = project_path.joinpath(file)
+        if file.endswith('/'):
+            p.mkdir(exist_ok=True, parents=True)
+        else:
+            p.parent.mkdir(exist_ok=True, parents=True)
+            p.touch()
 
-        # WHEN
-        monkeypatch.setattr(
-            sys,
-            'argv',
-            [
-                'DISK-train',
-                '--project_path', str(project_path),
-                '--dataset_name', dataset_name,
-            ]
-        )
+    config_path = project_path.joinpath('config_project.yaml')
+    config_path.write_text(dedent(
+        """
+        original_missing: true
+        """
+    ))
 
-        with patch('DISK.launchers.train_evaluate.main') as main:
-            train_evaluate.cli()
+    # WHEN
+    cli = [
+        'DISK-train',
+            '--project_path', str(project_path),
+            '--dataset_name', dataset_name,
 
-        # THEN
-        sig = inspect.signature(train_evaluate.main)
-        bound_args = sig.bind(*main.call_args.args, **main.call_args.kwargs)
-        bound_args.apply_defaults()
+    ]
+    for k, v in input_args.items():
+        if type(v) == list:
+            cli.append(f'--{k}')
+            cli.extend([str(vv) for vv in v])
+        else:
+            cli.extend([f'--{k}', str(v)])
+    monkeypatch.setattr(
+        sys,
+        'argv',
+        cli
+    )
 
-        main.assert_called_once()
+    with patch('DISK.launchers.train_evaluate.main') as main:
+        train_evaluate.cli()
 
-        assert bound_args.arguments['project_dir'] == str(project_path) # project_dir
-        assert os.path.dirname(bound_args.arguments['model_dir']) == f'{project_path}/DISK_train'
-        assert os.path.dirname(bound_args.arguments['test_dir']) == bound_args.arguments['model_dir']
-        assert bound_args.arguments['dataset_path'] == str(f'{project_path}/DISK_data/{dataset_name}') # dataset_path
-        assert bound_args.arguments['dataset_name'] == dataset_name # dataset_name
-        assert bound_args.arguments['rerun_create_proba'] == rerun
-        assert_train_evaluate_main_default_inputs(bound_args.arguments)
-        ## checks what the main expects
+    # THEN
+    sig = inspect.signature(train_evaluate.main)
+    bound_args = sig.bind(*main.call_args.args, **main.call_args.kwargs)
+    bound_args.apply_defaults()
+
+    main.assert_called_once()
+
+    assert bound_args.arguments['project_dir'] == str(project_path) # project_dir
+    assert os.path.dirname(bound_args.arguments['model_dir']) == f'{project_path}/DISK_train'
+    assert os.path.dirname(bound_args.arguments['test_dir']) == bound_args.arguments['model_dir']
+    assert bound_args.arguments['dataset_path'] == str(f'{project_path}/DISK_data/{dataset_name}') # dataset_path
+    assert bound_args.arguments['dataset_name'] == dataset_name # dataset_name
+    assert bound_args.arguments['rerun_create_proba'] == rerun
+    assert_train_evaluate_main_default_inputs(bound_args.arguments)
+    ## checks what the main expects
 
     """(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_graph,
          training_seed, load_model_dir, cfg_network, training_batch_size,

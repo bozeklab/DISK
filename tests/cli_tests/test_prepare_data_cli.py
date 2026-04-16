@@ -212,7 +212,6 @@ data_files:
     bound_args.apply_defaults()
 
     main.assert_called_once()
-    print(bound_args.arguments)
     assert_prepare_data_main_default_inputs(bound_args.arguments)
 
     ## checks what the main expects
