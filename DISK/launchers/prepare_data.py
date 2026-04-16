@@ -165,6 +165,11 @@ def cli(_cfg) -> None:
             sequential = False
     else:
         sequential = test_boolean_variable(_cfg.sequential, 'sequential')
+        if number_data_files < 3 and sequential is False:
+            print(f"\n❌ sequential cannot be set to False if there are less than 3 files. "
+                  f"Got {_cfg.sequential}")
+            sys.exit(1)
+
 
     if _cfg.original_freq == '_DEFAULT_':
         original_freq = 1
