@@ -3,9 +3,10 @@ import plotly.graph_objects as go
 import os
 import pandas as pd
 import torch
+import logging
 
 from DISK.utils.coordinates_utils import create_skeleton_plot, compute_svd
-from DISK.utils.logger_setup import logger
+
 
 def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputdir, add_missing=True):
     transforms = []
@@ -241,7 +242,7 @@ class ViewInvariant(Transform):
     def __call__(self, x, *args, x_supp=(), **kwargs):
         if np.all(np.isnan(x)):
             x_prime = np.array(x)
-            logger.debug(f'[ViewInvariant] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
+            logging.debug(f'[ViewInvariant] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
             x_supp_prime = [np.array(xs) for xs in x_supp]
             return x_prime, tuple(x_supp_prime), kwargs
 
@@ -268,7 +269,7 @@ class ViewInvariant(Transform):
         kwargs['max_sample'] = max_
 
         if np.all(np.isnan(x_prime)):
-            logger.debug('[ViewInvariant] all nan in x_prime')
+            logging.debug('[ViewInvariant] all nan in x_prime')
 
         return x_prime, tuple(x_supp_prime), kwargs
 
@@ -332,7 +333,7 @@ class NormalizeCube(Transform):
     def __call__(self, x, *args, x_supp=(), **kwargs):
         if np.all(np.isnan(x)):
             x_prime = np.array(x)
-            logger.debug(f'[NormalizeCube] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
+            logging.debug(f'[NormalizeCube] x all nans {[np.all(np.isnan(xs)) for xs in x_supp]}')
             x_supp_prime = [np.array(xs) for xs in x_supp]
             return x_prime, tuple(x_supp_prime), kwargs
 
@@ -344,7 +345,7 @@ class NormalizeCube(Transform):
         kwargs['min_sample'] = min_
         kwargs['max_sample'] = max_
         if np.any(np.isnan(min_)) or np.any(np.isnan(max_)):
-            logger.debug(f'[Problem in NormalizeCube] {min_}, {max_}, {x}')
+            logging.debug(f'[Problem in NormalizeCube] {min_}, {max_}, {x}')
 
         """Apply the transform"""
         x_prime = 2 * (x - ((max_ + min_) / 2)) / amplitude  # normalizes between -1 and 1
@@ -409,7 +410,7 @@ class Normalize(Transform):
         kwargs['min_sample'] = min_
         kwargs['max_sample'] = max_
         if np.any(np.isnan(min_)) or np.any(np.isnan(max_)):
-            logger.info(f'[Problem in Normalize] {min_}, {max_}, {x}')
+            logging.info(f'[Problem in Normalize] {min_}, {max_}, {x}')
 
         """Apply the transform"""
         x_prime = 2 * (x - min_) / (max_ - min_) - 1  # normalizes between -1 and 1
@@ -544,8 +545,7 @@ class AddMissing_LengthProba(Transform):
 
         if np.max(np.sum(np.any(np.isnan(x), axis=2), axis=1)) > 0:
             if self.verbose == 2 or verbose_sample:
-                logger.info('[AddMissing Transform] There is already a missing keypoint in the sequence. Not adding '
-                           'more')
+                logging.info('[AddMissing Transform] There is already a missing keypoint in the sequence. Not adding more')
         else:
             # missing value place holder
             missing_values_placeholder = np.nan
@@ -619,10 +619,10 @@ class AddMissing_LengthProba(Transform):
                     x_with_holes[start_missing: end_missing, index_rd_kp, :] = missing_values_placeholder
 
             if self.verbose == 2 or verbose_sample:
-                logger.info("nb of missing kp:", np.sum(np.sum(np.any(np.isnan(x_with_holes), axis=2), axis=0) > 0))
+                logging.info("nb of missing kp:", np.sum(np.sum(np.any(np.isnan(x_with_holes), axis=2), axis=0) > 0))
             v = np.sum(np.isnan(x_with_holes[..., 0]))
             if v == 0:
-                logger.info("nb of missing values:", v)
+                logging.info("nb of missing values:", v)
 
         return x_with_holes, x_supp, kwargs
 
