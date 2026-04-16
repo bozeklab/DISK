@@ -515,8 +515,10 @@ class AddMissing_LengthProba(Transform):
     ### FR - 2022-06-07:
     ### should be first transform, it is not checked automatically though
     ### this is implemented as a transform because
-    ### - it needs to be applied first before other normlization to  not leak data through the normalization
+    ### - it needs to be applied first before other normalization to  not leak data through the normalization
     ### - it needs to be applied differently for each sample at each epoch
+
+    missing_values_placeholder = np.nan
 
     def __init__(self, length_proba_df, init_proba_df, list_keypoints, logger, indep_keypoints=True, pad=(0, 0),
                  **kwargs):
@@ -534,24 +536,24 @@ class AddMissing_LengthProba(Transform):
         return 'AddMissing_LengthProba'
 
     def __call__(self, x, *args, x_supp=(), **kwargs):
-        # x of shape (time points, keypoints, 3 or 4)
+        # x of shape (time points, keypoints, 2 to 4)
 
+        # checks there are no original gaps
         if np.max(np.sum(np.any(np.isnan(x), axis=2), axis=1)) > 0:
             if self.verbose == 2 or kwargs['verbose_sample']:
                 self.logger.info('[AddMissing Transform] There is already a missing keypoint in the sequence. '
                                  'Not adding more')
             return np.array(x), x_supp, kwargs
 
-        x_with_holes = np.array(x)  # copy the input x
-        missing_values_placeholder = np.nan
         create_gaps = create_gaps_indep_keypoints if self.indep_keypoints else (
             create_gaps_set_keypoints)
-        create_gaps(x, x_with_holes, missing_values_placeholder, self.pad_before, self.pad_after,
+        x_with_holes = create_gaps(x, self.missing_values_placeholder, self.pad_before, self.pad_after,
                     self.list_keypoints, self.init_proba_df, self.length_proba_df)
 
         if self.verbose == 2 or kwargs['verbose_sample']:
             self.logger.info(f"nb of missing kp: {np.sum(np.sum(np.any(np.isnan(x_with_holes), axis=2), axis=0) > 0)}")
 
+        # checks we have created gaps
         v = np.sum(np.isnan(x_with_holes[..., 0]))
         if v == 0:
             self.logger.info(f"nb of missing values: {v}")
@@ -559,10 +561,11 @@ class AddMissing_LengthProba(Transform):
         return x_with_holes, x_supp, kwargs
 
 
-def create_gaps_indep_keypoints(x, x_with_holes: ndarray[Any, dtype[Any]], missing_values_placeholder: float,
+def create_gaps_indep_keypoints(x: ndarray[Any, dtype[Any]], missing_values_placeholder: float,
                                 pad_before: int, pad_after: int, list_keypoints: list, init_proba_df: pd.DataFrame,
-                                length_proba_df: pd.DataFrame,):
+                                length_proba_df: pd.DataFrame,) -> ndarray[Any, dtype[Any]]:
     # all the keypoints are considered independent
+    x_with_holes = np.array(x)  # copy the input x
     n_missing = np.random.randint(1, x.shape[1] + 1)
     buffer = pad_before
     while buffer < x.shape[0] - pad_after:
@@ -592,15 +595,17 @@ def create_gaps_indep_keypoints(x, x_with_holes: ndarray[Any, dtype[Any]], missi
         else:
             index_rd_kp = list_keypoints.index(rd_kp)
         x_with_holes[start_missing: end_missing, index_rd_kp, :] = missing_values_placeholder
+    return x_with_holes
 
 
-def create_gaps_set_keypoints(x, x_with_holes: ndarray[Any, dtype[Any]], missing_values_placeholder: float,
+def create_gaps_set_keypoints(x: ndarray[Any, dtype[Any]], missing_values_placeholder: float,
                               pad_before: int, pad_after: int, list_keypoints: list, init_proba_df: pd.DataFrame,
                               length_proba_df: pd.DataFrame,
-                              ):
+                              ) -> ndarray[Any, dtype[Any]]:
     ## in the proba file there should be probability of missing sets of keypoints
     ## so we don't draw missing keypoint one by one but directly a set
     ## this should be activated only when more than 1 keypoint is missing at a time
+    x_with_holes = np.array(x)  # copy the input x
     buffer = int(pad_before)
     while buffer < x.shape[0] - pad_after:
         ## choose id of missing keypoints
@@ -628,6 +633,7 @@ def create_gaps_set_keypoints(x, x_with_holes: ndarray[Any, dtype[Any]], missing
         for missing_kp_index in rd_kp.split(' '):
             x_with_holes[start_missing: end_missing, list_keypoints.index(
                 missing_kp_index), :] = missing_values_placeholder
+    return x_with_holes
 
 
 def transform_x(x, transformations, **kwargs):
