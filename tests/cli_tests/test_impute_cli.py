@@ -38,10 +38,17 @@ def assert_impute_main_default_inputs(args):
     assert type(args['verbose']) == bool or (type(args['verbose']) == int and args['verbose'] >= 0)
 
 
+list_args = {
+    'DISK_human_mocap': dict()
+}
 ## TESTS
 
-# @pytest.mark.skip("")
-def test_impute(tmp_path, monkeypatch):
+@pytest.mark.parametrize("project_name,input_args",
+                         [
+                            ['DISK_human_mocap', list_args['DISK_human_mocap']],
+                          ]
+                         )
+def test_impute(project_name, input_args, tmp_path, monkeypatch):
     # GIVEN
     monkeypatch.chdir(tmp_path)  # set working directory to the temp directory for this test
 

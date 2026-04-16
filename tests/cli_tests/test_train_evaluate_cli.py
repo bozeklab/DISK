@@ -113,19 +113,11 @@ list_args = {
                              ['GRU_indep_kp_true', 'test_dlc_csv', '_set_keypoints', True, list_args[
                                  'GRU_indep_kp_true']],
                              ['GRU_indep_kp_false', 'test_dlc_csv', '_set_keypoints', False, list_args['GRU_indep_kp_false']],
-['transformer_indep_kp_false', 'test_dlc_csv', '_set_keypoints', False, list_args['transformer_indep_kp_false']],
-['transformer_indep_kp_false_WRONG_PRINT_EVERY0', 'test_dlc_csv', '_set_keypoints', False, list_args[
-    'transformer_indep_kp_false_WRONG_PRINT_EVERY0']],
-['transformer_indep_kp_false_WRONG_PRINT_EVERY-1', 'test_dlc_csv', '_set_keypoints', False, list_args[
-    'transformer_indep_kp_false_WRONG_PRINT_EVERY-1']],
-                             # ['DISK_DLC_CSV', 'dlc_csv', ['ex.csv']],
-                          # ['DISK_CSV', 'simple_csv', ['ex.csv']],
-                          # ['DISK_DLC_H5', 'dlc_h5', ['ex.h5', 'ex2.h5']],
-                          # ['DISK_SLEAP_H5', 'sleap_h5', ['ex.h5', 'ex2.h5']],
-                          # ['DISK_NPY', 'npy', [f'{i}.npy' for i in range(10)]],
-                          # ['DISK_PKL', 'df3d_pkl', [f'{i}.pkl' for i in range(10)]],
-                          # pytest.param('DISK_NPY', 'mat_dannce', [f'{i}.npy' for i in range(10)],
-                          #              marks=pytest.mark.xfail),
+                            ['transformer_indep_kp_false', 'test_dlc_csv', '_set_keypoints', False, list_args['transformer_indep_kp_false']],
+                            ['transformer_indep_kp_false_WRONG_PRINT_EVERY0', 'test_dlc_csv', '_set_keypoints', False, list_args[
+                                'transformer_indep_kp_false_WRONG_PRINT_EVERY0']],
+                            ['transformer_indep_kp_false_WRONG_PRINT_EVERY-1', 'test_dlc_csv', '_set_keypoints', False, list_args[
+                                'transformer_indep_kp_false_WRONG_PRINT_EVERY-1']],
                           ]
                          )
 def test_train_evaluate(project_name, dataset_name,suffix, rerun, input_args, tmp_path, monkeypatch):

@@ -8,6 +8,7 @@ import inspect
 from logging import Logger
 
 from DISK.launchers import evaluate_compare
+from tests.cli_tests.test_prepare_data_cli import create_files_and_folders
 
 
 ## UTILS
@@ -56,32 +57,34 @@ def assert_evaluate_compare_main_default_inputs(args):
     assert type(args['suffix_proba_files']) == str
 
 
+list_args = {
+    'DISK_human_mocap': dict()
+}
+
 ## TESTS
 
-# @pytest.mark.skip("")
-def test_evaluate_compare(tmp_path, monkeypatch):
+@pytest.mark.parametrize("project_name, model_names,input_args",
+                         [
+                            ['DISK_human_mocap', ['DISK_model1'], list_args['DISK_human_mocap']],
+                             ['DISK_human_mocap', ['DISK_model1', 'DISK_model2'], list_args['DISK_human_mocap']],
+                         ]
+                         )
+def test_evaluate_compare(project_name, model_names, input_args, tmp_path, monkeypatch):
     # GIVEN
     monkeypatch.chdir(tmp_path)  # set working directory to the temp directory for this test
 
-    project_name = 'my_DISK_project'
     dataset_name = 'dataset'
-    model_name = 'DISK_model1'
     project_path = tmp_path.joinpath(project_name)
     project_path.mkdir(exist_ok=True, parents=True)
 
     proba_files_suffix = ''
-    files = [
-        f'DISK_train/{model_name}/model_epoch14',
-        f'DISK_data/{dataset_name}/proba_missing{proba_files_suffix}.csv',
-        f'DISK_data/{dataset_name}/proba_missing_length{proba_files_suffix}.csv',
-    ]
-    for file in files:
-        p = project_path.joinpath(file)
-        if file.endswith('/'):
-            p.mkdir(exist_ok=True, parents=True)
-        else:
-            p.parent.mkdir(exist_ok=True, parents=True)
-            p.touch()
+    for model_name in model_names:
+        files = [
+            f'DISK_train/{model_name}/model_epoch14',
+            f'DISK_data/{dataset_name}/proba_missing{proba_files_suffix}.csv',
+            f'DISK_data/{dataset_name}/proba_missing_length{proba_files_suffix}.csv',
+        ]
+        create_files_and_folders(project_path, files)
 
     config_path = project_path.joinpath('config_project.yaml')
     config_path.write_text(dedent(
@@ -91,15 +94,23 @@ def test_evaluate_compare(tmp_path, monkeypatch):
     ))
 
     # WHEN
-    monkeypatch.setattr(
-        sys,
-        'argv',
-        [
-            'DISK-evaluate',
+    cli = [
+        'DISK-evaluate',
             '--project_path', str(project_path),
             '--dataset_name', dataset_name,
             '--model_name_list', model_name,
-        ]
+
+    ]
+    for k, v in input_args.items():
+        if type(v) == list:
+            cli.append(f'--{k}')
+            cli.extend([str(vv) for vv in v])
+        else:
+            cli.extend([f'--{k}', str(v)])
+    monkeypatch.setattr(
+        sys,
+        'argv',
+        cli
     )
 
     with patch('DISK.launchers.evaluate_compare.main') as main:
