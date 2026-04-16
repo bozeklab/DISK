@@ -187,12 +187,10 @@ class ParentDataset(data.Dataset):
             output['x_supp'] = torch.from_numpy(x_supp[0]).type(torch.float)
             # can be none or the original sample without holes
             ## FR: maybe not the best, but haven't found any better yet
-            if len(x_supp) == 2:
-                output['x_swap'] = torch.from_numpy(x_supp[1]).type(torch.float)
-                output['swap'] = sample['swap']
-            else:
-                output['x_swap'] = torch.from_numpy(np.zeros_like(x_supp[0])).type(torch.float)
-                output['swap'] = sample['swap']
+            output['x_noisy'] = torch.from_numpy(x_supp[-1]).type(torch.float)
+            output['swap'] = True if 'swap_length' in self.kwargs else False
+            output['jitter'] = True if 'jitter_length' in self.kwargs else False
+
 
         if 'i_file' in sample.keys():
             output['indices_file'] = sample['i_file']
@@ -247,9 +245,8 @@ class SupervisedDataset(ParentDataset):
         sample = {'x': x,
                   'm': m,
                   'y': y,
-                  'z': z,
-                  'swap': True if 'swap_length' in self.kwargs else False,
-                  'swap_gt': self.kwargs['swap_gt'] if 'swap_gt' in self.kwargs else np.zeros(x.shape) * np.nan}
+                  'z': z
+                  }
         return sample
 
 
@@ -348,7 +345,9 @@ class FullLengthDataset(ParentDataset):
                   'i_file': i_file,
                   'i_pos': i_pos,
                   'swap': True if 'swap_length' in self.kwargs else False,
-                  'swap_gt': self.kwargs['swap_gt'] if 'swap_gt' in self.kwargs else np.zeros((x.shape[0], self.n_keypoints, self.original_divider)) * np.nan}
+                  'jitter': True if 'jitter_length' in self.kwargs else False,
+                  'swap_gt': self.kwargs['swap_gt'] if 'swap_gt' in self.kwargs else np.zeros(x.shape) * np.nan,
+                  'jitter_gt': self.kwargs['jitter_gt'] if 'jitter_gt' in self.kwargs else np.zeros(x.shape) * np.nan,}
         return sample
 
 

@@ -147,7 +147,8 @@ def evaluate(_cfg: DictConfig) -> None:
     if not os.path.isdir(visualize_val_outputdir):
         os.mkdir(visualize_val_outputdir)
 
-    swap_bool = bool(_cfg['feed_data']['transforms']['swap'])
+    swap_bool_global = bool(_cfg['feed_data']['transforms']['swap'])
+    jitter_bool_global = bool(_cfg['feed_data']['transforms']['jitter'])
     mean_RMSE = []
     for i_repeat in range(_cfg.evaluate.n_repeat):
         suffix = _cfg.evaluate.suffix + f'_repeat-{i_repeat}'
@@ -155,10 +156,14 @@ def evaluate(_cfg: DictConfig) -> None:
         total_rmse = {'id_sample': [], 'id_hole':[], 'keypoint':[], 'method':[], 'method_param':[],
                       'RMSE':[], 'MPJPE':[], pck_name:[], 'mean_uncertainty':[], 'length_hole':[],
                       }
-        if swap_bool:
-            total_rmse['swap_kp_id'] = []
-            total_rmse['swap_length'] = []
-            total_rmse['average_dist_bw_swap_kp'] = []
+        # if swap_bool:
+        #     total_rmse['swap_kp_id'] = []
+        #     total_rmse['swap_length'] = []
+        #     total_rmse['average_dist_bw_swap_kp'] = []
+        # if jitter_bool:
+        #     total_rmse['jitter_kp_id'] = []
+        #     total_rmse['jitter_length'] = []
+        #     total_rmse['jitter_deltas'] = []
 
         id_sample = 0
         n_plots = 0
@@ -173,8 +178,8 @@ def evaluate(_cfg: DictConfig) -> None:
                 data_with_holes = data_dict['X'].to(device)  # shape (timepoints, n_keypoints, 2 or 3 or 4)
                 data_full = data_dict['x_supp'].to(device)
                 mask_holes = data_dict['mask_holes'].to(device)
-                if swap_bool:
-                    data_swapped_np = data_dict['x_swap'].detach().cpu().numpy()
+                if swap_bool_global or jitter_bool_global:
+                    data_noisy_np = data_dict['x_noisy'].detach().cpu().numpy()
                     #if 'x_swap' in data_dict \
                     #                  else np.zeros((_cfg.evaluate.batch_size, data_dict['X'].shape[1], dataset_constants.N_KEYPOINTS, dataset_constants.DIVIDER)) * np.nan
                 assert not torch.any(torch.isnan(data_with_holes))
@@ -191,8 +196,8 @@ def evaluate(_cfg: DictConfig) -> None:
                 if _cfg.evaluate.original_coordinates:
                     full_data_np = reconstruct_before_normalization(full_data_np, data_dict, transforms)
                     data_with_holes_np = reconstruct_before_normalization(data_with_holes_np, data_dict, transforms)
-                    if swap_bool:
-                        data_swapped_np = reconstruct_before_normalization(data_swapped_np, data_dict, transforms)
+                    if swap_bool_global or jitter_bool_global:
+                        data_noisy_np = reconstruct_before_normalization(data_noisy_np, data_dict, transforms)
 
                 """Linear interpolation"""
                 mask_holes_np = mask_holes.detach().cpu().numpy()
@@ -253,22 +258,6 @@ def evaluate(_cfg: DictConfig) -> None:
                         bandexcess[i_model] = be[n_missing > 0] / be[n_missing > 0]
 
                 for i_sample_in_batch in range(data_with_holes_np.shape[0]):
-                    if swap_bool:
-                        swapped_kp_ids = np.unique(
-                            np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[
-                                1])
-                        swap_times = np.unique(
-                            np.where(data_swapped_np[i_sample_in_batch, ..., 0] != full_data_np[i_sample_in_batch, ..., 0])[
-                                0])
-                        swap_length = np.max(swap_times) - np.min(swap_times) + 1
-                        # Euclidean distance between keypoints that are swapped during the swap
-                        logging.debug(
-                            f'[DEBUG] {data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids].shape} should be (Tbis, 2, 3) -- ')
-                        swap_dist = np.mean(np.sqrt(np.sum((data_swapped_np[i_sample_in_batch, swap_times][:,
-                                                            swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times][:,
-                                                                              swapped_kp_ids]) ** 2, axis=-1)))
-                        logging.debug(
-                        f'{np.sum((data_swapped_np[i_sample_in_batch, swap_times][:, swapped_kp_ids] - full_data_np[i_sample_in_batch, swap_times][:, swapped_kp_ids])**2, axis=-1).shape} should be (T, 2)')
 
                     ## gives the length of a hole, one keypoint at a time, a sample can have multiple holes one after the other:
                     id_hole = 0
@@ -289,10 +278,10 @@ def evaluate(_cfg: DictConfig) -> None:
                             total_rmse[pck_name].append(mean_pck)
                             total_rmse['mean_uncertainty'].append(np.nan)
                             total_rmse['length_hole'].append(o[1])
-                            if swap_bool:
-                                total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
-                                total_rmse['swap_length'].append(swap_length)
-                                total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
+                            # if swap_bool:
+                            #     total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
+                            #     total_rmse['swap_length'].append(swap_length)
+                            #     total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
 
                         if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
                             mean_rmse_linear = np.sqrt(np.mean(rmse_linear_interp[slice_]))
@@ -309,10 +298,10 @@ def evaluate(_cfg: DictConfig) -> None:
                             total_rmse[pck_name].append(mean_pck_linear)
                             total_rmse['mean_uncertainty'].append(np.nan)
                             total_rmse['length_hole'].append(o[1])
-                            if swap_bool:
-                                total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
-                                total_rmse['swap_length'].append(swap_length)
-                                total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
+                            # if swap_bool:
+                            #     total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
+                            #     total_rmse['swap_length'].append(swap_length)
+                            #     total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
                         id_hole += 1
 
                     ## the sample as a whole, not hole by hole
@@ -329,10 +318,10 @@ def evaluate(_cfg: DictConfig) -> None:
                             n_missing[i_sample_in_batch])
                         total_rmse['mean_uncertainty'].append(np.nan)
                         total_rmse['length_hole'].append(n_missing[i_sample_in_batch])
-                        if swap_bool:
-                            total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
-                            total_rmse['swap_length'].append(swap_length)
-                            total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
+                        # if swap_bool:
+                        #     total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
+                        #     total_rmse['swap_length'].append(swap_length)
+                        #     total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
                     for i_model in range(n_models):
                         if model_configs[i_model].training.mu_sigma:
                             mean_uncertainty_model = np.sum(uncertainty[i_model][i_sample_in_batch]) / n_missing[i_sample_in_batch]
@@ -350,10 +339,10 @@ def evaluate(_cfg: DictConfig) -> None:
                                 i_sample_in_batch])
                         total_rmse['mean_uncertainty'].append(mean_uncertainty_model)
                         total_rmse['length_hole'].append(n_missing[i_sample_in_batch])
-                        if swap_bool:
-                            total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
-                            total_rmse['swap_length'].append(swap_length)
-                            total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
+                        # if swap_bool:
+                        #     total_rmse['swap_kp_id'].append(tuple(swapped_kp_ids))
+                        #     total_rmse['swap_length'].append(swap_length)
+                        #     total_rmse['average_dist_bw_swap_kp'].append(swap_dist)
                     id_sample += 1
 
                 """VISUALIZATION, only first batch"""
@@ -372,8 +361,18 @@ def evaluate(_cfg: DictConfig) -> None:
                                               size=_cfg.evaluate.size, azim=_cfg.evaluate.azim,
                                               normalized_coordinates=(not _cfg.evaluate.original_coordinates))
 
-                        title = '(swap) ' if swap_bool else ''
-                        title += f'RMSE & MPJPE'
+                        swap_bool_sample = data_dict['swap'][i].cpu()
+                        jitter_bool_sample = data_dict['jitter'][i].cpu()
+                        if swap_bool_sample and jitter_bool_sample:
+                            modif = '(swap, jitter) '
+                        elif swap_bool_sample:
+                            modif = '(swap) '
+                        elif jitter_bool_sample:
+                            modif = '(jitter) '
+                        else:
+                            modif = ''
+
+                        title = f'{modif}RMSE & MPJPE'
                         title += ' -  '.join(
                             [f'{i_model}: {np.sqrt(np.mean(rmse[i_model][i])):.3f} & {np.mean(euclidean_distance[i_model][i]):.3f}' for i_model in range(n_models)])
                         if np.min(_cfg.feed_data.transforms.add_missing.pad) > 0:
@@ -395,8 +394,9 @@ def evaluate(_cfg: DictConfig) -> None:
                                     t_mask = np.ones_like(mask_holes_np[i, 1:, j]).astype(bool)
                                     t_mask_holes = (mask_holes_np[i, 1:, j] == 1)
                                 for i_dim in range(dataset_constants.DIVIDER):
-                                    if swap_bool:
-                                        axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, data_swapped_np[i, 1:, j, i_dim], 'o-', color='grey', ms=1, label='swap')
+                                    if swap_bool_sample or jitter_bool_sample:
+                                        axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, data_noisy_np[i, 1:,
+                                        j, i_dim], 'o-', color='grey', ms=1, label=modif)
                                     axes[dataset_constants.DIVIDER * j + i_dim].plot(t_vect, full_data_np[i, 1:, j, i_dim], 'o-')
                                     if np.sum(t_mask) > 0:
                                         for i_model, xo in enumerate(x_outputs_np):

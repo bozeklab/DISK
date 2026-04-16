@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 import plotly.graph_objects as go
 import os
@@ -53,6 +55,10 @@ def init_transforms(_cfg, keypoints, divider, length_input_seq, basedir, outputd
         transforms.append(NormalizeCube(proba=1, divider=divider, verbose=0, outputdir=outputdir))
     if 'swap' in _cfg.feed_data.transforms.keys() and _cfg.feed_data.transforms.swap > 0:
         transforms.append(Swap2Kp(proba=_cfg.feed_data.transforms.swap, divider=divider, verbose=0, outputdir=outputdir))
+
+    if 'jitter' in _cfg.feed_data.transforms.keys() and _cfg.feed_data.transforms.jitter > 0:
+        transforms.append(Jitter(proba=_cfg.feed_data.transforms.jitter, divider=divider, verbose=0,
+                                 outputdir=outputdir))
 
     return transforms, proba_n_missing
 
@@ -489,13 +495,13 @@ class Swap2Kp(Transform):
         x_prime[start_index: start_index + length, rd_kps[0]] = np.array(x[start_index: start_index + length, rd_kps[1]])
         x_prime[start_index: start_index + length, rd_kps[1]] = np.array(x[start_index: start_index + length, rd_kps[0]])
 
-        if len(x_supp) > 1:
-            raise Warning('[TRANSFORMS][]SWAP2KP] x_supp is longer than expected')
-        elif len(x_supp) > 0:
-            x_supp_prime = [x_supp[0]]
-            yy = np.array(x_supp[0])
-            yy[start_index: start_index + length, rd_kps[0]] = np.array(x_supp[0][start_index: start_index + length, rd_kps[1]])
-            yy[start_index: start_index + length, rd_kps[1]] = np.array(x_supp[0][start_index: start_index + length, rd_kps[0]])
+        if len(x_supp) > 0:
+            x_supp_prime = list(x_supp)
+            yy = np.array(x_supp[-1])
+            yy[start_index: start_index + length, rd_kps[0]] = np.array(x_supp[-1][start_index: start_index + length,
+            rd_kps[1]])
+            yy[start_index: start_index + length, rd_kps[1]] = np.array(x_supp[-1][start_index: start_index + length,
+            rd_kps[0]])
             x_supp_prime.append(yy)
         else:
             x_supp_prime = []
@@ -517,6 +523,80 @@ class Swap2Kp(Transform):
 
         return x
 
+
+class Jitter(Transform):
+    """
+    The idea is to add jitter to simulate pose estimation software
+    This implementation is crude and will choose randomly for a random time a keypoint and add noise.
+    For now all the probability distributions are uniform over keypoint pairs, and start + length
+    """
+    def __init__(self, max_lenth=10, **kwargs):
+        self.max_length = max_lenth # the length for jitter is relatively short
+        super().__init__(**kwargs)
+
+    def __str__(self):
+        return 'Jitter'
+
+    def __call__(self, x, *args, x_supp=(), **kwargs):
+        """Compute the transform
+        :args x: the input sample
+        :kwargs x_supp: the corresponding ground truth that could also be changed. Here it will not be changed,
+                        as swapping is corrupting the data
+        """
+        if np.random.rand() >= self.proba:
+            kwargs.pop('jitter_kp', None)
+            kwargs.pop('jitter_length', None)
+            kwargs.pop('jitter_start_index', None)
+            kwargs.pop('jitter_gt', None)
+            return x, x_supp, kwargs
+
+        # x of shape (time points, keypoints,  3)
+        rd_kps = np.random.choice(a=x.shape[1],
+                                 size=1,
+                                 replace=False)[0]  # returns anint
+        length = np.random.choice(a=np.arange(1, self.max_length),
+                                 size=1,
+                                 replace=False)[0]  # returns an int
+        start_index = np.random.choice(a=x.shape[0] - length,
+                                 size=1,
+                                 replace=False)[0]  # returns an int
+        mean_values = np.mean(x[start_index: start_index + length, rd_kps], axis=0) # shape (divider,)
+        deltas = np.array([np.random.choice(a=np.linspace(- 1 - m, 1 - m , 100), size=1, replace=False)[0] for m in (
+                mean_values)])
+                  # each call returns an int, shape of deltas (divider,)
+        kwargs['jitter_kp'] = rd_kps
+        kwargs['jitter_length'] = length
+        kwargs['jitter_start_index'] = start_index
+        kwargs['jitter_delta'] = deltas
+
+        """Apply the transform"""
+        x_prime = np.array(x)
+        x_prime[start_index: start_index + length, rd_kps] += deltas
+
+        if len(x_supp) > 0:
+            x_supp_prime = list(x_supp)
+            yy = np.array(x_supp[-1])
+            yy[start_index: start_index + length, rd_kps] += deltas
+            x_supp_prime.append(yy)
+        else:
+            x_supp_prime = []
+
+        return x_prime, tuple(x_supp_prime), kwargs
+
+    def untransform(self, x, *args, **kwargs):
+        if 'jitter_kp' in kwargs:
+            rd_kps = kwargs['jitter_kp']
+            length = kwargs['jitter_length']
+            start_index = kwargs['jitter_start_index']
+            deltas = kwargs['jitter_deltas']
+
+            # jitter again, symmetrical
+            reconstructed = np.array(x)
+            reconstructed[start_index: start_index + length, rd_kps] -= deltas
+
+            return reconstructed
+
+        return x
 
 
 class AddMissing_LengthProba(Transform):
@@ -645,10 +725,7 @@ def transform_x(x, transformations, **kwargs):
         x, x_supp, kwargs = transformations[0](x, x_supp=x_supp, **kwargs)
 
     for t in transformations[1:]:
-        if isinstance(t, Swap2Kp):
-            x, x_supp, kwargs = t(x, x_supp=x_supp, **kwargs)
-        else:
-            x, x_supp, kwargs = t(x, x_supp=x_supp, **kwargs)
+        x, x_supp, kwargs = t(x, x_supp=x_supp, **kwargs)
 
     return x, x_supp, kwargs
 

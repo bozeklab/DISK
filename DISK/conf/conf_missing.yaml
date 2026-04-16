@@ -71,5 +71,6 @@ feed_data:
     viewinvariant: true
     normalize: false
     normalizecube: true
-    swap: 0
+    swap: 0.5
+    jitter: 0.5
   verbose: 0
