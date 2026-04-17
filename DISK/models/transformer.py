@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 from torch.nn.init import xavier_uniform_
-from omegaconf import DictConfig
 from DISK.models.transformer_utils import EncoderLayer, Normalization, LearnablePositionalEncoding, \
     FixedPositionalEncoding
 from DISK.models.distribution_head import NormalOutput
@@ -57,7 +56,7 @@ class InputEncodingIndependent(InputEncoding):
 
 class TransformerModel(nn.Module):
     def __init__(self, input_size: int, output_size: int, max_seq_len: int,
-                 n_keypoints: int, cfg_network: DictConfig,
+                 n_keypoints: int, cfg_network: dict,
                  device: str = 'cpu'):
         super(TransformerModel, self).__init__()
         self.device = device

@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import xavier_uniform_
-
-from omegaconf import DictConfig
 from einops import rearrange
 
 
@@ -156,7 +154,7 @@ class CustomizedEncoderLayer(nn.Module):  # PreNorm
 
 
 class VanillaTransformer(nn.Module):  # is left here to compare with PyTorch implementation
-    def __init__(self, input_size: int, output_size: int, max_seq_len: int, cfg: DictConfig, device: str = 'cpu'):
+    def __init__(self, input_size: int, output_size: int, max_seq_len: int, cfg: dict, device: str = 'cpu'):
         super(VanillaTransformer, self).__init__()
         self.device = device
         self.d_model = cfg.network.d_model

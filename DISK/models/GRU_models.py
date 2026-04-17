@@ -1,14 +1,12 @@
 import os
-
 import torch
 import torch.nn as nn
-from omegaconf import DictConfig
 from DISK.models.distribution_head import NormalOutput
 
 
 # network module only set encoder to be bidirectional
 class BiGRU(nn.Module):
-    def __init__(self, input_size: int, output_size: int, cfg_network: DictConfig, device: str =
+    def __init__(self, input_size: int, output_size: int, cfg_network: dict, device: str =
     'cpu'):
         super(BiGRU, self).__init__()
         self.hidden_size = cfg_network['size_layer']

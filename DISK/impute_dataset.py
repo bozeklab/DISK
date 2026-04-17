@@ -282,9 +282,6 @@ def impute(project_dir, impute_dir, plot_dir, file_format, dataset_path, skeleto
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logger.info("Device: {}".format(device))
 
-    # dataset_config_file = os.path.join(dataset_path, 'config', 'config_prepare_data.yaml')
-    # cfg_dataset = OmegaConf.load(dataset_config_file)
-
     config_file = os.path.join(checkpoint, 'config', 'config_train.yaml')
     cfg_model = None
     model_name = ''
