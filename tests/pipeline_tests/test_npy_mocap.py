@@ -10,75 +10,75 @@ from shared_assertions import *
 
 
 data_files = [
-    "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/90_15.npy",
-    "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/90_23.npy",
-    "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/90_29.npy",
-    "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_03.npy",
-    "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_08.npy",
-    "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_12.npy",
-    "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_16.npy",
+    os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/90_15.npy"),
+    os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/90_23.npy"),
+    os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/90_29.npy"),
+    os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_03.npy"),
+    os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_08.npy"),
+    os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_12.npy"),
+    os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_16.npy"),
 
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_20.npy",
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_20.npy"),
     #
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_24.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_28.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_32.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_57.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_02.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_06.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_10.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_14.npy",
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_24.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_28.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_32.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_57.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_02.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_06.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_10.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_14.npy"),
     #
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/90_19.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/90_25.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/90_30.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_04.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_09.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_13.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_17.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_21.npy",
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/90_19.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/90_25.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/90_30.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_04.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_09.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_13.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_17.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_21.npy"),
     #
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_25.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_29.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_33.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_62.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_03.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_07.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_11.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_15.npy",
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_25.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_29.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_33.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_62.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_03.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_07.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_11.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_15.npy"),
     #
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/90_20.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/90_26.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_01.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_05.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_10.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_14.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_18.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_22.npy",
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/90_20.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/90_26.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_01.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_05.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_10.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_14.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_18.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_22.npy"),
     #
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_26.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_30.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_34.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/93_02.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_04.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_08.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_12.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_16.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/90_21.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/90_27.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_02.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_07.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_11.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_15.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_19.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_23.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_27.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_31.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/91_35.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_01.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_05.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_09.npy",
-    # "/home/france/mount_cvg/behavior_data/mocap_dataset/mocap_3djoints_subset/94_13.npy"
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_26.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_30.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_34.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/93_02.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_04.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_08.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_12.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_16.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/90_21.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/90_27.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_02.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_07.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_11.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_15.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_19.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_23.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_27.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_31.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/91_35.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_01.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_05.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_09.npy"),
+    # os.path.join(root_path, "behavior_data/mocap_dataset/mocap_3djoints_subset/94_13.npy")
 ]
 
 project_name = "DISK_mocap_dataset"
@@ -131,6 +131,7 @@ def prepare_data_human_mocap_3d(create_project_human_mocap_3d):
     logger = logging.getLogger()
     indep_keypoints = True
     merge_keypoints = False
+    suffix_proba_files = ''
 
     prepare_data_kwargs = dict(
         project_path=project_path,
@@ -150,6 +151,7 @@ def prepare_data_human_mocap_3d(create_project_human_mocap_3d):
         drop_keypoints = [],
         indep_keypoints = indep_keypoints,
         merge_keypoints = merge_keypoints,
+        suffix_proba_files = suffix_proba_files,
         skeleton_graph = None,
         logger = logger,
     )
@@ -183,7 +185,8 @@ def train1_human_mocap_3d(create_project_human_mocap_3d, prepare_data_human_moca
     network_config = assert_and_get_network_config('gru')
 
     ## GIVEN
-    proba_files_exist, proba_file, proba_length_file = train_evaluate.find_proba_files(dataset_path, suffix)
+    proba_files_exist, _, _ = train_evaluate.find_proba_files(dataset_path, suffix)
+    rerun_create_proba = False if proba_files_exist else True
 
     model_dir = project_path.joinpath(f'DISK_train/{model_name}')
     assert not model_dir.is_dir()
@@ -216,9 +219,10 @@ def train1_human_mocap_3d(create_project_human_mocap_3d, prepare_data_human_moca
             model_scheduler_steps_epoch=500,
             n_cpus=4,
             print_every=print_every,
-            proba_file=proba_file,
-            proba_length_file=proba_length_file,
-            indep_keypoints=False,
+            rerun_create_proba=rerun_create_proba,
+            indep_keypoints=indep_keypoints,
+            merge_keypoints=merge_keypoints,
+            suffix_proba_files=suffix,
             add_missing_pad=(1,0),
             viewinvariant=True,
             normalize=False,
@@ -273,7 +277,8 @@ def train2_human_mocap_3d(create_project_human_mocap_3d, prepare_data_human_moca
     network_config = assert_and_get_network_config('gru')
 
     ## GIVEN
-    proba_files_exist, proba_file, proba_length_file = train_evaluate.find_proba_files(dataset_path, suffix)
+    proba_files_exist, _, _ = train_evaluate.find_proba_files(dataset_path, suffix)
+    rerun_create_proba = False if proba_files_exist else True
 
     model_dir, _, _, _, _ = train1_human_mocap_3d
     test_dir = project_path.joinpath(f'DISK_train/{model_name}/test_folder2')
@@ -301,9 +306,10 @@ def train2_human_mocap_3d(create_project_human_mocap_3d, prepare_data_human_moca
         model_scheduler_steps_epoch=500,
         n_cpus=4,
         print_every=print_every,
-        proba_file=proba_file,
-        proba_length_file=proba_length_file,
-        indep_keypoints=False,
+        rerun_create_proba=rerun_create_proba,
+        indep_keypoints=indep_keypoints,
+        merge_keypoints=merge_keypoints,
+        suffix_proba_files=suffix,
         add_missing_pad=(1, 0),
         viewinvariant=True,
         normalize=False,
@@ -332,7 +338,7 @@ def test_train2_human_mocap_3d(train2_human_mocap_3d):
     print(best_epoch)
     logger = logging.getLogger()
 
-    assert_file_creation_after_train(model_dir, best_epoch, last_epoch, logger)
+    assert_file_creation_after_train(model_dir, best_epoch, last_epoch, print_every)
     assert_file_creation_after_evaluate(test_dir, model_name, training_n_plots, training_n_repeat, pck_threshold,
                                         '')
 
@@ -343,7 +349,8 @@ def test_evaluate_human_mocap_3d(create_project_human_mocap_3d, prepare_data_hum
     project_path = (create_project_human_mocap_3d / project_name)
     dataset_path = (project_path / f'DISK_data/{dataset_name}')
     suffix, indep_keypoints, merge_keypoints = prepare_data_human_mocap_3d
-    proba_files_exist, proba_file, proba_length_file = train_evaluate.find_proba_files(dataset_path, suffix)
+    proba_files_exist, _, _ = train_evaluate.find_proba_files(dataset_path, suffix)
+    rerun_create_proba = False if proba_files_exist else True
 
     logger = logging.getLogger()
 
@@ -364,9 +371,10 @@ def test_evaluate_human_mocap_3d(create_project_human_mocap_3d, prepare_data_hum
                        loss_mask=True,
                        loss_factor=100,
                        n_cpus=4,
-                       proba_file=proba_file,
-                       proba_length_file=proba_length_file,
+                       rerun_create_proba=rerun_create_proba,
                        indep_keypoints=indep_keypoints,
+                       merge_keypoints=merge_keypoints,
+                       suffix_proba_files=suffix,
                        add_missing_pad=(1,1),
                        viewinvariant=True,
                        normalize=False,

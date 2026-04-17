@@ -10,7 +10,7 @@ from shared_assertions import *
 
 project_name = 'DISK_multi_DLC_CSV'
 file_format = 'dlc_csv'
-data_files = glob('/home/france/mount_cvg/behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-csv/*.csv')
+data_files = glob(os.path.join(root_path, 'behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-csv/*.csv'))
 
 dataset_name = 'mouse'
 length = 30
@@ -76,6 +76,7 @@ def prepare_data_multianimal_dlc_csv(create_project_multianimal_dlc_csv):
     logger = logging.getLogger()
     indep_keypoints = True
     merge_keypoints = False
+    suffix_proba_files = ''
 
     prepare_data_kwargs = dict(
         project_path = project_path,
@@ -95,6 +96,7 @@ def prepare_data_multianimal_dlc_csv(create_project_multianimal_dlc_csv):
         drop_keypoints = drop_keypoints,
         indep_keypoints = indep_keypoints,
         merge_keypoints = merge_keypoints,
+        suffix_proba_files = suffix_proba_files,
         skeleton_graph = None,
         logger = logger,
     )
@@ -128,7 +130,8 @@ def train_multianimal_dlc_csv(create_project_multianimal_dlc_csv, prepare_data_m
     network_config = assert_and_get_network_config(network_type)
 
     ## GIVEN
-    proba_files_exist, proba_file, proba_length_file = train_evaluate.find_proba_files(dataset_path, suffix)
+    proba_files_exist, _, _ = train_evaluate.find_proba_files(dataset_path, suffix)
+    rerun_create_proba = False if proba_files_exist else True
 
     model_dir = project_path.joinpath(f'DISK_train/{model_name}')
     model_dir.mkdir(exist_ok=True, parents=True)
@@ -159,9 +162,10 @@ def train_multianimal_dlc_csv(create_project_multianimal_dlc_csv, prepare_data_m
             model_scheduler_steps_epoch=500,
             n_cpus=n_cpus,
             print_every=print_every,
-            proba_file=proba_file,
-            proba_length_file=proba_length_file,
-            indep_keypoints=False,
+            rerun_create_proba = rerun_create_proba,
+            indep_keypoints=indep_keypoints,
+            merge_keypoints=merge_keypoints,
+            suffix_proba_files=suffix,
             add_missing_pad=(1,0),
             viewinvariant=True,
             normalize=False,

@@ -37,7 +37,8 @@ dependencies = [
 dev = [
     "build",
     "twine",
-    "pytest"
+    "pytest",
+    "approvaltests"
 ]
 
 [project.scripts]

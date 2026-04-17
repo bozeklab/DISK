@@ -39,28 +39,41 @@ DISK allows to use a bigger proportion of experimental data for downstream behav
 
 # Installation
 
-To Install DISK and core dependencies:
+## To Install DISK and core dependencies:
 
 
 ```bash
 pip install disk-impute
 ```
 
-To make DISK work, including PyTorch with the Correct CUDA Backend. First install the correct pytorch for your machine, then pip install disk-impute:
+## GPU-support
 
-> Find link for your CUDA installation at this [page](https://pytorch.org/get-started/previous-versions/) Not using a GPU at all?  
+To make DISK work, including PyTorch with the Correct CUDA Backend. **First install the correct pytorch for your machine, then `pip install disk-impute`**:
 
-This step can take up to 10-15 minutes. 
+Find link for your CUDA installation at this [page](https://pytorch.org/get-started/previous-versions/) Not using a GPU at all?  
+
+Installing pytorch can take up to 10-15 minutes. 
 
 **[VERY IMPORTANT - if using with GPU]** To test that pytorch is seeing the GPU, you can test it in a terminal: `DISK-check-gpu`
 
-For all cases, test if DISK is installed correctly by running in the terminal: `DISK-check-install`
-
-### Python troubleshooting
+### Pytorch troubleshooting
 
 If you have trouble installing Pytorch, check [this page](https://pytorch.org/get-started/previous-versions/) for pytorch version `1.9.1` and your system.
-You can install separately pytorch as a first step using for example `conda install pytorch==1.9.1 cudatoolkit=11.1 -c pytorch -c conda-forge` or `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 cpuonly -c pytorch` for the CPU-only version.
+
+You can install separately pytorch as a first step using for example 
+`conda install pytorch==1.9.1 cudatoolkit=11.1 -c pytorch -c conda-forge` or `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 cpuonly -c pytorch` for the CPU-only version.
 For OSX, `conda install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1 -c pytorch` or `pip install torch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1`. 
+
+## Test installation
+
+For all cases, test if DISK is installed correctly by running in the terminal: 
+
+```bash
+DISK-check-install
+```
+
+
+
 
 # Summary
 
@@ -88,14 +101,6 @@ The training is done on data with artificially introduced gaps. This process of 
 
 # Practical aspects
 
-## First steps tutorial
-
-The tutorial is available as a Jupyter Notebook and compatible with Google colab: in this github repo in [`notebooks/DISK_tutorial_2025-05.ipynb`](https://github.com/bozeklab/DISK/blob/main/notebooks/DISK_tutorial_2024-05.ipynb)
-with processed datasets and saved checkpoint models available on [zenodo](https://doi.org/10.5281/zenodo.15828939).
-
-Alternatively, the same steps (without the explanations and images) are available as a simple bash script in [`tests/test_tutorial_zenodo.sh`](https://github.com/bozeklab/DISK/blob/main/tests/test_tutorial_zenodo.sh).
-
-
 ## DISK main commands
 
 There are 4 main commands:
@@ -104,7 +109,7 @@ There are 4 main commands:
 - **DISK-train** -- train a DISK model to impute the gaps. Include evaluating and plotting.
 - **DISK-impute** -- impute on original data using the trained model.
 
-Example of command usage:
+Example of command usage (you can run these to see if everything runs without error -- this is not designed to give any good results):
 
 ```commandline
 # download the data file to run the demo code
@@ -117,10 +122,10 @@ DISK-create-project --project_path DISK_demo --file_format simple_csv --data_fil
 DISK-prepare-data --project_path DISK_demo --length 30
 
 # train a DISK model on the previsouly created dataset
-DISK-train --project_path DISK_demo --dataset_name dataset_30_15 --training_epochs 3
+DISK-train --project_path DISK_demo --dataset_name dataset_length30_stride15_sequential --training_epochs 3
 
 # use the trained model to impute gaps
-DISK-impute --project_path DISK_demo --dataset_name dataset_30_15 --model_name dataset_30_15_DISK
+DISK-impute --project_path DISK_demo --dataset_name dataset_length30_stride15_sequential --model_name dataset_30_15_DISK
 ```
 
 The demo code is to verify that everything works on your machine and to introduce you the main commands. 
@@ -217,6 +222,14 @@ DISK-evaluate --project_path ... --dataset_name ... --model_name_list path/to/mo
 ```
 
 
+## First steps tutorial
+
+Additionally, a tutorial is available as a Jupyter Notebook and compatible with Google colab: in this github repo in [`notebooks/DISK_tutorial_2025-05.ipynb`](https://github.com/bozeklab/DISK/blob/main/notebooks/DISK_tutorial_2024-05.ipynb)
+with processed datasets and saved checkpoint models available on [zenodo](https://doi.org/10.5281/zenodo.15828939).
+
+Alternatively, the same steps (without the explanations and images) are available as a simple bash script in [`tests/test_tutorial_zenodo.sh`](https://github.com/bozeklab/DISK/blob/main/tests/test_tutorial_zenodo.sh).
+
+
 # Detailed usage
 
 
@@ -245,7 +258,7 @@ DISK_project_folder
   |_ config_project.yaml
   |
   |_ DISK_data
-     |_ dataset_0_freqX_lengthY
+     |_ dataset_freqF_lengthL_strideS
          |_ train_dataset.npz
          |_ train_fulllength_dataset.npz
          |_ test_dataset.npz
@@ -253,8 +266,8 @@ DISK_project_folder
          |_ val_dataset.npz
          |_ val_fulllength_dataset.npz
          |_ constants.py
-         |_ dataset0_freqX_lengthY_proba_missing.csv
-         |_ dataset0_freqX_lengthY_proba_missing_length.csv
+         |_ dataset_freqF_lengthL_strideS_proba_missing.csv
+         |_ dataset_freqF_lengthL_strideS_proba_missing_length.csv
          |
      |_ dataset_1_freqV_lengthW
          |_ ...
@@ -275,8 +288,8 @@ DISK_project_folder
   
 ```
 
-- In the `DISK_data` folder, will be stored each dataset as a folder, e.g.  `dataset_0_freqX_lengthY`. 
-In this folder `dataset_0_freqX_lengthY`, the dataset files per se (npz files) and the company files like the one with the dataset constants which will be read when using the dataset (`constants.py`).
+- In the `DISK_data` folder, will be stored each dataset as a folder, e.g.  `dataset_freqF_lengthL_strideS`. 
+In this folder `dataset_freqF_lengthL_strideS`, the dataset files per se (npz files) and the company files like the one with the dataset constants which will be read when using the dataset (`constants.py`).
 
 - In the `DISK_data` folder will also be stored the files to create the artificial holes, the files with proba_missing in their names (See *Step 2.* below). 
 

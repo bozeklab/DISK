@@ -1,21 +1,32 @@
 import pytest, logging
-from DISK.launchers import create_project, prepare_data
+from DISK.launchers import create_project, prepare_data, train_evaluate
 from shared_assertions import *
-from functools import partial
+from tests.pipeline_tests.shared_assertions import root_path
 
 project_name = 'DISK_FL2'
 file_format = 'mat_qualisys'
 data_files = [
-'/home/france/mount_cvg/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S1_M1_MC6_FL2_17_04_2019_proc_bij_6_08_19_A.mat',
-'/home/france/mount_cvg/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S2_M2_MC6_FL2_17_04_2019_proc-bij_6_08_19_C.mat',
-'/home/france/mount_cvg/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S3_M3_MC6_FL2_17_04_2019_proc_bij_7_08_19_B.mat',
-'/home/france/mount_cvg/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S4_M4_MC7_FL2_17_04_2019_proc_bij_7_08_19_A.mat',
-'/home/france/mount_cvg/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S5_M5_MC7_FL2_18_04_2019_proc_bij_6_08_19_C.mat',
-'/home/france/mount_cvg/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S6_M6_MC7_FL2_18_04_2019_proc_bij_8_08_19_B.mat',
-'/home/france/mount_cvg/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S7_M7_MC8_FL2_18_04_2019_proc_bij_8_08_19_A.mat',
-'/home/france/mount_cvg/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S8_M8_MC8_FL2_18_04_2019_proc_bij_8_08_19_C.mat',
-'/home/france/mount_cvg/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S9_M9_MC8_FL2_18_04_2019_proc_bij_8_08_19_B.mat',
-'/home/france/mount_cvg/behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S10_M10_MC8_FL2_18_04_2019_proc_nij_8_08_19_C.mat']
+os.path.join(root_path, 'behavior_data/bogna_data/INH1A_open_field_proc'
+                       '/INH1A_S1_M1_MC6_FL2_17_04_2019_proc_bij_6_08_19_A.mat'),
+os.path.join(root_path, 'behavior_data/bogna_data/INH1A_open_field_proc/INH1A_S2_M2_MC6_FL2_17_04_2019_proc'
+                       '-bij_6_08_19_C.mat'),
+os.path.join(root_path, 'behavior_data/bogna_data/INH1A_open_field_proc'
+                       '/INH1A_S3_M3_MC6_FL2_17_04_2019_proc_bij_7_08_19_B.mat'),
+os.path.join(root_path, 'behavior_data/bogna_data/INH1A_open_field_proc'
+                       '/INH1A_S4_M4_MC7_FL2_17_04_2019_proc_bij_7_08_19_A.mat'),
+os.path.join(root_path, 'behavior_data/bogna_data/INH1A_open_field_proc'
+                       '/INH1A_S5_M5_MC7_FL2_18_04_2019_proc_bij_6_08_19_C.mat'),
+os.path.join(root_path, 'behavior_data/bogna_data/INH1A_open_field_proc'
+                       '/INH1A_S6_M6_MC7_FL2_18_04_2019_proc_bij_8_08_19_B.mat'),
+os.path.join(root_path, 'behavior_data/bogna_data/INH1A_open_field_proc'
+                       '/INH1A_S7_M7_MC8_FL2_18_04_2019_proc_bij_8_08_19_A.mat'),
+os.path.join(root_path, 'behavior_data/bogna_data/INH1A_open_field_proc'
+                       '/INH1A_S8_M8_MC8_FL2_18_04_2019_proc_bij_8_08_19_C.mat'),
+os.path.join(root_path, 'behavior_data/bogna_data/INH1A_open_field_proc'
+                       '/INH1A_S9_M9_MC8_FL2_18_04_2019_proc_bij_8_08_19_B.mat'),
+os.path.join(root_path, 'behavior_data/bogna_data/INH1A_open_field_proc'
+                       '/INH1A_S10_M10_MC8_FL2_18_04_2019_proc_nij_8_08_19_C'
+                '.mat')]
 
 dataset_rootname = 'INH_test'
 original_freq = 300
@@ -65,10 +76,19 @@ def prepare_data_inh(project_path, dataset_name, indep_keypoints, merge_keypoint
 
     logger = logging.getLogger()
 
+    config = dict(original_missing=True)
+    from types import SimpleNamespace
+
+    _cfg = SimpleNamespace(indep_keypoints=indep_keypoints,
+                           merge_keypoints=merge_keypoints)
+
+    indep_keypoints, merge_keypoints, suffix_proba_files, rerun_create_proba = train_evaluate.check_proba_parameters(
+        dataset_path, config, _cfg, logger)
+
     prepare_data_kwargs = dict(
-        project_path=project_path,
-        data_files =data_files,
-        file_format =file_format,
+        project_path = project_path,
+        data_files = data_files,
+        file_format = file_format,
         dataset_name = dataset_name,
         dataset_path = dataset_path,
         length = length,
@@ -83,6 +103,7 @@ def prepare_data_inh(project_path, dataset_name, indep_keypoints, merge_keypoint
         drop_keypoints = [],
         indep_keypoints = indep_keypoints,
         merge_keypoints = merge_keypoints,
+        suffix_proba_files = suffix_proba_files,
         skeleton_graph = None,
         logger = logger,
     )
@@ -92,7 +113,6 @@ def prepare_data_inh(project_path, dataset_name, indep_keypoints, merge_keypoint
         **prepare_data_kwargs)
 
     ## THEN
-
     return suffix, indep_keypoints, merge_keypoints
 
 
@@ -100,6 +120,7 @@ def test_prepare_data_inh_indepTrue_mergeFalse(create_project_inh):
     project_path = (create_project_inh / project_name)
     indep_kepoints = True
     merge_keypoints = False
+
     dataset_name = f'{dataset_rootname}_indep{indep_kepoints}_merge{merge_keypoints}'
     dataset_path = (project_path / f'DISK_data/{dataset_name}')
     suffix, indep_kepoints_return, merge_keypoints_return = prepare_data_inh(project_path, dataset_name,
@@ -131,11 +152,13 @@ def test_prepare_data_inh_indepFalse_mergeTrue(create_project_inh):
     merge_keypoints = True
     dataset_name = f'{dataset_rootname}_indep{indep_kepoints}_merge{merge_keypoints}'
     dataset_path = (project_path / f'DISK_data/{dataset_name}')
+
     suffix, indep_kepoints_return, merge_keypoints_return = prepare_data_inh(project_path, dataset_name, indep_kepoints, merge_keypoints)
-    print(suffix)
-    assert suffix == '_set_keypoints_merged'
+    print(suffix, indep_kepoints_return, merge_keypoints_return)
+
     assert indep_kepoints_return == indep_kepoints
     assert merge_keypoints_return == merge_keypoints
+    assert suffix == '_set_keypoints_merged'
     assert_file_creation_after_prepare_data(dataset_path, suffix)
 
 

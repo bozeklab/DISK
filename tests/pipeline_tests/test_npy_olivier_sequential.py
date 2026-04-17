@@ -10,7 +10,7 @@ from shared_assertions import *
 
 
 
-data_file_list = ["/home/france/Dropbox/2025_UniBonn/behavior_data/DISK/female_2318.npy", ]
+data_file_list = [os.path.join(root_path, "behavior_data/female_2318.npy"), ]
 
 project_name = "DISK_olivier_dataset"
 file_format = "npy"
@@ -81,6 +81,7 @@ def prepare_data_olivier_sequential_indepFalse(create_project_olivier_sequential
 
     indep_keypoints = False
     merge_keypoints = False
+    suffix_proba_files = '_set_keypoints'
 
     prepare_data_kwargs = dict(
         project_path=project_path,
@@ -100,6 +101,7 @@ def prepare_data_olivier_sequential_indepFalse(create_project_olivier_sequential
         drop_keypoints = [],
         indep_keypoints = indep_keypoints,
         merge_keypoints = merge_keypoints,
+        suffix_proba_files = suffix_proba_files,
         skeleton_graph = None,
         logger = logger,
     )
@@ -135,6 +137,7 @@ def prepare_data_olivier_sequential_indepTrue(create_project_olivier_sequential,
 
     indep_keypoints = True
     merge_keypoints = False
+    suffix_proba_files = ''
 
     prepare_data_kwargs = dict(
         project_path=project_path,
@@ -154,6 +157,7 @@ def prepare_data_olivier_sequential_indepTrue(create_project_olivier_sequential,
         drop_keypoints=[],
         indep_keypoints=indep_keypoints,
         merge_keypoints=merge_keypoints,
+        suffix_proba_files=suffix_proba_files,
         skeleton_graph=None,
         logger=logger,
     )
@@ -208,7 +212,8 @@ def train_olivier_sequential(create_project_olivier_sequential,
     network_config = assert_and_get_network_config(network_type)
 
     ## GIVEN
-    proba_files_exist, proba_file, proba_length_file = train_evaluate.find_proba_files(dataset_path, suffix)
+    proba_files_exist, _, _ = train_evaluate.find_proba_files(dataset_path, suffix)
+    rerun_create_proba = False if proba_files_exist else True
 
     model_dir = project_path.joinpath(f'DISK_train/{model_name}')
     assert not model_dir.is_dir()
@@ -241,9 +246,10 @@ def train_olivier_sequential(create_project_olivier_sequential,
             model_scheduler_steps_epoch=500,
             n_cpus=n_cpus,
             print_every=print_every,
-            proba_file=proba_file,
-            proba_length_file=proba_length_file,
-            indep_keypoints=False,
+            rerun_create_proba=rerun_create_proba,
+            indep_keypoints=indep_keypoints,
+            merge_keypoints=merge_keypoints,
+            suffix_proba_files=suffix,
             add_missing_pad=(1,0),
             viewinvariant=True,
             normalize=False,
@@ -299,7 +305,8 @@ def test_evaluate_olivier_sequential(create_project_olivier_sequential,
     project_path = (create_project_olivier_sequential / project_name)
     dataset_path = (project_path / f'DISK_data/{dataset_name}')
     suffix, indep_keypoints, merge_keypoints = prepare_data_olivier_sequential_indepTrue
-    proba_files_exist, proba_file, proba_length_file = train_evaluate.find_proba_files(dataset_path, suffix)
+    proba_files_exist, _, _ = train_evaluate.find_proba_files(dataset_path, suffix)
+    rerun_create_proba = False if proba_files_exist else True
 
     logger = logging.getLogger()
 
@@ -308,7 +315,7 @@ def test_evaluate_olivier_sequential(create_project_olivier_sequential,
     n_plots = 6
     n_repeat = 2
     pck_threshold = 0.1
-    suffix = ''
+
     evaluate_kwargs = dict(project_dir=project_path,
                        model_dirs=[model_dir, ],
                        dataset_path=dataset_path,
@@ -320,9 +327,10 @@ def test_evaluate_olivier_sequential(create_project_olivier_sequential,
                        loss_mask=True,
                        loss_factor=100,
                        n_cpus=4,
-                       proba_file=proba_file,
-                       proba_length_file=proba_length_file,
+                    rerun_create_proba=rerun_create_proba,
                        indep_keypoints=indep_keypoints,
+                       merge_keypoints=merge_keypoints,
+                       suffix_proba_files=suffix,
                        add_missing_pad=(1,1),
                        viewinvariant=True,
                        normalize=False,
@@ -346,7 +354,7 @@ def test_evaluate_olivier_sequential(create_project_olivier_sequential,
     assert_file_creation_after_evaluate(test_dir, model_name, n_plots, n_repeat, pck_threshold, suffix)
 
 
-@pytest.mark.skip(reason="Not implemented yet")
+#@pytest.mark.skip(reason="Not implemented yet")
 def test_impute_olivier_sequential(create_project_olivier_sequential, train_olivier_sequential):
     project_path = (create_project_olivier_sequential / project_name)
     dataset_path = (project_path / f'DISK_data/{dataset_name}')

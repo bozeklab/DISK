@@ -5,6 +5,7 @@ import os
 import yaml
 import torch
 
+root_path = '/home/france/mount_cvg'
 
 def is_empty(path: Path):
     return any(path.iterdir())
@@ -71,7 +72,7 @@ def assert_file_creation_after_prepare_data(dataset_path, suffix):
 def assert_and_get_network_config(network):
     network_config = None
     script_directory = os.path.dirname(os.path.abspath(__file__))
-    if network == 'gru':
+    if network == 'gru' or network == 'GRU':
         with open(os.path.join(script_directory, f'../../DISK/conf/network/gru.yaml'), 'r') as file:
             network_config = yaml.safe_load(file)
 
@@ -131,6 +132,7 @@ def assert_file_creation_after_train(model_dir, best_epoch, last_epoch, print_ev
     print(len(losses), last_epoch, print_every, last_epoch // print_every)
     assert len(losses) == last_epoch // print_every
     ## we start counting epochs at 1 not at 0 (hence best_epoch - 1)
+    print(np.argmin(losses.iloc[:, 3]), best_epoch, best_epoch // print_every - 1)
     assert np.argmin(losses.iloc[:, 3]) == best_epoch // print_every - 1
 
 

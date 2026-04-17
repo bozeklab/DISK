@@ -56,7 +56,7 @@ def find_gap_loop(data_dict, initial=True, keypoints=(), indep_keypoints=True, s
         i_data += 1
     return df
 
-def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints,
+def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, suffix_proba_files,
                                skeleton_graph, logger) -> (bool, bool, bool, str):
     """Check if the artificial missing coordinates match the original coordinates"""
 
@@ -67,19 +67,13 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
         raise ValueError(f'no constant file found in', constant_file_path)
     dataset_constants = read_constant_file(constant_file_path)
 
-    suffix = f'_set_keypoints' if not indep_keypoints else ''
-    if indep_keypoints:
-        if merge_keypoints:
-            logger.info(f'️ℹ merge_keypoints = True is not a valid option when indep_keypoints = True. '
-                         f'merge_keypoints would be considered False')
-            suffix += f'_merged'
     no_original_missing = False
 
     for initial in [True, False]:
 
         if not initial:
-            length_proba_df = pd.read_csv(os.path.join(dataset_path, f'proba_missing_length{suffix}.csv'))
-            init_proba = pd.read_csv(os.path.join(dataset_path, f'proba_missing{suffix}.csv'))
+            length_proba_df = pd.read_csv(os.path.join(dataset_path, f'proba_missing_length{suffix_proba_files}.csv'))
+            init_proba = pd.read_csv(os.path.join(dataset_path, f'proba_missing{suffix_proba_files}.csv'))
 
             addmissing_transform = AddMissing_LengthProba(length_proba_df,
                                                           init_proba,
@@ -144,7 +138,7 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
                 logger.info(f'ℹ️ No Missing keypoints in the original files. Create uniform missing proba.')
                 proba_df, df_init_proba = create_uniform_proba(1, dataset_constants.SEQ_LENGTH - 1,
                                                                dataset_constants.KEYPOINTS)
-                suffix = f'_uniform'
+                suffix_proba_files = f'_uniform'
             else:
                 tmp = df.loc[df['original'], ['keypoint', 'original']].groupby('keypoint').count()
                 set_keypoints = np.unique(df.loc[df['keypoint'] != 'non_missing', 'keypoint'])
@@ -163,7 +157,7 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
                 init_proba = np.append(init_proba, 0)
 
                 df_init_proba = pd.DataFrame(columns=['keypoint', 'proba'], data=np.vstack([set_keypoints, init_proba]).T)
-            df_init_proba.to_csv(os.path.join(dataset_path, f'proba_missing{suffix}.csv'), index=False)
+            df_init_proba.to_csv(os.path.join(dataset_path, f'proba_missing{suffix_proba_files}.csv'), index=False)
 
 
         if (not indep_keypoints) and merge_keypoints:
@@ -178,17 +172,6 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
             df.loc[:, 'merged_set'] = df['keypoint'].apply(lambda x: f'len_{len(x.split(" "))}' if len(x.split(" ")) > 1 else x)
 
             if initial:
-                ## count only starts
-                # count_starts = df.loc[(df['keypoint'] != 'non_missing') * df['original']].groupby('merged_set')['length'].count()
-                # count_starts_merged = count_starts.reset_index()
-                # count_starts_merged = count_starts_merged.rename({'length': 'proba'}, axis=1)
-                # ## to reassign the probabilities to the original set_kp, we create a new df with the right number of rows
-                # df_init_proba = pd.DataFrame(columns=['keypoint', 'merged_set'],
-                #                              data=df.loc[(df['keypoint'] != 'non_missing') * (df['original']), ['keypoint', 'merged_set']].drop_duplicates())
-                # df_init_proba = pd.merge(df_init_proba, count_starts_merged, how='left', on=['merged_set'])
-                # count_starts_merged.loc[:, 'proba'] /= np.sum(count_starts_merged['proba'])
-                # df_init_proba[['keypoint', 'proba']].to_csv(os.path.join(dataset_path, f'proba_missing{suffix}.csv'),
-                # index=False)
 
                 # keep the non_missing for the length proba
                 total_count_keypoint = df.loc[df['original'], :].groupby(['merged_set'])['index_sample'].agg(
@@ -201,7 +184,7 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
                                                        how='left'), on=['merged_set'], how='left')
                 proba_df.loc[:, 'proba'] = proba_df['count'] / proba_df['total']
                 proba_df[['keypoint', 'length', 'proba']].sort_values(['keypoint', 'length'])\
-                    .to_csv(os.path.join(dataset_path, f'proba_missing_length{suffix}.csv'), index=False)
+                    .to_csv(os.path.join(dataset_path, f'proba_missing_length{suffix_proba_files}.csv'), index=False)
 
             df.loc[:, 'keypoint'] = df['merged_set']
 
@@ -218,7 +201,7 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
                         ## length, keypoint, count, total, proba
                         proba_df.loc[proba_df.shape[0], :] = [0, kp, 1, 1, 1]
             proba_df[['keypoint', 'length', 'proba']].sort_values(['keypoint', 'length'])\
-                .to_csv(os.path.join(dataset_path, f'proba_missing_length{suffix}.csv'), index=False)
+                .to_csv(os.path.join(dataset_path, f'proba_missing_length{suffix_proba_files}.csv'), index=False)
 
         elif initial:
             raise ValueError(f'[DISK][CREATE_PROBA_MISSING_FILES] No proba_missing_length file saved. Check the values '
@@ -241,7 +224,7 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
             plt.legend()
 
         plot_save(hist_length_original_vs_fake, ~initial,
-                  title=f'hist_length_original_vs_fake{suffix}',
+                  title=f'hist_length_original_vs_fake{suffix_proba_files}',
                   only_png=True, outputdir=dataset_path)
 
         def hist_length_per_keypoint():
@@ -281,7 +264,7 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
             plt.tight_layout()
 
         if not (no_original_missing and initial):
-            plot_save(hist_length_per_keypoint, ~initial, title=f'hist_length_per_keypoint{suffix}', only_png=True,
+            plot_save(hist_length_per_keypoint, ~initial, title=f'hist_length_per_keypoint{suffix_proba_files}', only_png=True,
                           outputdir=dataset_path)
 
         def count_vs_keypoint():
@@ -312,10 +295,10 @@ def create_proba_missing_files(project_path, dataset_path, indep_keypoints, merg
                 plt.legend()
 
         if not (no_original_missing and initial):
-            plot_save(count_vs_keypoint, ~initial, title=f'count_vs_keypoint{suffix}', only_png=True,
+            plot_save(count_vs_keypoint, ~initial, title=f'count_vs_keypoint{suffix_proba_files}', only_png=True,
                       outputdir=dataset_path)
 
         logger.debug(f'Done with initial = {initial}')
 
 
-    return no_original_missing, indep_keypoints, merge_keypoints, suffix
+    return no_original_missing, indep_keypoints, merge_keypoints, suffix_proba_files

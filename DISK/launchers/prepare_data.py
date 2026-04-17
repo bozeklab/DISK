@@ -3,6 +3,7 @@ import sys
 import yaml
 import logging
 
+from DISK.launchers.train_evaluate import check_proba_parameters
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file, VoidHandler
 from DISK.models.graph import Graph
 from DISK.utils.config_decorator import config_reader, parse_command_line_args, test_boolean_variable
@@ -10,8 +11,8 @@ from DISK.utils.config_decorator import config_reader, parse_command_line_args, 
 def main(project_path, dataset_path, dataset_name, data_files, file_format,
          length, stride, fill_gap, sequential, original_freq, subsampling_freq,
          dlc_likelihood_threshold, discard_beginning, discard_end,
-         drop_keypoints, indep_keypoints, merge_keypoints, skeleton_graph,
-         logger):
+         drop_keypoints, indep_keypoints, merge_keypoints,
+         suffix_proba_files, skeleton_graph, logger):
 
     from DISK.create_dataset import create_dataset
     from DISK.create_proba_missing_files import create_proba_missing_files
@@ -44,7 +45,12 @@ def main(project_path, dataset_path, dataset_name, data_files, file_format,
               f'lower stride value.\n')
 
 
-    no_original_missing, indep_keypoints, merge_keypoints, suffix = create_proba_missing_files(project_path, dataset_path, indep_keypoints, merge_keypoints, skeleton_graph, logger)
+    no_original_missing, indep_keypoints, merge_keypoints, suffix = create_proba_missing_files(project_path,
+                                                                                               dataset_path,
+                                                                                               indep_keypoints,
+                                                                                               merge_keypoints,
+                                                                                               suffix_proba_files,
+                                                                                               skeleton_graph, logger)
     logger.info(f'✅ Successfully estimated probabilities of missing keypoints for dataset {dataset_name}.\n')
 
     logger.info(f'ℹ️ Checking if imputable segments in dataset {dataset_name}.\n')
@@ -292,14 +298,8 @@ def cli(_cfg) -> None:
     else:
         drop_keypoints = list(_cfg.drop_keypoints)
 
-    indep_keypoints = test_boolean_variable(_cfg.indep_keypoints, 'indep_keypoints')
-    merge_keypoints = test_boolean_variable(_cfg.merge_keypoints, 'merge_keypoints')
-
-    if indep_keypoints:
-        if merge_keypoints:
-            logger.info(f'️ℹ merge_keypoints = True is not a valid option when indep_keypoints = True. '
-                        f'merge_keypoints would be considered False')
-            merge_keypoints = False
+    indep_keypoints, merge_keypoints, suffix_proba_files, rerun_create_proba = check_proba_parameters(dataset_path,
+                                                                                                    config, _cfg, logger)
 
     os.makedirs(os.path.join(dataset_path, 'config'), exist_ok=True)
 
@@ -314,7 +314,7 @@ def cli(_cfg) -> None:
                                                                                              data_files, file_format,
          length, stride, fill_gap, sequential, original_freq, subsampling_freq,
          dlc_likelihood_threshold, discard_beginning, discard_end,
-         drop_keypoints, indep_keypoints, merge_keypoints, skeleton_graph,
+         drop_keypoints, indep_keypoints, merge_keypoints, suffix_proba_files, skeleton_graph,
          logger)
 
     config['keypoints'] = keypoints

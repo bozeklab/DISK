@@ -6,7 +6,7 @@ import yaml
 import torch
 
 from DISK.utils.logger_setup import setup_custom_logging, copy_config_file, VoidHandler
-from DISK.launchers.train_evaluate import find_proba_files
+from DISK.launchers.train_evaluate import find_proba_files, check_proba_parameters
 from DISK.models.graph import Graph
 from DISK.utils.config_decorator import config_reader, parse_command_line_args, test_boolean_variable
 from DISK.evaluate_fillmissing import evaluate
@@ -27,7 +27,7 @@ def main(project_dir, model_dirs, dataset_path, dataset_name, test_dir, skeleton
 
     if rerun_create_proba:
         create_proba_missing_files(project_dir, dataset_path, indep_keypoints,
-                                   merge_keypoints, skeleton_graph,
+                                   merge_keypoints, suffix_proba_files, skeleton_graph,
                                    logger)
         logger.info(f'✅ Successfully estimated probabilities of missing keypoints with '
                     f'{["set_keypoints", "indep_keypoints"][int(indep_keypoints)]}.\n')
@@ -205,15 +205,8 @@ def cli(_cfg) -> None:
     else:
         add_missing_pad = list(_cfg.transforms_add_missing_pad)
 
-    indep_keypoints = test_boolean_variable(_cfg.indep_keypoints, 'indep_keypoints')
-    merge_keypoints = test_boolean_variable(_cfg.merge_keypoints, 'merge_keypoints')
-
-    suffix_proba_files = f'_set_keypoints' if not indep_keypoints else ''
-    if indep_keypoints:
-        if merge_keypoints:
-            logger.info(f'️ℹ\n️ merge_keypoints = True is not a valid option when indep_keypoints = True. '
-                        f'merge_keypoints would be considered False')
-            suffix_proba_files += f'_merged'
+    indep_keypoints, merge_keypoints, suffix_proba_files, rerun_create_proba = check_proba_parameters(dataset_path,
+                                                                                                    config, _cfg, logger)
 
     if not 'original_missing' in config.keys():
         print("\n❌ Problem with `config_project.yaml`. No 'original_missing' key."

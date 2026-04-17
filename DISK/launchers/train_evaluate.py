@@ -34,6 +34,35 @@ def find_proba_files(dataset_path: str, suffix: str):
 
     return True, proba_file, proba_length_file
 
+def check_proba_parameters(dataset_path, project_config, _cfg, logger):
+    indep_keypoints = test_boolean_variable(_cfg.indep_keypoints, 'indep_keypoints')
+    merge_keypoints = test_boolean_variable(_cfg.merge_keypoints, 'merge_keypoints')
+
+    if 'original_missing' not in project_config.keys():
+        return indep_keypoints, merge_keypoints, '', True
+
+    if project_config['original_missing']:
+        if indep_keypoints:
+            suffix_proba_files = ''
+            if merge_keypoints:
+                logger.info(f'️ℹ merge_keypoints = True is not a valid option when indep_keypoints = True. '
+                            f'merge_keypoints would be considered False')
+            merge_keypoints = False
+        else:
+            suffix_proba_files = f'_set_keypoints_merged' if merge_keypoints else f'_set_keypoints'
+
+        proba_files_exist, _, _ = find_proba_files(dataset_path, suffix_proba_files)
+        rerun_create_proba = False if proba_files_exist else True
+
+    else:
+        indep_keypoints = True
+        merge_keypoints = False
+        suffix_proba_files = '_uniform'
+
+        proba_files_exist, _, _ = find_proba_files(dataset_path, suffix_proba_files)
+        rerun_create_proba = False if proba_files_exist else True
+
+    return indep_keypoints, merge_keypoints, suffix_proba_files, rerun_create_proba
 
 def check_model_dir(model_dir: str):
     found_checkpoint = False
@@ -61,7 +90,7 @@ def main(project_dir, model_dir, dataset_path, dataset_name, test_dir, skeleton_
 
     if rerun_create_proba:
         create_proba_missing_files(project_dir, dataset_path, indep_keypoints,
-                                   merge_keypoints, skeleton_graph,
+                                   merge_keypoints, suffix_proba_files, skeleton_graph,
                                    logger)
         logger.info(f'✅ Successfully estimated probabilities of missing keypoints with '
                     f'{["set_keypoints", "indep_keypoints"][int(indep_keypoints)]}.\n')
@@ -367,31 +396,7 @@ def cli(_cfg) -> None:
               "If the problem persists, recreate a DISK project from scratch with DISK-create-project")
         sys.exit(1)
 
-    if config['original_missing']:
-        indep_keypoints = test_boolean_variable(_cfg.indep_keypoints, 'indep_keypoints')
-        merge_keypoints = test_boolean_variable(_cfg.merge_keypoints, 'merge_keypoints')
-
-        suffix_proba_files = f'_set_keypoints' if not indep_keypoints else ''
-        if indep_keypoints:
-            if merge_keypoints:
-                logger.info(f'️ℹ merge_keypoints = True is not a valid option when indep_keypoints = True. '
-                            f'merge_keypoints would be considered False')
-            merge_keypoints = False
-        else:
-            if merge_keypoints:
-                suffix_proba_files += f'_merged'
-
-        proba_files_exist, _, _ = find_proba_files(dataset_path, suffix_proba_files)
-        rerun_create_proba = False if proba_files_exist else True
-
-    else:
-        indep_keypoints = True
-        merge_keypoints = False
-        suffix_proba_files = '_uniform'
-
-        proba_files_exist, _, _ = find_proba_files(dataset_path, suffix_proba_files)
-        rerun_create_proba = False if proba_files_exist else True
-
+    check_proba_parameters(dataset_path, config, _cfg, logger)
 
     viewinvariant = test_boolean_variable(_cfg.transforms_viewinvariant, 'transforms_viewinvariant')
     normalize = test_boolean_variable(_cfg.transforms_normalize, 'transforms_normalize')
