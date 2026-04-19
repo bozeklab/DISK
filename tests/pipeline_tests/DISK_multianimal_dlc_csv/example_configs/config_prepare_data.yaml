@@ -1,0 +1,68 @@
+### REQUIRED PARAMETERS
+### _type and _help should not be changed
+### If mistakes / erasures with the config files, they can be reinitialized by the command: DISK-restore-config
+
+project_path:
+project_path_type: str
+project_path_help: "relative or absolute path to the DISK project folder. Should exist (it is create by the command DISK-create-project)"
+
+length:
+length_type: int
+length_help: "in number of timepoints at subsampling_freq"
+
+
+### OPTIONAL PARAMETERS
+
+dataset_name: _DEFAULT_
+dataset_name_type: str
+dataset_name_help: "output name for the created dataset"
+
+original_freq: _DEFAULT_
+original_freq_type: int
+original_freq_help: "original frequency of your data in Hz"
+
+subsampling_freq: _DEFAULT_
+subsampling_freq_type: int
+subsampling_freq_help: "subsampling frequency. subsampling_freq <= original_freq, equal if no subsampling desired otherwise lower"
+
+stride: _DEFAULT_
+stride_type: int
+stride_help: "in number of timepoints at subsampling_freq; a good rule of thumb is to put stride to length or length/2"
+
+discard_beginning: 0
+discard_beginning_type: int
+discard_beginning_help: "number of seconds if original_freq is given, otherwise number of frames to discard at the beginning of the file. For example if the recording was started before the actual behavioral tasks began. If not used, should be set to 0."
+
+discard_end: 0
+discard_end_type: int
+discard_end_help: "number of seconds if original_freq is given, otherwise number of frames to discard at the end of the file. For example if the recording was ended before the actual behavioral tasks began. If not used, should be set to 0."
+
+fill_gap: 0  #
+fill_gap_type: int
+fill_gap_help: "If fill_gap > 0, then small gaps under the provided number of frames will be filled by linear interpolation, done before resampling. If not used, should be set to 0. !! Linear interpolation is only suited for short gaps !!"
+
+drop_keypoints: []
+drop_keypoints_type: StringList
+drop_keypoints_help: "either keypoint names or if no name was given to keypoints just add the index of the keypoint as an integer"
+
+sequential: _DEFAULT_
+sequential_type: bool
+sequential_help: "when False, a given data file is either assigned to train, test or validation set. If True, then each file is partioned along the time axis in train, validation, then test in that order."
+
+dlc_likelihood_threshold: 0.8
+dlc_likelihood_threshold_type: float
+dlc_likelihood_threshold_help: "threshold under which a coordinate output by DLC is considered as missing."
+
+indep_keypoints: False
+indep_keypoints_type: bool
+indep_keypoints_help: "if False, look at sets of simultaneous missing keypoints; if True, look at each keypoint independently"
+
+merge_keypoints: False
+merge_keypoints_type: bool
+merge_keypoints_help: "if False then no merging because each combination of keypoints may not have enough data points to estimate a good missing probability distribution"
+
+
+### DEV PARAMETERS
+
+debug: false
+debug_type: bool

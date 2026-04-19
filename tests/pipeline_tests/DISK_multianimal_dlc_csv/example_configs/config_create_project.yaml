@@ -1,0 +1,15 @@
+### REQUIRED PARAMETERS
+### _type and _help should not be changed
+### If mistakes / erasures with the config files, they can be reinitialized by the command: DISK-restore-config
+
+project_path:
+project_path_type: str
+project_path_help: "relative or absolute path to the DISK project folder to be created. If it already exists, then adds a suffix to the name to avoid overwriting"
+
+file_format:
+file_format_type: str
+file_format_help: "file_format should take one of the following values: mat_dannce, mat_qualisys, simple_csv, dlc_csv, dlc_h5, npy, df3d_pkl, sleap_h5. Currently supported input formats"
+
+data_files:
+data_files_type: StringList
+data_files_help: "list of data files or path to folder where to find the data files. All the files in the folder will be considered, but only the ones matching the indicated file_format will be added to the project"

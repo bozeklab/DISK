@@ -148,7 +148,7 @@ def save_data_original_format(data, time, file, file_format, keypoints, orig_fre
             likelihood_columns = []
             for ind in individuals:
                 for k in keypoints_from_file:
-                    if not f'animal{ind}_' +'_'.join(k.split(' ')) in keypoints:
+                    if not f'animal-{ind}_' +'_'.join(k.split(' ')) in keypoints:
                         continue
                     likelihood_columns.append((header, ind, k, 'likelihood'))
                     for c in coordinates:

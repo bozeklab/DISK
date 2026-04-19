@@ -10,7 +10,7 @@ from shared_assertions import *
 
 project_name = 'DISK_test2_multianimal_dlc_h5'
 file_format = 'dlc_h5'
-data_files = glob(os.path.join(root_path, 'behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-h5/*.h5'))
+data_files = glob(os.path.join(root_path, 'behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-h5/*.h5'))[:6]
 
 dataset_name = 'mouse'
 length = 30
@@ -35,7 +35,7 @@ training_n_repeat = 1
 pck_threshold = 0.5
 n_cpus = 4
 
-threshoold_error_score = 50
+threshold_error_score = 50
 
 
 @pytest.fixture(scope="session")
@@ -213,7 +213,7 @@ def test_train_multianimal_dlc_h5(train_multianimal_dlc_h5):
 def test_impute_multianimal_dlc_h5(create_project_multianimal_dlc_h5, train_multianimal_dlc_h5):
     project_path = (create_project_multianimal_dlc_h5 / project_name)
     dataset_path = (project_path / f'DISK_data/{dataset_name}')
-    model_dir, _, _, _ = train_multianimal_dlc_h5
+    model_dir, _, _, _, _ = train_multianimal_dlc_h5
 
     impute_dir = project_path.joinpath(f'DISK_impute/Impute_{model_name}')
     impute_dir.mkdir(exist_ok=True, parents=True)
@@ -231,7 +231,7 @@ def test_impute_multianimal_dlc_h5(create_project_multianimal_dlc_h5, train_mult
                          skeleton_graph=None,
                          checkpoint=model_dir,
                          batch_size=32,
-                         threshold_error_score=threshoold_error_score,
+                         threshold_error_score=threshold_error_score,
                          total_n_plots=n_plots,
                          plot_only_holes=True,
                          missing_pad=(1, 0),

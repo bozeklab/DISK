@@ -396,7 +396,8 @@ def cli(_cfg) -> None:
               "If the problem persists, recreate a DISK project from scratch with DISK-create-project")
         sys.exit(1)
 
-    check_proba_parameters(dataset_path, config, _cfg, logger)
+    indep_keypoints, merge_keypoints, suffix_proba_files, rerun_create_proba = check_proba_parameters(dataset_path,
+                                                                                                    config, _cfg, logger)
 
     viewinvariant = test_boolean_variable(_cfg.transforms_viewinvariant, 'transforms_viewinvariant')
     normalize = test_boolean_variable(_cfg.transforms_normalize, 'transforms_normalize')

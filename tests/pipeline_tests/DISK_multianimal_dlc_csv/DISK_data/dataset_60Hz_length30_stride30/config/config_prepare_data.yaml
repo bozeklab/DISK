@@ -1,0 +1,16 @@
+config_path: ''
+dataset_name: _DEFAULT_
+debug: false
+discard_beginning: 0
+discard_end: -1
+dlc_likelihood_threshold: 0.01
+drop_keypoints: []
+fill_gap: 10
+indep_keypoints: false
+length: 30
+merge_keypoints: false
+original_freq: 60
+project_path: DISK_multianimal_dlc_csv
+sequential: 'false'
+stride: 30
+subsampling_freq: 60

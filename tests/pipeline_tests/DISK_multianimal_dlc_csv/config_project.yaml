@@ -1,0 +1,14 @@
+creation_date: '2026-04-18'
+data_files:
+- /home/france/mount_cvg/behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-csv/mouse005_task1_annotator1DLC_DlcrnetStride16Ms5_calms21Jan1shuffle1_snapshot_best-195_el_filtered.csv
+- /home/france/mount_cvg/behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-csv/mouse006_task1_annotator1DLC_DlcrnetStride16Ms5_calms21Jan1shuffle1_snapshot_best-195_el_filtered.csv
+- /home/france/mount_cvg/behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-csv/mouse012_task1_annotator1DLC_DlcrnetStride16Ms5_calms21Jan1shuffle1_snapshot_best-195_el_filtered.csv
+- /home/france/mount_cvg/behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-csv/mouse001_task1_annotator1DLC_DlcrnetStride16Ms5_calms21Jan1shuffle1_snapshot_best-195_el_filtered.csv
+- /home/france/mount_cvg/behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-csv/mouse008_task1_annotator1DLC_DlcrnetStride16Ms5_calms21Jan1shuffle1_snapshot_best-195_el_filtered.csv
+- /home/france/mount_cvg/behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-csv/mouse007_task1_annotator1DLC_DlcrnetStride16Ms5_calms21Jan1shuffle1_snapshot_best-195_el_filtered.csv
+- /home/france/mount_cvg/behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-csv/mouse004_task1_annotator1DLC_DlcrnetStride16Ms5_calms21Jan1shuffle1_snapshot_best-195_el_filtered.csv
+- /home/france/mount_cvg/behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-csv/mouse002_task1_annotator1DLC_DlcrnetStride16Ms5_calms21Jan1shuffle1_snapshot_best-195_el_filtered.csv
+- /home/france/mount_cvg/behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-csv/mouse011_task1_annotator1DLC_DlcrnetStride16Ms5_calms21Jan1shuffle1_snapshot_best-195_el_filtered.csv
+- /home/france/mount_cvg/behavior_data/calms21-disk-dlc/calms21-01.01-snapshot195-dlc-csv/mouse010_task1_annotator1DLC_DlcrnetStride16Ms5_calms21Jan1shuffle1_snapshot_best-195_el_filtered.csv
+file_format: dlc_csv
+project_path: /home/france/Documents/DISK/tests/pipeline_tests/DISK_multianimal_dlc_csv

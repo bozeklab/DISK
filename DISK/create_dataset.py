@@ -184,7 +184,7 @@ def open_and_extract_data(f, file_format, dlc_likelihood_threshold, logger):
             # len(new_keypoints) = keypoints x animals
             new_keypoints = []
             for animal_id in individuals:
-                new_keypoints.extend([f'animal{animal_id}_{k}' for k in keypoints])
+                new_keypoints.extend([f'animal-{animal_id}_{k}' for k in keypoints])
             keypoints = new_keypoints
         else:
             # One individual scenario
@@ -229,8 +229,8 @@ def open_and_extract_data(f, file_format, dlc_likelihood_threshold, logger):
             keypoints = list(dict.fromkeys([item[2] for item in multi_index]))
 
             new_keypoints = []
-            for animal_id in range(len(individuals)):
-                new_keypoints.extend([f'animal{animal_id}_{k}' for k in keypoints])
+            for animal_id in individuals:
+                new_keypoints.extend([f'animal-{animal_id}_{k}' for k in keypoints])
             keypoints = new_keypoints
         else:
             keypoints = list(dict.fromkeys([item[1] for item in multi_index]))
