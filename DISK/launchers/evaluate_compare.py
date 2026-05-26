@@ -239,26 +239,9 @@ def cli(_cfg) -> None:
         proba_files_exist, _, _ = find_proba_files(dataset_path, suffix_proba_files)
         rerun_create_proba = False if proba_files_exist else True
 
-    if _cfg.transforms_viewinvariant is None or type(_cfg.transforms_viewinvariant) != bool:
-        print("\n❌ transforms_viewinvariant should be a "
-              f"bool. Got {_cfg.transforms_viewinvariant}")
-        sys.exit(1)
-    else:
-        viewinvariant = _cfg.transforms_viewinvariant
-
-    if _cfg.transforms_normalize is None or type(_cfg.transforms_normalize) != bool:
-        print("\n❌ transforms_normalize should be a "
-              f"bool. Got {_cfg.transforms_normalize}")
-        sys.exit(1)
-    else:
-        normalize = _cfg.transforms_normalize
-
-    if _cfg.transforms_normalizecube is None or type(_cfg.transforms_normalizecube) != bool:
-        print("\n❌ transforms_normalizecube should be a "
-              f"bool. Got {_cfg.transforms_normalizecube}")
-        sys.exit(1)
-    else:
-        normalizecube = _cfg.transforms_normalizecube
+    viewinvariant = test_boolean_variable(_cfg.transforms_viewinvariant, 'transforms_viewinvariant')
+    normalize = test_boolean_variable(_cfg.transforms_normalize, 'transforms_normalize')
+    normalizecube = test_boolean_variable(_cfg.transforms_normalizecube, 'transforms_normalizecube')
 
     if _cfg.transforms_swap is None or type(
             _cfg.transforms_swap) != float or _cfg.transforms_swap < 0 or _cfg.transforms_swap > 1:
@@ -298,20 +281,8 @@ def cli(_cfg) -> None:
     else:
         plot3d_size = _cfg.plot_size3d
 
-    if _cfg.plot_only_holes2d is None or type(_cfg.plot_only_holes2d) != bool:
-        print("\n❌ plot_only_holes2d should be a "
-              f"bool. Got {_cfg.plot_only_holes2d}")
-        sys.exit(1)
-    else:
-        plot2d_only_holes = _cfg.plot_only_holes2d
-
-    if _cfg.plot_original_coordinates is None or type(_cfg.plot_original_coordinates) != bool:
-        print("\n❌ plot_original_coordinates should be a "
-              f"bool. Got {_cfg.plot_original_coordinates}")
-        sys.exit(1)
-    else:
-        original_coordinates = _cfg.plot_original_coordinates
-
+    plot2d_only_holes = test_boolean_variable(_cfg.plot_only_holes2d, 'plot_only_holes2d')
+    original_coordinates = test_boolean_variable(_cfg.plot_original_coordinates, 'plot_original_coordinates')
 
     if _cfg.n_repeat is None or type(_cfg.n_repeat) != int:
         print("\n❌ n_repeat should be a string."
@@ -359,7 +330,7 @@ def cli(_cfg) -> None:
          original_coordinates, pck_threshold, n_repeat,
          n_plots, plot2d_only_holes,
          plot3d_size, plot3d_azim,
-         logger, verbose)
+         logger, '', verbose)
 
     print('\n', '*' * 77, sep='')
     print('*' * 30, ' DISK-evaluate END ', '*' * 30)

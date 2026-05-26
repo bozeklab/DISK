@@ -418,7 +418,7 @@ def evaluate(project_path: str,
                                                      figsize=(fig_width,
                                                               dataset_constants.NUM_FEATURES),
                                                      sharex='all', sharey='col')
-                            fig.suptitle(title, size=fig_width * 5)
+                            fig.suptitle(title, size=fig_width)
                             axes = axes.flatten()
                             t_vect = np.arange(0, dataset_constants.SEQ_LENGTH) / dataset_constants.FREQ
 

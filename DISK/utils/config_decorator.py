@@ -74,7 +74,7 @@ def test_boolean_variable(var, varname):
         if type(var) == str:
             seq = var[0].upper() + var[1:]
             if eval(seq) not in [True, False]:
-                print("\n❌ sequential should be a "
+                print(f"\n❌ {varname} should be a "
                       f"bool. Got {var}")
                 sys.exit(1)
             else:
