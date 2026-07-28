@@ -221,11 +221,13 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
                       }
 
     for ith, data_dict in tqdm(enumerate(data_loader), total=len(data_loader), ascii=True, desc='Extract hidden'):
-        if ith >= 2000:
-            break ## for test purposes, quicker TO REMOVE !!!!!
+        # if ith >= 2000:
+        #     break ## for test purposes, quicker TO REMOVE !!!!!
         input_tensor = data_dict['x_supp'].to(device)
-        index_file.append(data_dict['indices_file'].numpy())
-        index_pos.append(data_dict['indices_pos'].numpy())
+        if 'indices_file' in data_dict.keys():
+            index_file.append(data_dict['indices_file'].numpy())
+        if 'indices_pos' in data_dict.keys():
+            index_pos.append(data_dict['indices_pos'].numpy())
         if 'label' in data_dict.keys():
             labels = data_dict['label']
             label_.append(torch.squeeze(labels, 1))
@@ -295,6 +297,20 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
                 statistics['periodicity_cat'].extend(periodicity_cat.detach().cpu().numpy())
                 statistics['n_missing'].extend(n_missing.detach().cpu().numpy())
 
+            if 'lid1' in dataset_constants.KEYPOINTS:
+                index_lid1 = dataset_constants.KEYPOINTS.index('lid1')
+                index_lid2 = dataset_constants.KEYPOINTS.index('lid2')
+                index_lid3 = dataset_constants.KEYPOINTS.index('lid3')
+                index_lid4 = dataset_constants.KEYPOINTS.index('lid4')
+                diag1 = torch.sqrt(torch.sum((input_tensor[:, :, index_lid4] - input_tensor[:, :, index_lid1]) ** 2,
+                                        axis=-1))
+                diag2 = torch.sqrt(torch.sum((input_tensor[:, :, index_lid3] - input_tensor[:, :, index_lid2]) ** 2,
+                                       axis = -1))
+                area = torch.mean(diag1 * diag2 / 2, axis=-1)
+                pupil_area = statistics.get('pupil_area', [])
+                pupil_area.extend(area.detach().cpu().numpy())
+                statistics['pupil_area'] = pupil_area
+
         hidden_array_.append(de_out.view(de_out.shape[0], de_out.shape[1] * de_out.shape[2]).detach().cpu().numpy())
 
     if len(label_) > 0:
@@ -302,9 +318,19 @@ def extract_hidden(model, data_loader, dataset_constants, model_cfg, device,
         print(label_.shape)
     else:
         label_ = np.array([])
+
+    if len(index_pos) > 0:
+        index_pos = np.concatenate(index_pos)
+        print(index_pos.shape)
+    else:
+        index_pos = np.array([])
+
+    if len(index_file) > 0:
+        index_file = np.concatenate(index_file)
+        print(index_file.shape)
+    else:
+        index_file = np.array([])
     hidden_array_ = np.vstack(hidden_array_)
-    index_pos = np.concatenate(index_pos)
-    index_file = np.concatenate(index_file)
     if compute_statistics:
         return hidden_array_, label_, index_file, index_pos, statistics
     else:
@@ -481,17 +507,19 @@ def plot_cluster_expression(df, scalar_columns, all_colors):
     g.ax_heatmap.tick_params(labelright=False, labelleft=True, right=False)
 
 
-def apply_kmeans(k, hi_train, hi_eval, df, proj_train, proj_eval, metadata_columns,
+def apply_kmeans(k, hi_train, hi_eval, hi_test, df, proj_train, proj_eval, metadata_columns,
                  outputfile=''):
     kmeans = KMeans(n_clusters=k, n_init=10).fit(hi_train)
 
     kmeans_clustering_train = kmeans.predict(hi_train)
     kmeans_clustering_eval = kmeans.predict(hi_eval)
+    kmeans_clustering_test = kmeans.predict(hi_test)
 
     # UMAP
     fig = plt.figure(figsize=(15, 9))
     plt.scatter(proj_train[:, 0], proj_train[:, 1], c=kmeans_clustering_train, cmap='Set2')
     plt.scatter(proj_eval[:, 0], proj_eval[:, 1], c=kmeans_clustering_eval, cmap='Set2', marker='v')
+    plt.scatter(proj_test[:, 0], proj_test[:, 1], c=kmeans_clustering_test, cmap='Set2', marker='*')
     plt.colorbar()
     plt.tight_layout()
 
@@ -499,7 +527,8 @@ def apply_kmeans(k, hi_train, hi_eval, df, proj_train, proj_eval, metadata_colum
     plt.close()
 
     # Build dataframe with cluster information and metadata info
-    df.loc[:, 'cluster'] = np.concatenate([kmeans_clustering_train, kmeans_clustering_eval])
+    df.loc[:, 'cluster'] = np.concatenate([kmeans_clustering_train, kmeans_clustering_eval,
+                                           kmeans_clustering_test])
 
     # Build a dataframe with percentage of each cluster per mouse x experiment
     df_gp = df.groupby(metadata_columns + ['cluster', 'train_or_test'])['cluster'].agg('count').rename('count').reset_index()
@@ -609,17 +638,18 @@ if __name__ == '__main__':
     p.add_argument("--stride", type=float, required=True, default='in seconds')
     p.add_argument("--suffix", type=str, default='_wmissing', help='string suffix added to the save files')
     p.add_argument("--dataset_name", type=str, default='', help='absolute path where to find datasets')
-    p.add_argument("--indep_keypoints", type=bool, default=False, help='number of k-means clusters')
-    p.add_argument("--merge_keypoints", type=bool, default=False, help='number of k-means clusters')
-    p.add_argument("--k", type=int, default=10, help='number of k-means clusters')
+    p.add_argument("--indep_keypoints", type=bool, default=False, help='option to prepare the data samples. See DISK '
+                                                                       'main documentation')
+    p.add_argument("--merge_keypoints", type=bool, default=False, help='option to prepare the data samples. See DISK '
+                                                                       'main documentation')
+    p.add_argument("--k", type=int, default=10, help='number of k-mean clusters')
+    p.add_argument("--metadata", type=str, help='additional metadata file')
     args = p.parse_args()
 
     model_path = os.path.join(args.project_path, 'DISK_train', args.model_name)
     with open(os.path.join(model_path, 'config', 'config_train.yaml'),
               'r') as config_file:
         model_cfg = yaml.safe_load(config_file)
-  # model_epoch to not take the model from the
-    # lastepoch
 
     dataset_path = os.path.join(args.project_path, 'DISK_data', args.dataset_name)
     dataset_constants = read_constant_file(os.path.join(dataset_path, 'constants.py'))
@@ -643,7 +673,7 @@ if __name__ == '__main__':
     suffix = f'_set_keypoints' if not indep_keypoints else ''
     if indep_keypoints:
         if merge_keypoints:
-            logger.info(f'️ℹ merge_keypoints = True is not a valid option when indep_keypoints = True. '
+            logger.info(f'️merge_keypoints = True is not a valid option when indep_keypoints = True. '
                         f'merge_keypoints would be considered False')
             suffix += f'_merged'
 
@@ -679,6 +709,7 @@ if __name__ == '__main__':
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     logger.info('Loading transformer model...')
     # load model
@@ -693,17 +724,26 @@ if __name__ == '__main__':
     ### DIRECT KNN ON SEQ2SEQ LATENT SPACE
     hi_train, label_train, index_file_train, index_pos_train, statistics_train = extract_hidden(model, train_loader, dataset_constants, model_cfg,
                                            device, compute_statistics=True)
-    time_train = train_dataset.possible_times
+    # possible_times are in seconds already, taking int account the freq
+    # here converting them in MINUTES
+    time_train = np.array(train_dataset.possible_times, dtype=float) / 60
     logger.info('Done with train hidden representation...')
 
     hi_eval, label_eval, index_file_eval, index_pos_eval, statistics_eval = extract_hidden(model, val_loader, dataset_constants, model_cfg,
                                          device, compute_statistics=True)
-    time_eval = val_dataset.possible_times
+    time_eval = np.array(val_dataset.possible_times, dtype=float) / 60
+    logger.info('Done with val hidden representation...')
+
+    hi_test, label_test, index_file_test, index_pos_test, statistics_test = extract_hidden(model, test_loader,
+                                                                                        dataset_constants, model_cfg,
+                                         device, compute_statistics=True)
+    time_test = np.array(test_dataset.possible_times, dtype=float) / 60
     logger.info('Done with val hidden representation...')
 
 
     logger.info(f'hidden eval vectors {hi_eval.shape}')
     logger.info(f'hidden train vectors {hi_train.shape}')
+    logger.info(f'hidden test vectors {hi_test.shape}')
 
 
     ##############################################################################################
@@ -715,18 +755,26 @@ if __name__ == '__main__':
         metadata_columns = []
     scalar_columns = list(statistics_train.keys()) if statistics_train is not None else []
 
-    # Create dataframe with metdata
+    # Create dataframe with metadata
     df = pd.DataFrame()
 
-    df.loc[:, 'train_or_test'] = np.concatenate([['train'] * hi_train.shape[0], ['eval'] * hi_eval.shape[0]])
+    df.loc[:, 'train_or_test'] = np.concatenate([['train'] * hi_train.shape[0],
+                                                 ['eval'] * hi_eval.shape[0],
+                                                 ['test'] * hi_test.shape[0]])
     df.loc[df['train_or_test'] == 'train', 'index_file'] = index_file_train
     df.loc[df['train_or_test'] == 'eval', 'index_file'] = index_file_eval
+    df.loc[df['train_or_test'] == 'test', 'index_file'] = index_file_test
     df.loc[df['train_or_test'] == 'train', 'index_pos'] = index_pos_train
     df.loc[df['train_or_test'] == 'eval', 'index_pos'] = index_pos_eval
+    df.loc[df['train_or_test'] == 'test', 'index_pos'] = index_pos_test
     for imc, mc in enumerate(metadata_columns):
+        if len(label_train) == 0 or label_train.shape[1] <= imc:
+            metadata_columns.remove(mc)
+            continue
         df.loc[df['train_or_test'] == 'train', mc] = label_train[:, imc]
         df.loc[df['train_or_test'] == 'eval', mc] = label_eval[:, imc]
-    df.loc[:, 'time'] = np.concatenate([time_train[:len(index_file_train)], time_eval])
+        df.loc[df['train_or_test'] == 'test', mc] = label_test[:, imc]
+    df.loc[:, 'time'] = np.concatenate([time_train[:len(index_file_train)], time_eval, time_test])
 
     if 'Mocap' in args.dataset_name and 'action' in df.columns:
         reverse_dict_label = {0: 'Walk', 1: 'Wash', 2: 'Run', 3: 'Jump', 4: 'Animal Behavior', 5: 'Dance',
@@ -738,6 +786,37 @@ if __name__ == '__main__':
         df.loc[:, 'action_str'] = df['action'].apply(lambda x: reverse_dict_label[int(x)])
         metadata_columns += ['action_str']
 
+    metadata_file = pd.read_csv(args.metadata).values
+    original_freq = 210
+    df.loc[df['train_or_test'] == 'train', 'ExpGlitch'] = [
+        np.sum(metadata_file[int(t * original_freq): int(t * original_freq +
+                                                                dataset_constants.SEQ_LENGTH)])
+        for t in train_dataset.possible_times]
+    # possible_times are in seconds
+    df.loc[df['train_or_test'] == 'eval', 'ExpGlitch'] = [
+        np.sum(metadata_file[int(t * original_freq): int(t * original_freq +
+                                                                dataset_constants.SEQ_LENGTH)])
+        for t in val_dataset.possible_times]
+    df.loc[df['train_or_test'] == 'test', 'ExpGlitch'] = [
+        np.sum(metadata_file[int(t * original_freq): int(t * original_freq +
+                                                                dataset_constants.SEQ_LENGTH)])
+        for t in test_dataset.possible_times]
+    metadata_columns += ['ExpGlitch']
+
+    df.loc[df['train_or_test'] == 'train', 'maxExpGlitch'] = [
+        np.max(metadata_file[int(t * original_freq): int(t * original_freq +
+                                                                dataset_constants.SEQ_LENGTH)])
+        for t in train_dataset.possible_times]
+    # possible_times are in seconds
+    df.loc[df['train_or_test'] == 'eval', 'maxExpGlitch'] = [
+        np.max(metadata_file[int(t * original_freq): int(t * original_freq +
+                                                                dataset_constants.SEQ_LENGTH)])
+        for t in val_dataset.possible_times]
+    df.loc[df['train_or_test'] == 'test', 'maxExpGlitch'] = [
+        np.max(metadata_file[int(t * original_freq): int(t * original_freq +
+                                                                dataset_constants.SEQ_LENGTH)])
+        for t in test_dataset.possible_times]
+    metadata_columns += ['maxExpGlitch']
 
     # get the representation per time
     bin_edges = np.arange(int(np.ceil(df['time'].max())) + 2) - 0.5
@@ -746,7 +825,7 @@ if __name__ == '__main__':
 
     if statistics_train is not None:
         for key in statistics_train.keys():
-            df.loc[:, key] = statistics_train[key] + statistics_eval[key]
+            df.loc[:, key] = statistics_train[key] + statistics_eval[key] + statistics_test[key]
 
     logger.info('Computing the umap projection')
 
@@ -768,13 +847,17 @@ if __name__ == '__main__':
     logger.info('Finished projecting on the train')
     proj_eval = myumap.transform(hi_eval)
     logger.info('Finished projecting on the eval')
+    proj_test = myumap.transform(hi_test)
+    logger.info('Finished projecting on the test')
     df.loc[df['train_or_test'] == 'train', ['umap_x', 'umap_y']] = proj_train
     df.loc[df['train_or_test'] == 'eval', ['umap_x', 'umap_y']] = proj_eval
+    df.loc[df['train_or_test'] == 'test', ['umap_x', 'umap_y']] = proj_test
 
     logger.info('Apply k-means...')
-    df, df_percent, cluster_centers = apply_kmeans(args.k, hi_train, hi_eval, df, proj_train, proj_eval, metadata_columns,
-                                                   outputfile=os.path.join(model_path,
-                                                   f'{args.dataset_name}_normed_train_umap_colors-kmeans_latent.png'))
+    df, df_percent, cluster_centers = apply_kmeans(args.k, hi_train, hi_eval, hi_test, df, proj_train, proj_eval,
+                                       metadata_columns,  outputfile=os.path.join(model_path,
+                                                   f'{args.dataset_name}_normed_train_umap_colors-kmeans_latent'
+                                                   f'{args.suffix}.png'))
 
     all_columns = metadata_columns + scalar_columns + ['time', 'train_or_test', 'cluster']
     logger.info(f'columns: {all_columns}')
@@ -784,11 +867,12 @@ if __name__ == '__main__':
     df.to_csv(os.path.join(model_path, f'{args.dataset_name}.csv'),
               index=False)
     columns = [c for c in df.columns if 'latent' not in c]
-    df[columns].to_csv(os.path.join(model_path, f'{args.dataset_name}_metadata.csv'),
+    df[columns].to_csv(os.path.join(model_path, f'{args.dataset_name}_metadata{args.suffix}.csv'),
               index=False)
-    np.save(os.path.join(model_path, f'{args.dataset_name}_latent_train'), hi_train)
-    # np.save(os.path.join(model_path, f'{args.dataset_name}_latent_eval'), hi_eval)
-    np.save(os.path.join(model_path, f'{args.dataset_name}_cluster_centers'), cluster_centers)
+    np.save(os.path.join(model_path, f'{args.dataset_name}_latent_train{args.suffix}'), hi_train)
+    np.save(os.path.join(model_path, f'{args.dataset_name}_latent_eval{args.suffix}'), hi_eval)
+    np.save(os.path.join(model_path, f'{args.dataset_name}_latent_test{args.suffix}'), hi_test)
+    np.save(os.path.join(model_path, f'{args.dataset_name}_cluster_centers{args.suffix}'), cluster_centers)
 
     ##############################################################################################
     ### With a fix value of kmeans, compute umap and "signature" plot

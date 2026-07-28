@@ -72,8 +72,8 @@ class ParentDataset(data.Dataset):
         with np.load(file, allow_pickle=True) as data:
             self.data_dict = {key: data[key] for key in data.files}
         self.X = self.data_dict['X']  # shape (batch, max_len, features)
-        if 'y' in self.data_dict.keys():
-            self.y = self.data_dict['y']
+        if 'label' in self.data_dict.keys():
+            self.y = self.data_dict['label']
         else:
             self.y = None
         if 'files' in self.data_dict.keys():
@@ -315,7 +315,7 @@ class FullLengthDataset(ParentDataset):
         possible_indices = []
         for i_file, file_time in enumerate(self.time):
             file_time = file_time[file_time > -1]
-            breakpoints = np.where(np.diff(file_time) > 1 / self.freq + 1e-9)[0]
+            breakpoints = np.where(np.diff(file_time) > 1 / self.freq + 5e-3)[0]
             if len(breakpoints) == 0 or (len(breakpoints) > 0 and breakpoints[0] != 0):
                 breakpoints = np.insert(breakpoints, 0, 0)  # add first point = index 0
             if -1 in file_time:
@@ -331,7 +331,7 @@ class FullLengthDataset(ParentDataset):
                 print('No long enough segments.')
 
             for index_good_segment in good_segments:
-                good_times = np.arange(breakpoints[index_good_segment] + 1,
+                good_times = np.arange(breakpoints[index_good_segment],# + 1,
                                        breakpoints[index_good_segment + 1] - self.length_sample, self.stride,
                                        dtype=int)
                 possible_indices.extend(np.vstack([[i_file] * len(good_times), good_times]).T)
@@ -352,6 +352,7 @@ class FullLengthDataset(ParentDataset):
                 y = np.array([self.y[i_file]])
         else:
             y = None
+
         m = self.mask[i_file, i_pos: i_pos + self.length_sample]
         z = np.array([self.length_sample])  # we add this to fit the other supervised dataset item format
         sample = {'x': x,
