@@ -680,7 +680,7 @@ if __name__ == '__main__':
     proba_files_exist, proba_file, proba_length_file = train_evaluate.find_proba_files(dataset_path, suffix)
     transforms = init_transforms(dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
                                  dataset_constants.SEQ_LENGTH, dataset_path, logger,
-                                 add_missing=True,
+                                 add_missing=False,
                                     add_missing_pad=(1, 1),
                                     proba_file=proba_file, proba_length_file=proba_length_file,
                                     indep_keypoints=indep_keypoints,)
@@ -702,6 +702,7 @@ if __name__ == '__main__':
         verbose=0,
         logger=logger,
         keypoints = dataset_constants.KEYPOINTS,
+        divider = dataset_constants.DIVIDER
     )
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

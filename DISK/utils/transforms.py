@@ -44,11 +44,11 @@ def init_transforms(
 
     if viewinvariant:
         transforms.append(ViewInvariant(proba=1, divider=divider, verbose=0, index_frame=int(length_input_seq / 2),
-                                        outputdir=outputdir))
+                                        outputdir=outputdir, logger=logger))
     if normalize:
-        transforms.append(Normalize(proba=1, divider=divider, verbose=0, outputdir=outputdir))
+        transforms.append(Normalize(proba=1, divider=divider, verbose=0, outputdir=outputdir, logger=logger))
     if normalizecube:
-        transforms.append(NormalizeCube(proba=1, divider=divider, verbose=0, outputdir=outputdir))
+        transforms.append(NormalizeCube(proba=1, divider=divider, verbose=0, outputdir=outputdir, logger=logger))
 
 
     return transforms
@@ -61,11 +61,12 @@ class Transform(object):
     because it corresponds to one sequence, one movement
     """
 
-    def __init__(self, proba, divider, verbose=0, outputdir='', **kwargs):
+    def __init__(self, proba, divider, verbose=0, outputdir='', logger=None, **kwargs):
         self.proba = proba
         self.verbose = verbose
         self.outputdir = outputdir
         self.divider = divider
+        self.logger = logger
 
     @staticmethod
     def apply_transform(x, *args):
