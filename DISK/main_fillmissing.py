@@ -153,6 +153,38 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
     else:
         file_output = open(os.path.join(model_dir, f'training_losses.txt'), 'w')
 
+    def check_causality(model, x, missing_mask, n_keypoints=None, divider=3, input_type='mixed', atol=1e-6):
+        model.eval()
+        with torch.no_grad():
+            input_tensor_with_holes = torch.cat([x[..., :divider],
+                                                     torch.unsqueeze(missing_mask, dim=-1)], dim=3)
+
+            input_tensor_with_holes[:, 1:, :] = input_tensor_with_holes[:, :-1, :].clone()
+            out1 = model(input_tensor_with_holes, missing_mask)
+
+            data2 = x[..., :divider].clone()
+            t_cut = input_tensor_with_holes.shape[1] // 2  # perturb the second half of the sequence
+            data2[:, t_cut:] = torch.randn_like(data2[:, t_cut:])  # large perturbation
+            data2[missing_mask.to(bool)] = 0
+            x2 = torch.cat([data2, torch.unsqueeze(missing_mask, dim=-1)], dim=3)
+            x2[:, 1:, :] = x2[:, :-1, :].clone()
+
+            out2 = model(x2, missing_mask)
+
+        if input_type == 'mixed':
+            early1, early2 = out1[:, :t_cut], out2[:, :t_cut]
+        else:
+            # independent encoding: reshape to (batch, time, keypoints, ...) first
+            out1_r = out1[0].view(out1[0].shape[0], model.proj_input.max_seq_len, n_keypoints, -1)
+            out2_r = out2[0].view(out2[0].shape[0], model.proj_input.max_seq_len, n_keypoints, -1)
+            early1, early2 = out1_r[:, :t_cut], out2_r[:, :t_cut]
+
+        max_diff = (early1 - early2).abs().max().item()
+        # print(f"Max diff in outputs before t={t_cut}: {max_diff}")
+        return torch.allclose(early1, early2, atol=atol), "LEAKAGE DETECTED: future perturbation changed past outputs"
+        print("✓ Causal — no leakage detected")
+
+
     ith_epoch = 0 # only used when the following for loop is degenerate
     for ith_epoch in range(start_epoch, start_epoch + training_epochs):
         ave_loss_train = 0
@@ -168,6 +200,11 @@ def train_fillmissing(project_dir, model_dir, dataset_path, skeleton_graph, trai
                 sys.exit(1)
             data_full = data_dict['x_supp'].to(device)
             mask_holes = data_dict['mask_holes'].to(device)
+
+            if ith_epoch == 0 and cfg_network['type'] == 'transformer':
+                assert check_causality(model, data_with_holes, mask_holes, n_keypoints=len(dataset_constants.KEYPOINTS),
+                                divider=dataset_constants.DIVIDER,
+                                input_type=cfg_network['input_type'])
 
             de_out, _, total_loss, loss_original, list_rmse = feed_forward(data_with_holes,
                                                                            mask_holes, dataset_constants.DIVIDER,

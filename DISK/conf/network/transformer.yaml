@@ -1,6 +1,7 @@
 type: 'transformer'
 input_type: 'independent'  # mixed or independent
 encoding: 'fixed'  # if input_type 'mixed'; 'fixed' or 'learnable', otherwise doesn't matter
+causal: True
 num_layers: 4
 dim_ff: 128
 d_model: 128

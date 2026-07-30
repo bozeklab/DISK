@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn.init import xavier_uniform_
 from DISK.models.transformer_utils import EncoderLayer, Normalization, LearnablePositionalEncoding, \
-    FixedPositionalEncoding
+    FixedPositionalEncoding, generate_causal_mask, generate_blockwise_causal_mask
 from DISK.models.distribution_head import NormalOutput
 
 
@@ -93,6 +93,15 @@ class TransformerModel(nn.Module):
             else:
                 self.out_linear = nn.Linear(self.d_model, output_size, bias=True).to(device)
 
+        causal = cfg_network.get('causal', False)
+        if causal:
+            if cfg_network['input_type'] == 'mixed':
+                self.causal_mask = generate_causal_mask(max_seq_len, device=device)
+            else:
+                self.causal_mask = generate_blockwise_causal_mask(max_seq_len, n_keypoints, device=device)
+        else:
+            self.causal_mask = None
+
         self.init_weights()
 
     def init_weights(self):
@@ -111,7 +120,7 @@ class TransformerModel(nn.Module):
         x = self.proj_input(x, missing_mask)
 
         for i in range(self.num_layers):
-            x = self.encoder_layers[i](x, key_padding_mask=key_padding_mask)
+            x = self.encoder_layers[i](x, key_padding_mask=key_padding_mask, attn_mask=self.causal_mask)
 
         if self.norm_first:
             x = self.final_norm(x)

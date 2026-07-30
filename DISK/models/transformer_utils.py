@@ -26,6 +26,20 @@ def _get_activation_fn(activation):
     raise ValueError("Given activation ({}) not supported".format(activation))
 
 
+def generate_causal_mask(seq_len: int, device: str = 'cpu'):
+    """For InputEncodingMixed: one token per timestep."""
+    # True = blocked from attending
+    return torch.triu(torch.ones(seq_len, seq_len, dtype=torch.bool, device=device), diagonal=1)
+
+
+def generate_blockwise_causal_mask(n_steps: int, n_keypoints: int, device: str = 'cpu'):
+    """For InputEncodingIndependent: n_keypoints tokens per timestep, laid out
+    time-major (t0k0, t0k1, ..., t0kN, t1k0, ...). A token can attend to any
+    keypoint at its own or an earlier timestep, but not future timesteps."""
+    time_idx = torch.arange(n_steps, device=device).repeat_interleave(n_keypoints)
+    # mask[i, j] = True (blocked) if j's timestep is after i's timestep
+    return time_idx.unsqueeze(1) < time_idx.unsqueeze(0)
+
 class FixedPositionalEncoding(nn.Module):
     def __init__(self, d_model, max_len=1000, device='cpu'):
         super(FixedPositionalEncoding, self).__init__()
@@ -106,12 +120,12 @@ class EncoderLayer(nn.Module):
         self.self_attention = _get_attn_block(attn_type=attn_type, d_model=d_model, num_heads=num_heads)
         self.ffn = FeedForward(d_model, dim_ff, activation)
 
-    def forward(self, x, key_padding_mask=None):
+    def forward(self, x, key_padding_mask=None, attn_mask=None):
         if self.norm_first:
-            x = x + self.self_attention(self.norm1(x), key_padding_mask=key_padding_mask)
+            x = x + self.self_attention(self.norm1(x), key_padding_mask=key_padding_mask, attn_mask=attn_mask)
             x = x + self.ffn(self.norm2(x))
         else:
-            x = self.norm1(x + self.self_attention(x, key_padding_mask=key_padding_mask))
+            x = self.norm1(x + self.self_attention(x, key_padding_mask=key_padding_mask, attn_mask=attn_mask))
             x = self.norm2(x + self.ffn(x))
 
         return x
