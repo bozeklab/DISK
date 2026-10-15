@@ -787,36 +787,32 @@ if __name__ == '__main__':
         df.loc[:, 'action_str'] = df['action'].apply(lambda x: reverse_dict_label[int(x)])
         metadata_columns += ['action_str']
 
-    metadata_file = pd.read_csv(args.metadata).values
+    """
+    args.metadata should give the sufix / pattern to find the the csv file
+    dataset.files should give us the path / identity of data file to find the corresponding csv file
+    need loop on datasets, then on files in dataset
+    """
     original_freq = 210
-    df.loc[df['train_or_test'] == 'train', 'ExpGlitch'] = [
-        np.sum(metadata_file[int(t * original_freq): int(t * original_freq +
-                                                                dataset_constants.SEQ_LENGTH)])
-        for t in train_dataset.possible_times]
-    # possible_times are in seconds
-    df.loc[df['train_or_test'] == 'eval', 'ExpGlitch'] = [
-        np.sum(metadata_file[int(t * original_freq): int(t * original_freq +
-                                                                dataset_constants.SEQ_LENGTH)])
-        for t in val_dataset.possible_times]
-    df.loc[df['train_or_test'] == 'test', 'ExpGlitch'] = [
-        np.sum(metadata_file[int(t * original_freq): int(t * original_freq +
-                                                                dataset_constants.SEQ_LENGTH)])
-        for t in test_dataset.possible_times]
-    metadata_columns += ['ExpGlitch']
+    for id_dataset, dataset in zip(['train', 'eval', 'test'],
+                                   [train_dataset, val_dataset, test_dataset]):
+        for index_file in df.loc[df['train_or_test'] == id_dataset, 'index_file'].unique():
+            data_file_folder = os.path.dirname(dataset.files[int(index_file)])
+            metadata_file_path = glob(os.path.join(data_file_folder, f'*{args.metadata}.csv'))[0]
+            metadata_file = pd.read_csv(metadata_file_path).values
 
-    df.loc[df['train_or_test'] == 'train', 'maxExpGlitch'] = [
-        np.max(metadata_file[int(t * original_freq): int(t * original_freq +
-                                                                dataset_constants.SEQ_LENGTH)])
-        for t in train_dataset.possible_times]
-    # possible_times are in seconds
-    df.loc[df['train_or_test'] == 'eval', 'maxExpGlitch'] = [
-        np.max(metadata_file[int(t * original_freq): int(t * original_freq +
-                                                                dataset_constants.SEQ_LENGTH)])
-        for t in val_dataset.possible_times]
-    df.loc[df['train_or_test'] == 'test', 'maxExpGlitch'] = [
-        np.max(metadata_file[int(t * original_freq): int(t * original_freq +
-                                                                dataset_constants.SEQ_LENGTH)])
-        for t in test_dataset.possible_times]
+            df.loc[(df['train_or_test'] == id_dataset) * (df['index_file'] == index_file), 'ExpGlitch'] = [
+                np.sum(metadata_file[int(dataset.possible_times[ii] * original_freq):
+                                     int(dataset.possible_times[ii] * original_freq + dataset_constants.SEQ_LENGTH)])
+                for ii, (i_f, _) in enumerate(dataset.possible_indices) if i_f == int(index_file)]
+            # possible_times are in seconds
+
+            df.loc[(df['train_or_test'] == id_dataset) * (df['index_file'] == index_file), 'maxExpGlitch'] = [
+                np.max(metadata_file[int(dataset.possible_times[ii] * original_freq):
+                                     int(dataset.possible_times[ii] * original_freq + dataset_constants.SEQ_LENGTH)])
+                for ii, (i_f, _) in enumerate(dataset.possible_indices) if i_f == int(index_file)]
+            # possible_times are in seconds
+
+    metadata_columns += ['ExpGlitch']
     metadata_columns += ['maxExpGlitch']
 
     # get the representation per time
