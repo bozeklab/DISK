@@ -814,6 +814,7 @@ if __name__ == '__main__':
 
     metadata_columns += ['ExpGlitch']
     metadata_columns += ['maxExpGlitch']
+    metadata_columns += ['index_file']
 
     # get the representation per time
     bin_edges = np.arange(int(np.ceil(df['time'].max())) + 2) - 0.5
