@@ -314,6 +314,7 @@ class FullLengthDataset(ParentDataset):
         self.logger.debug('calling get_possible_indices from FullLengthDataset')
         possible_indices = []
         for i_file, file_time in enumerate(self.time):
+            breakpoint()
             file_time = file_time[file_time > -1]
             breakpoints = np.where(np.diff(file_time) > 1 / self.freq + 5e-3)[0]
             if len(breakpoints) == 0 or (len(breakpoints) > 0 and breakpoints[0] != 0):
