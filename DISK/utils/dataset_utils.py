@@ -332,7 +332,7 @@ class FullLengthDataset(ParentDataset):
 
             for index_good_segment in good_segments:
                 good_times = np.arange(breakpoints[index_good_segment],# + 1,
-                                       breakpoints[index_good_segment + 1] - self.length_sample, self.stride,
+                                       max(1, breakpoints[index_good_segment + 1] - self.length_sample), self.stride,
                                        dtype=int)
                 possible_indices.extend(np.vstack([[i_file] * len(good_times), good_times]).T)
                 breakpoint()
