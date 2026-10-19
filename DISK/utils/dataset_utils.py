@@ -335,7 +335,6 @@ class FullLengthDataset(ParentDataset):
                                        max(1, breakpoints[index_good_segment + 1] - self.length_sample), self.stride,
                                        dtype=int)
                 possible_indices.extend(np.vstack([[i_file] * len(good_times), good_times]).T)
-                breakpoint()
         return np.array(possible_indices)  # should be (n, 2)
 
     def __len__(self):
