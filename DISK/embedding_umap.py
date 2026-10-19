@@ -428,7 +428,7 @@ def plot_big_matrix(big_matrix, n_second_per_first, first_labels, col_first, tra
 def plot_umaps(df, all_columns, outputdir, dataset_name, suffix):
 
     for label_name in all_columns:
-        logger.info(f'drawing umap with colors = {label_name}')
+        print(f'drawing umap with colors = {label_name}')
 
         fig = px.scatter(df, x='umap_x', y='umap_y', color=label_name,
                          hover_data=all_columns + ['train_or_test'])
@@ -445,7 +445,7 @@ def plot_umaps(df, all_columns, outputdir, dataset_name, suffix):
         plt.savefig(os.path.join(outputdir, f'{dataset_name}_normed_umap_colors-{label_name}_latent{suffix}.svg'))
 
 
-    logger.info(f'drawing umap overview')
+    print(f'drawing umap overview')
     ncols = int(np.sqrt(len(all_columns)))
     nrows = int(np.ceil(len(all_columns) / ncols))
     fig, ax = plt.subplots(nrows, ncols, figsize=(20, 15), sharex='all', sharey='all')
@@ -673,7 +673,7 @@ if __name__ == '__main__':
     suffix = f'_set_keypoints' if not indep_keypoints else ''
     if indep_keypoints:
         if merge_keypoints:
-            logger.info(f'️merge_keypoints = True is not a valid option when indep_keypoints = True. '
+            print(f'️merge_keypoints = True is not a valid option when indep_keypoints = True. '
                         f'merge_keypoints would be considered False')
             suffix += f'_merged'
 
@@ -685,7 +685,7 @@ if __name__ == '__main__':
                                     proba_file=proba_file, proba_length_file=proba_length_file,
                                     indep_keypoints=indep_keypoints,)
 
-    logger.info('Loading datasets...')
+    print('Loading datasets...')
     train_dataset, val_dataset, test_dataset = load_datasets(
         dataset_path=dataset_path,
         dataset_constants=dataset_constants,
@@ -706,45 +706,45 @@ if __name__ == '__main__':
     )
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    logger.info("Device: {}".format(device))
+    print("Device: {}".format(device))
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
-    logger.info('Loading transformer model...')
+    print('Loading transformer model...')
     # load model
     model = construct_NN_model(model_cfg['network'], dataset_constants.KEYPOINTS, dataset_constants.DIVIDER,
                                dataset_constants.SEQ_LENGTH,
                                skeleton_file_path, device)
-    logger.info(f'Network constructed')
+    print(f'Network constructed')
 
     load_checkpoint(model, None, glob(os.path.join(model_path, 'model_epoch*'))[0], device, logger)
 
-    logger.info('Extract hidden representation...')
+    print('Extract hidden representation...')
     ### DIRECT KNN ON SEQ2SEQ LATENT SPACE
     hi_train, label_train, index_file_train, index_pos_train, statistics_train = extract_hidden(model, train_loader, dataset_constants, model_cfg,
                                            device, compute_statistics=True)
     # possible_times are in seconds already, taking int account the freq
     # here converting them in MINUTES
     time_train = np.array(train_dataset.possible_times, dtype=float) / 60
-    logger.info('Done with train hidden representation...')
+    print('Done with train hidden representation...')
 
     hi_eval, label_eval, index_file_eval, index_pos_eval, statistics_eval = extract_hidden(model, val_loader, dataset_constants, model_cfg,
                                          device, compute_statistics=True)
     time_eval = np.array(val_dataset.possible_times, dtype=float) / 60
-    logger.info('Done with val hidden representation...')
+    print('Done with val hidden representation...')
 
     hi_test, label_test, index_file_test, index_pos_test, statistics_test = extract_hidden(model, test_loader,
                                                                                         dataset_constants, model_cfg,
                                          device, compute_statistics=True)
     time_test = np.array(test_dataset.possible_times, dtype=float) / 60
-    logger.info('Done with val hidden representation...')
+    print('Done with val hidden representation...')
 
 
-    logger.info(f'hidden eval vectors {hi_eval.shape}')
-    logger.info(f'hidden train vectors {hi_train.shape}')
-    logger.info(f'hidden test vectors {hi_test.shape}')
+    print(f'hidden eval vectors {hi_eval.shape}')
+    print(f'hidden train vectors {hi_train.shape}')
+    print(f'hidden test vectors {hi_test.shape}')
 
 
     ##############################################################################################
@@ -824,7 +824,7 @@ if __name__ == '__main__':
         for key in statistics_train.keys():
             df.loc[:, key] = statistics_train[key] + statistics_eval[key] + statistics_test[key]
 
-    logger.info('Computing the umap projection')
+    print('Computing the umap projection')
 
     for _ in range(3):
         gc.collect()
@@ -835,32 +835,32 @@ if __name__ == '__main__':
     else:
         vect2project = np.array(hi_train)
     myumap.fit(vect2project)
-    logger.info('Finished projecting')
+    print('Finished projecting')
 
     for _ in range(3):
         gc.collect()
 
     proj_train = myumap.transform(hi_train)
-    logger.info('Finished projecting on the train')
+    print('Finished projecting on the train')
     proj_eval = myumap.transform(hi_eval)
-    logger.info('Finished projecting on the eval')
+    print('Finished projecting on the eval')
     proj_test = myumap.transform(hi_test)
-    logger.info('Finished projecting on the test')
+    print('Finished projecting on the test')
     df.loc[df['train_or_test'] == 'train', ['umap_x', 'umap_y']] = proj_train
     df.loc[df['train_or_test'] == 'eval', ['umap_x', 'umap_y']] = proj_eval
     df.loc[df['train_or_test'] == 'test', ['umap_x', 'umap_y']] = proj_test
 
-    logger.info('Apply k-means...')
+    print('Apply k-means...')
     df, df_percent, cluster_centers = apply_kmeans(args.k, hi_train, hi_eval, hi_test, df, proj_train, proj_eval,
                                        metadata_columns,  outputfile=os.path.join(model_path,
                                                    f'{args.dataset_name}_normed_train_umap_colors-kmeans_latent'
                                                    f'{args.suffix}.png'))
 
     all_columns = metadata_columns + scalar_columns + ['time', 'train_or_test', 'cluster']
-    logger.info(f'columns: {all_columns}')
+    print(f'columns: {all_columns}')
     plot_umaps(df, all_columns, model_path, args.dataset_name, args.suffix)
 
-    logger.info('Saving data in csv and npy')
+    print('Saving data in csv and npy')
     df.to_csv(os.path.join(model_path, f'{args.dataset_name}.csv'),
               index=False)
     columns = [c for c in df.columns if 'latent' not in c]
